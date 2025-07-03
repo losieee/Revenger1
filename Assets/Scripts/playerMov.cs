@@ -13,6 +13,8 @@ public class PlayerMov : MonoBehaviour
 
     private Vector3 moveInput;
     private Vector3 currentMoveInput;
+    private float lastFixedSpeed = 0f;
+    private Vector3 lastFixedPosition;
 
     private bool isRunning;
 
@@ -30,14 +32,50 @@ public class PlayerMov : MonoBehaviour
     private float velY = 0f;
     private float smoothTime = 0.05f;
 
+    //벽타기 관련
+    public float climbDuration = 3.25f;
+    public float climbCheckDistance = 2.0f; // 박스 감지 거리
+    public LayerMask climbableLayer;        // 감지할 레이어
+
+    private bool isClimbing = false;
+    private Vector3 climbStartPos;
+    private Vector3 climbTargetPos;
+    private Quaternion climbStartRot;
+    private Quaternion climbTargetRot;
+    private float climbTimer = 0f;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
+        lastFixedPosition = rb.position;
     }
 
     void Update()
     {
+        if (isClimbing)
+        {
+            climbTimer += Time.deltaTime;
+            float t = Mathf.Clamp01(climbTimer / climbDuration);
+
+            Vector3 pose = Vector3.Lerp(climbStartPos, climbTargetPos, t);
+            pose.y = Mathf.Lerp(climbStartPos.y, climbTargetPos.y, t);
+
+            transform.position = pose;
+            transform.rotation = Quaternion.Slerp(climbStartRot, climbTargetRot, t);
+
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+
+            if (t >= 1f)
+            {
+                isClimbing = false;
+                rb.isKinematic = false;
+            }
+            return;
+        }
+
         isRunning = Input.GetKey(KeyCode.LeftShift);
         bool isAlt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
@@ -106,8 +144,25 @@ public class PlayerMov : MonoBehaviour
         animator.SetFloat("MoveX", moveX);
         animator.SetFloat("MoveY", moveY);
 
-        float targetSpeed = isRunning ? 1f : (currentMoveInput.magnitude > 0.1f ? 0.5f : 0f);
-        animator.SetFloat("Speed", targetSpeed, 0.05f, Time.deltaTime);
+        // 원하는 기준 속도(0.05 이하이면 멈춘 걸로 간주)
+        float speedParam = 0f;
+        if (lastFixedSpeed > 0.05f)
+        {
+            speedParam = isRunning ? 1f : 0.5f;
+        }
+        else
+        {
+            speedParam = 0f;
+        }
+
+        animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
+
+        // 움직임 없으면 MoveX, MoveY도 0으로
+        if (speedParam == 0f)
+        {
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+        }
 
         // 회전
         if (currentMoveInput.sqrMagnitude > 0.001f)
@@ -128,12 +183,58 @@ public class PlayerMov : MonoBehaviour
         {
             justReleasedAlt = false;
         }
+
+        //space를 눌러 벽 타기
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
+            if (Physics.Raycast(ray, out RaycastHit hit, climbCheckDistance, climbableLayer))
+            {
+                StartClimb(hit);
+            }
+        }
     }
 
     void FixedUpdate()
     {
+        if (isClimbing)
+        {
+            lastFixedSpeed = 0f;
+            lastFixedPosition = rb.position;
+            return;
+        }
+
         float moveSpeed = isRunning ? speed * runSpeed : speed;
         Vector3 move = currentMoveInput * moveSpeed * Time.fixedDeltaTime;
-        rb.MovePosition(rb.position + move);
+
+        Vector3 newPos = rb.position + move;
+
+        rb.MovePosition(newPos);
+
+        // 실제로 이동한 거리 측정
+        float movedDistance = (newPos - lastFixedPosition).magnitude;
+        lastFixedSpeed = movedDistance / Time.fixedDeltaTime;
+
+        // 현재 위치를 다음 프레임을 위해 저장
+        lastFixedPosition = newPos;
+    }
+    void StartClimb(RaycastHit hit)
+    {
+        isClimbing = true;
+        climbTimer = 0f;
+
+        rb.isKinematic = true;
+
+        climbStartPos = transform.position;
+        climbStartRot = transform.rotation;
+
+        Bounds bounds = hit.collider.bounds;
+        Vector3 topPoint = new Vector3(hit.point.x, bounds.max.y, hit.point.z);
+        Vector3 ledgeOffset = -hit.normal * 0.3f;
+
+        climbTargetPos = topPoint + ledgeOffset;
+        climbTargetRot = Quaternion.LookRotation(-hit.normal);
+
+        animator.SetTrigger("Climb");
     }
 }
