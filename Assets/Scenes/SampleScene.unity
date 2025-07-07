@@ -495,9 +495,10 @@ GameObject:
   - component: {fileID: 416734666}
   - component: {fileID: 416734665}
   - component: {fileID: 416734664}
+  - component: {fileID: 416734668}
   m_Layer: 3
   m_Name: Cube (1)
-  m_TagString: Untagged
+  m_TagString: ClimbZone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -588,6 +589,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &416734668
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 416734663}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.13, y: 0.09, z: 1.16}
+  m_Center: {x: 0, y: -0.45, z: 0}
 --- !u!1 &805327120
 GameObject:
   m_ObjectHideFlags: 0
@@ -600,9 +622,10 @@ GameObject:
   - component: {fileID: 805327123}
   - component: {fileID: 805327122}
   - component: {fileID: 805327121}
+  - component: {fileID: 805327125}
   m_Layer: 3
   m_Name: Cube (2)
-  m_TagString: Untagged
+  m_TagString: ClimbZone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -693,6 +716,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &805327125
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 805327120}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.35, y: 0.09, z: 1.07}
+  m_Center: {x: 0, y: -0.45, z: 0}
 --- !u!1 &1367335270
 GameObject:
   m_ObjectHideFlags: 0
@@ -811,9 +855,10 @@ GameObject:
   - component: {fileID: 1489133611}
   - component: {fileID: 1489133610}
   - component: {fileID: 1489133609}
+  - component: {fileID: 1489133613}
   m_Layer: 3
   m_Name: Cube
-  m_TagString: Untagged
+  m_TagString: ClimbZone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -897,13 +942,34 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1489133608}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 1.0649, z: 6.58}
   m_LocalScale: {x: 1, y: 2.1302154, z: 4.0946}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!65 &1489133613
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1489133608}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.5, y: 0.09, z: 1.11}
+  m_Center: {x: 0, y: -0.45, z: 0}
 --- !u!1 &1552229354
 GameObject:
   m_ObjectHideFlags: 0
@@ -916,9 +982,10 @@ GameObject:
   - component: {fileID: 1552229357}
   - component: {fileID: 1552229356}
   - component: {fileID: 1552229355}
+  - component: {fileID: 1552229359}
   m_Layer: 3
   m_Name: Cube (3)
-  m_TagString: Untagged
+  m_TagString: ClimbZone
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1009,6 +1076,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1552229359
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552229354}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.23, y: 0.09, z: 1.07}
+  m_Center: {x: 0, y: -0.45, z: 0}
 --- !u!1 &1816884326
 GameObject:
   m_ObjectHideFlags: 0

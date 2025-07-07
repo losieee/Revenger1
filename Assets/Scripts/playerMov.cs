@@ -17,6 +17,8 @@ public class PlayerMov : MonoBehaviour
     private Vector3 lastFixedPosition;
 
     private bool isRunning;
+    private bool canClimbZone = false;
+    private bool isGrounded = true;
 
     // Alt 기준 벡터 저장
     private Vector3 savedForward;
@@ -120,21 +122,26 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 이동 입력
-        Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
-
-        // 즉시 반응 Lerp
-        float lerpSpeed = 15f;
-        if (Vector3.Dot(currentMoveInput, targetMoveInput) < -0.1f)
+        if (isGrounded)
         {
-            lerpSpeed = 7f;
+            Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
+
+            // 즉시 반응 Lerp
+            float lerpSpeed = 15f;
+            if (Vector3.Dot(currentMoveInput, targetMoveInput) < -0.1f)
+                lerpSpeed = 7f;
+            currentMoveInput = Vector3.Lerp(currentMoveInput, targetMoveInput, Time.deltaTime * lerpSpeed);
+
+            // Deadzone
+            if (currentMoveInput.magnitude < 0.05f)
+                currentMoveInput = Vector3.zero;
         }
-        currentMoveInput = Vector3.Lerp(currentMoveInput, targetMoveInput, Time.deltaTime * lerpSpeed);
-
-        // Deadzone
-        if (currentMoveInput.magnitude < 0.05f)
+        else
         {
+            // 공중에서는 이동 입력 차단
             currentMoveInput = Vector3.zero;
         }
+
 
         // 애니메이션 파라미터
         Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
@@ -146,7 +153,7 @@ public class PlayerMov : MonoBehaviour
 
         // 원하는 기준 속도(0.05 이하이면 멈춘 걸로 간주)
         float speedParam = 0f;
-        if (lastFixedSpeed > 0.05f)
+        if (isGrounded && currentMoveInput.magnitude > 0.05f)
         {
             speedParam = isRunning ? 1f : 0.5f;
         }
@@ -154,7 +161,6 @@ public class PlayerMov : MonoBehaviour
         {
             speedParam = 0f;
         }
-
         animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
 
         // 움직임 없으면 MoveX, MoveY도 0으로
@@ -185,12 +191,12 @@ public class PlayerMov : MonoBehaviour
         }
 
         //space를 눌러 벽 타기
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && canClimbZone)
         {
             Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hit, climbCheckDistance, climbableLayer))
+            if (Physics.Raycast(ray, out RaycastHit wall, climbCheckDistance, climbableLayer))
             {
-                StartClimb(hit);
+                StartClimb(wall);
             }
         }
     }
@@ -204,6 +210,14 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
+        // 공중이면 이동 막기
+        if (!isGrounded)
+        {
+            lastFixedSpeed = 0f;
+            lastFixedPosition = rb.position;
+            return;
+        }
+        
         float moveSpeed = isRunning ? speed * runSpeed : speed;
         Vector3 move = currentMoveInput * moveSpeed * Time.fixedDeltaTime;
 
@@ -236,5 +250,29 @@ public class PlayerMov : MonoBehaviour
         climbTargetRot = Quaternion.LookRotation(-hit.normal);
 
         animator.SetTrigger("Climb");
+    }
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("ClimbZone"))
+        {
+            canClimbZone = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("ClimbZone"))
+        {
+            canClimbZone = false;
+        }
+    }
+    private void OnCollisionStay(Collision collision)
+    {
+        isGrounded = true;
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        isGrounded = false;
     }
 }
