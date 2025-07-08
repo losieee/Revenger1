@@ -132,8 +132,8 @@ GameObject:
   m_Component:
   - component: {fileID: 62681432}
   - component: {fileID: 62681435}
-  - component: {fileID: 62681434}
   - component: {fileID: 62681433}
+  - component: {fileID: 62681436}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -184,8 +184,29 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!136 &62681434
-CapsuleCollider:
+--- !u!114 &62681435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 62681431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1506ffff343925f40b9e913810d64ec9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 1.5
+  rotSpeed: 5
+  runSpeed: 3
+  cameraPivot: {fileID: 1816884328}
+  climbDuration: 3.8
+  climbCheckDistance: 2
+  climbableLayer:
+    serializedVersion: 2
+    m_Bits: 8
+--- !u!65 &62681436
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -202,32 +223,9 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.2
-  m_Height: 1.5
-  m_Direction: 1
-  m_Center: {x: 0, y: 0.7, z: 0}
---- !u!114 &62681435
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 62681431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1506ffff343925f40b9e913810d64ec9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 1.5
-  rotSpeed: 5
-  cameraPivot: {fileID: 1816884328}
-  runSpeed: 3
-  climbDuration: 3.8
-  climbCheckDistance: 2
-  climbableLayer:
-    serializedVersion: 2
-    m_Bits: 8
+  serializedVersion: 3
+  m_Size: {x: 0.3, y: 1.5, z: 0.3}
+  m_Center: {x: 0, y: 0.75, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -749,7 +747,7 @@ GameObject:
   - component: {fileID: 1367335273}
   - component: {fileID: 1367335272}
   - component: {fileID: 1367335271}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Plane
   m_TagString: Untagged
   m_Icon: {fileID: 0}
