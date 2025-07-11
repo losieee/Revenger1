@@ -121,9 +121,11 @@ public class PlayerMov : MonoBehaviour
             currentMoveInput = Vector3.Lerp(currentMoveInput, targetMoveInput, Time.deltaTime * lerpSpeed);
             if (currentMoveInput.magnitude < 0.05f) currentMoveInput = Vector3.zero;
         }
-        else if (rb.velocity.y < -0.1f)
+        else
         {
-            currentMoveInput = Vector3.zero;
+            Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
+            float lerpSpeed = 5f;
+            currentMoveInput = Vector3.Lerp(currentMoveInput, targetMoveInput, Time.deltaTime * lerpSpeed);
         }
 
         // 애니메이션 파라미터
@@ -167,8 +169,16 @@ public class PlayerMov : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping)
         {
             isJumping = true;
-            rb.velocity = new Vector3(rb.velocity.x, jumpForce, rb.velocity.z);
             animator.SetBool("IsJumping", true);
+
+            Vector3 jumpDirection = currentMoveInput.normalized;
+            float groundSpeed = isRunning ? speed * runSpeed : speed;
+            float jumpForwardSpeed = (currentMoveInput.magnitude > 0.1f) ? groundSpeed * 0.4f : 0f;
+
+            Vector3 velocity = jumpDirection * jumpForwardSpeed;
+            velocity.y = jumpForce;
+
+            rb.velocity = velocity;
         }
 
         // 낙하 감지
@@ -204,8 +214,7 @@ public class PlayerMov : MonoBehaviour
 
     void FixedUpdate()
     {
-        bool shouldBlockMovement =
-            isClimbing || isLanding || isJumping || (!isGrounded && verticalVelocity < -0.1f);
+        bool shouldBlockMovement = isClimbing || isLanding;
 
         if (shouldBlockMovement)
         {
@@ -215,8 +224,11 @@ public class PlayerMov : MonoBehaviour
         }
 
         float moveSpeed = isRunning ? speed * runSpeed : speed;
-        Vector3 move = currentMoveInput * moveSpeed * Time.fixedDeltaTime;
+        float airMoveMultiplier = isGrounded ? 1f : 0.5f;
+
+        Vector3 move = currentMoveInput * moveSpeed * airMoveMultiplier * Time.fixedDeltaTime;
         Vector3 newPos = rb.position + move;
+
         rb.MovePosition(newPos);
 
         float movedDistance = (newPos - lastFixedPosition).magnitude;
