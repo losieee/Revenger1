@@ -39,7 +39,7 @@ public class PlayerMov : MonoBehaviour
     private float verticalVelocity = 0f;
     private bool isLanding = false;
     private float landingTimer = 0f;
-    private float landingDelay = 0.4f;
+    private float landingDelay = 0.6f;
     private bool isGrounded = true;
     private bool wasGroundedLastFrame = true;
 
@@ -171,11 +171,14 @@ public class PlayerMov : MonoBehaviour
             isJumping = true;
             animator.SetBool("IsJumping", true);
 
-            Vector3 jumpDirection = currentMoveInput.normalized;
+            Vector3 velocity = rb.velocity;
+            Vector3 jumpDir = currentMoveInput.sqrMagnitude > 0.01f ? currentMoveInput.normalized : transform.forward;
             float groundSpeed = isRunning ? speed * runSpeed : speed;
-            float jumpForwardSpeed = (currentMoveInput.magnitude > 0.1f) ? groundSpeed * 0.4f : 0f;
+            float jumpForwardSpeed = (currentMoveInput.magnitude > 0.1f) ? groundSpeed * 0.4f : groundSpeed * 0.2f;
 
-            Vector3 velocity = jumpDirection * jumpForwardSpeed;
+            // 기존 속도 유지 + 덧붙이기
+            velocity.x = jumpDir.x * jumpForwardSpeed;
+            velocity.z = jumpDir.z * jumpForwardSpeed;
             velocity.y = jumpForce;
 
             rb.velocity = velocity;
@@ -214,7 +217,7 @@ public class PlayerMov : MonoBehaviour
 
     void FixedUpdate()
     {
-        bool shouldBlockMovement = isClimbing || isLanding;
+        bool shouldBlockMovement = isClimbing || (isLanding && isGrounded);
 
         if (shouldBlockMovement)
         {
@@ -290,5 +293,9 @@ public class PlayerMov : MonoBehaviour
             isLanding = true;
             landingTimer = landingDelay;
         }
+    }
+    public void OnJumpingDownComplete()
+    {
+        isLanding = false;
     }
 }
