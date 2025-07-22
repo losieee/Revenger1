@@ -22,8 +22,11 @@ public class AnimationCtl : MonoBehaviour
     {
         if (player != null)
             player.MoveForwardAfterClimb(0.5f,0.38f);
+    }
 
-        player.rb.isKinematic = false;
-        player.rb.useGravity = true;
+    public void OnClimbEnd()
+    {
+        if (player != null)
+            player.OnClimbEnd();
     }
 }

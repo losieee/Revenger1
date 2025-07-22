@@ -34,8 +34,10 @@ public class PlayerMov : MonoBehaviour
     private bool canStartClimb = false;
     private bool isLerpingHoldOffset = false;
     private Vector3 holdLerpStartPos, holdLerpTargetPos;
+    private Quaternion holdLerpStartRot, holdLerpTargetRot;
     private float holdLerpTimer = 0f;
     private float holdLerpDuration = 0.1f;
+    private Vector3 holdingStartPos; // 매달리기 시작 시 위치 저장
 
     private Vector3 climbStartPos, climbTargetPos;
     private Quaternion climbStartRot, climbTargetRot;
@@ -51,6 +53,8 @@ public class PlayerMov : MonoBehaviour
     private float landingDelay = 0.6f;
     private bool isGrounded = true;
     private bool wasGroundedLastFrame = true;
+    private float jumpCooldown = 1.9f; // 점프 쿨타임
+    private float jumpCooldownTimer = 0f;
 
     // Alt 이동
     private Vector3 savedForward, savedRight;
@@ -68,46 +72,39 @@ public class PlayerMov : MonoBehaviour
     {
         collisionGrounded = false;
 
-        // 바닥 체크
-        isGrounded = Mathf.Abs(rb.velocity.y) < 0.05f;
+        // 바닥 감지 - SphereCast 방식
+        isGrounded = CheckGrounded();
 
-        //벽 붙은 상태에서 애니메이션 이벤트로 위로 이동
+        // 벽 붙은 상태 처리
         if (isLerpingHoldOffset)
         {
             holdLerpTimer += Time.deltaTime;
             float t = Mathf.Clamp01(holdLerpTimer / holdLerpDuration);
             transform.position = Vector3.Lerp(holdLerpStartPos, holdLerpTargetPos, t);
-
-            if (t >= 1f)
-                isLerpingHoldOffset = false;
-
-            return; // 다른 동작 차단
-
-        }
-        // 벽에 붙은 상태(Holding)
-        if (isHolding)
-        {
-            // 이동 차단
-            animator.SetFloat("MoveX", 0f);
-            animator.SetFloat("MoveY", 0f);
-            animator.SetFloat("Speed", 0f);
-
-            // 벽에 붙어있는 상태에서 Climb 시도
-            if (Input.GetKeyDown(KeyCode.Space) && canStartClimb)
-            {
-                StartClimbFromHold(0.54f);
-            }
-
+            transform.rotation = Quaternion.Slerp(holdLerpStartRot, holdLerpTargetRot, t);
+            if (t >= 1f) isLerpingHoldOffset = false;
             return;
         }
 
-        // Climb 상태 처리
+        if (isHolding)
+        {
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+            if (Input.GetKeyDown(KeyCode.Space) && canStartClimb)
+                StartClimbFromHold(0.52f);
+            return;
+        }
+
         if (isClimbing)
         {
             climbTimer += Time.deltaTime;
             float t = Mathf.Clamp01(climbTimer / climbDuration);
             transform.position = Vector3.Lerp(climbStartPos, climbTargetPos, t);
             transform.rotation = Quaternion.Slerp(climbStartRot, climbTargetRot, t);
+
+            // climb 중 입력 무시
+            currentMoveInput = Vector3.zero;
 
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
@@ -117,6 +114,8 @@ public class PlayerMov : MonoBehaviour
             {
                 isClimbing = false;
                 rb.isKinematic = false;
+                rb.velocity = Vector3.zero;
+                lastFixedPosition = rb.position;
             }
             return;
         }
@@ -149,11 +148,21 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
-        Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
-        float lerpSpeed = (isGrounded && !isLanding) ? 15f : 5f;
-        currentMoveInput = Vector3.Lerp(currentMoveInput, targetMoveInput, Time.deltaTime * lerpSpeed);
+        // isClimbing 중 입력 이동 차단
+        if (!isClimbing)
+        {
+            Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
+            float lerpSpeed = (isGrounded && !isLanding) ? 15f : 5f;
+            currentMoveInput = Vector3.Lerp(currentMoveInput, targetMoveInput, Time.deltaTime * lerpSpeed);
 
-        if (currentMoveInput.magnitude < 0.05f) currentMoveInput = Vector3.zero;
+            if (currentMoveInput.magnitude < 0.05f)
+                currentMoveInput = Vector3.zero;
+        }
+        else
+        {
+            // Climb 중에는 이동 입력 정지
+            currentMoveInput = Vector3.zero;
+        }
 
         // 애니메이션 파라미터
         Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
@@ -192,10 +201,14 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 점프
-        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping)
+        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f)
         {
             isJumping = true;
+            jumpCooldownTimer = jumpCooldown;
             animator.SetBool("IsJumping", true);
+
+            rb.isKinematic = false;
+            rb.useGravity = true;
 
             Vector3 velocity = rb.velocity;
             Vector3 jumpDir = currentMoveInput.sqrMagnitude > 0.01f ? currentMoveInput.normalized : transform.forward;
@@ -206,6 +219,12 @@ public class PlayerMov : MonoBehaviour
             velocity.z = jumpDir.z * jumpForwardSpeed;
             velocity.y = jumpForce;
             rb.velocity = velocity;
+        }
+
+        // 점프 쿨타임 감소
+        if (jumpCooldownTimer > 0f)
+        {
+            jumpCooldownTimer -= Time.deltaTime;
         }
 
         // 낙하 감지
@@ -238,6 +257,18 @@ public class PlayerMov : MonoBehaviour
         wasGroundedLastFrame = isGrounded;
     }
 
+    private bool CheckGrounded()
+    {
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
+        float radius = 0.25f;
+        float distance = 0.6f;
+
+        bool grounded = Physics.SphereCast(origin, radius, Vector3.down, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Ignore);
+        Debug.DrawRay(origin, Vector3.down * distance, grounded ? Color.green : Color.red); // 초록색이면 감지됨
+
+        return grounded;
+    }
+
     void FixedUpdate()
     {
         bool block = isClimbing || isHolding || (isLanding && isGrounded);
@@ -248,6 +279,7 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
+        // 이동 처리
         float moveSpeed = isRunning ? speed * runSpeed : speed;
         float airMultiplier = isGrounded ? 1f : 0.5f;
 
@@ -265,15 +297,31 @@ public class PlayerMov : MonoBehaviour
     {
         isHolding = true;
         canStartClimb = false;
+        rb.useGravity = false;
         rb.isKinematic = true;
 
-        // 벽 앞 위치 계산
-        Vector3 forwardOffset = -hit.normal * 0.05f;
-        Vector3 targetPos = transform.position + forwardOffset;
-        Quaternion targetRot = Quaternion.LookRotation(-hit.normal);
+        float holdDistanceFromWall = 0.14f;
 
-        transform.position = targetPos;
-        transform.rotation = targetRot;
+        // 1. 벽의 법선 방향으로 밀착 위치 계산 (Y는 현재 유지)
+        Vector3 wallNormal = hit.normal;
+        Vector3 targetPos = new Vector3(
+            hit.point.x + wallNormal.x * holdDistanceFromWall,
+            transform.position.y,
+            hit.point.z + wallNormal.z * holdDistanceFromWall
+        );
+
+        // 2. 회전
+        Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
+
+        // 3. 적용
+        holdLerpStartPos = transform.position;
+        holdLerpTargetPos = targetPos;
+        holdLerpStartRot = transform.rotation;
+        holdLerpTargetRot = targetRot;
+        holdLerpTimer = 0f;
+        isLerpingHoldOffset = true;
+
+        holdingStartPos = targetPos;    // 매달려있는 위치 저장
 
         animator.SetBool("Hold", true);
     }
@@ -289,14 +337,14 @@ public class PlayerMov : MonoBehaviour
         climbStartPos = transform.position;
         climbStartRot = transform.rotation;
 
-        climbTargetPos = transform.position + Vector3.up * 2f;
+        climbTargetPos = holdingStartPos + Vector3.up * 2.3f;
         climbTargetRot = transform.rotation;
 
         animator.SetBool("Hold", false);
         animator.SetTrigger("Climb");
 
         isClimbing = true;
-        rb.isKinematic = true;
+        rb.useGravity = false;
     }
 
     // ClimbZone 진입/이탈
@@ -351,9 +399,9 @@ public class PlayerMov : MonoBehaviour
     // 벽 매달리기 전 단계
     private IEnumerator MoveHoldWithDip(float height, float duration)
     {
-        // 1단계: 살짝 아래로 내리기
+        // 1단계: 살짝 아래로 내리기 (무릎 굽히기)
         Vector3 start = transform.position;
-        Vector3 downPos = start + new Vector3(0f, -0.05f, 0f);
+        Vector3 downPos = start + new Vector3(0f, -0.1f, 0f);
         float downDuration = 0.1f;
         float t = 0f;
 
@@ -364,7 +412,7 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
 
-        // 2단계: 위로 올리기
+        // 2단계: 위로 올리기 (점프)
         Vector3 upTarget = start + new Vector3(0f, height, 0f);
         t = 0f;
 
@@ -388,7 +436,6 @@ public class PlayerMov : MonoBehaviour
     private IEnumerator ForwardLerpRoutine(float distance, float duration)
     {
         rb.useGravity = false;
-        rb.isKinematic = true;
 
         Vector3 start = transform.position;
         Vector3 target = start + transform.forward * distance;
@@ -400,5 +447,18 @@ public class PlayerMov : MonoBehaviour
             transform.position = Vector3.Lerp(start, target, t);
             yield return null;
         }
+
+        rb.velocity = Vector3.zero;
+
+        // 이동 시작점 갱신
+        lastFixedPosition = rb.position;
+    }
+    public void OnClimbEnd()
+    {
+        isClimbing = false;
+        rb.useGravity = true;
+        rb.isKinematic = false;
+
+        rb.velocity = Vector3.zero; // 혹시 튀는 이동 방지
     }
 }
