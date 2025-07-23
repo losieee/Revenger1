@@ -10,6 +10,7 @@ public class PlayerMov : MonoBehaviour
 
     // 이동 및 회전
     public float speed = 5f;
+    private float currentMoveSpeed = 0f;
     public float rotSpeed = 5f;
     public float runSpeed = 3f;
     public Transform cameraPivot;
@@ -28,6 +29,7 @@ public class PlayerMov : MonoBehaviour
     public LayerMask climbableLayer;
     private bool canClimbZone = false;
     private bool isClimbing = false;
+    private bool blockInput = false; // 벽 오르기 동안 입력 차단
 
     // 벽에 매달려있기
     private bool isHolding = false;
@@ -55,11 +57,15 @@ public class PlayerMov : MonoBehaviour
     private bool wasGroundedLastFrame = true;
     private float jumpCooldown = 1.9f; // 점프 쿨타임
     private float jumpCooldownTimer = 0f;
+    private float airMultiplier;
 
     // Alt 이동
     private Vector3 savedForward, savedRight;
     private Quaternion savedRotation;
     private bool wasAltPressedLastFrame, justReleasedAlt;
+
+    // 앉기
+    private bool isCrouching = false;
 
     void Start()
     {
@@ -121,7 +127,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 입력
-        isRunning = Input.GetKey(KeyCode.LeftShift);
+        isRunning = Input.GetKey(KeyCode.LeftShift) && !isCrouching;
         bool isAlt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
         float h = Input.GetAxis("Horizontal");
@@ -148,8 +154,8 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
-        // isClimbing 중 입력 이동 차단
-        if (!isClimbing)
+        // blockInput 중 입력 이동 차단
+        if (!blockInput)
         {
             Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
             float lerpSpeed = (isGrounded && !isLanding) ? 15f : 5f;
@@ -234,7 +240,7 @@ public class PlayerMov : MonoBehaviour
 
         if (isFalling && animator.GetBool("IsJumping"))
         {
-            animator.SetTrigger("JumpingDown");
+            //animator.SetTrigger("JumpingDown");
         }
 
         // 착지 감지
@@ -255,6 +261,18 @@ public class PlayerMov : MonoBehaviour
         }
 
         wasGroundedLastFrame = isGrounded;
+
+        // C 눌러 앉기
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            isCrouching = !isCrouching;
+            animator.SetBool("IsCrouching", isCrouching);
+        }
+
+        // 속도 조정
+        float moveSpeed = isRunning ? speed * runSpeed : speed;
+        if (isCrouching) moveSpeed *= 0.6f;
+        currentMoveSpeed = moveSpeed;
     }
 
     private bool CheckGrounded()
@@ -280,12 +298,11 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 이동 처리
-        float moveSpeed = isRunning ? speed * runSpeed : speed;
-        float airMultiplier = isGrounded ? 1f : 0.5f;
+        airMultiplier = isGrounded ? 1f : 0.5f;
 
-        Vector3 move = currentMoveInput * moveSpeed * airMultiplier * Time.fixedDeltaTime;
+        Vector3 move = currentMoveInput * currentMoveSpeed * airMultiplier * Time.fixedDeltaTime;
         Vector3 newPos = rb.position + move;
-        rb.MovePosition(newPos);
+        rb.MovePosition(rb.position + move);
 
         float movedDistance = (newPos - lastFixedPosition).magnitude;
         lastFixedSpeed = movedDistance / Time.fixedDeltaTime;
@@ -295,6 +312,10 @@ public class PlayerMov : MonoBehaviour
     // 벽 잡기(Holding) 시작
     void StartHolding(RaycastHit hit)
     {
+        isCrouching = false;  // 벽 잡을 때 자동으로 서도록 처리
+        animator.SetBool("IsCrouching", false);
+
+        blockInput = true;
         isHolding = true;
         canStartClimb = false;
         rb.useGravity = false;
@@ -304,11 +325,10 @@ public class PlayerMov : MonoBehaviour
 
         // 1. 벽의 법선 방향으로 밀착 위치 계산 (Y는 현재 유지)
         Vector3 wallNormal = hit.normal;
-        Vector3 targetPos = new Vector3(
-            hit.point.x + wallNormal.x * holdDistanceFromWall,
-            transform.position.y,
-            hit.point.z + wallNormal.z * holdDistanceFromWall
-        );
+
+        // 입력과 상관없이 벽 기준 정중앙 위치 계산
+        Vector3 targetPos = hit.point + wallNormal * holdDistanceFromWall;
+        targetPos.y = transform.position.y; // 현재 Y 유지
 
         // 2. 회전
         Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
@@ -460,5 +480,6 @@ public class PlayerMov : MonoBehaviour
         rb.isKinematic = false;
 
         rb.velocity = Vector3.zero; // 혹시 튀는 이동 방지
+        blockInput = false;
     }
 }
