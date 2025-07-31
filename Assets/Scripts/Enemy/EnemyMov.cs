@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,9 +17,12 @@ public class EnemyMov : MonoBehaviour
     public float viewDistance = 10f;            // 감지 가능한 최대 거리
     public float viewAngle = 60f;               // 기본 시야각 (수평 방향)
     public Transform player;                    // 추적 대상 (플레이어)
+    public GameObject questionMark;             // 물음표 (AI가 플레이어를 인식했을 때)
+    public GameObject answerMarkexclamationMark;// 느낌표 (AI가 플레이어를 추격할 때)
 
     [Header("추적 관련")]
     public float lostPlayerGraceTime = 2f;      // 플레이어를 놓친 뒤 몇 초까지 추적 유지할지
+
 
     // 내부 상태
     private int currentIndex = 0;               // 현재 이동 중인 waypoint 인덱스
@@ -28,8 +32,15 @@ public class EnemyMov : MonoBehaviour
     private float playerStayTime = 0f;          // 시야 안에 플레이어가 있었던 누적 시간
     private float lostPlayerTimer = 0f;         // 플레이어를 놓친 후 경과 시간
     private float originalViewAngle;            // 원래 시야각
-    private float destinationUpdateRate = 0.2f;
-    private float destinationUpdateTimer = 0f;
+    private float destinationUpdateRate = 0.2f; // 추격 중 목표 위치 갱신 간격
+    private float destinationUpdateTimer = 0f;  // 현재 추격 위치 갱신 타이머
+    private bool isSoundTriggered = false;      // 소리 감지가 발생했는지 여부
+    private float soundDetectTimer = 0.5f;      // 소리 감지 후 경과 시간
+    private float maxChaseBySoundTime = 3f;     // 소리 감지로 이동하는 최대 시간
+    private float soundChaseTimer = 0f;         // 소리 감지로 추적 중인 시간 누적
+    private Vector3 firstHeardPosition;         // 처음 들린 소리의 위치
+    private bool hasHeardPlayer = false;        // 소리 감지로 플레이어 최초 위치 기록 여부
+    private bool isSoundWaiting = false;        // 감지 직후 잠깐 멈춤 플래그
 
     // 컴포넌트 참조
     private Animator animator;
@@ -77,23 +88,66 @@ public class EnemyMov : MonoBehaviour
                 break;
 
             case EnemyState.Watching:
-                viewAngle = 90f;        //시야각 확장
-                agent.isStopped = true;
-                animator.SetFloat("Speed", 0f); // 정지 상태
+                viewAngle = 90f;        // 시야각 확장
+                animator.SetFloat("Speed", 0f); // 애니메이션 정지
 
                 if (playerInSight)
                 {
+                    agent.isStopped = true;
                     playerStayTime += Time.deltaTime;
-                    if (playerStayTime >= 1f)       //1초 이상 봤으면 추적 시작
+                    if (playerStayTime >= 1f)       // 1초 이상 봤으면 추적 시작
                     {
                         agent.isStopped = false;
                         state = EnemyState.Chasing;
                     }
                 }
+                else if (isSoundTriggered)
+                {
+                    if (isSoundWaiting)
+                    {
+                        soundDetectTimer += Time.deltaTime;
+                        if (soundDetectTimer >= 0.5f)
+                        {
+                            isSoundWaiting = false;
+                            questionMark.SetActive(true);
+                            agent.isStopped = false;
+                            agent.SetDestination(firstHeardPosition);
+                        }
+                        else
+                        {
+                            agent.isStopped = true;
+                            animator.SetFloat("Speed", 0f);
+                        }
+                    }
+                    else
+                    {
+                        agent.isStopped = false;
+                        animator.SetFloat("Speed", agent.velocity.magnitude);
+                        soundChaseTimer += Time.deltaTime;
+
+                        if (soundChaseTimer >= maxChaseBySoundTime)
+                        {
+                            isSoundTriggered = false;
+                            hasHeardPlayer = false;
+                            isSoundWaiting = false;
+                            soundDetectTimer = 0f;
+                            soundChaseTimer = 0f;
+
+                            state = EnemyState.Patrol;
+                            agent.SetDestination(waypoints[currentIndex].position);
+                            agent.isStopped = false;
+                        }
+                    }
+                }
                 else
                 {
-                    agent.isStopped = false;
-                    state = EnemyState.Patrol;
+                    playerStayTime += Time.deltaTime;
+                    if (playerStayTime >= 1f)
+                    {
+                        state = EnemyState.Patrol;
+                        agent.SetDestination(waypoints[currentIndex].position);
+                        agent.isStopped = false;
+                    }
                 }
                 break;
 
@@ -123,6 +177,8 @@ public class EnemyMov : MonoBehaviour
             Quaternion targetRot = Quaternion.LookRotation(agent.velocity.normalized);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
         }
+
+        UpdateMark();
     }
 
     void Patrol()
@@ -203,6 +259,71 @@ public class EnemyMov : MonoBehaviour
         }
 
         return false;
+    }
+
+    // AI 머리위에 뜨는 마크 (?, !)
+    void UpdateMark()
+    {
+        // 모든 마크 비활성화
+        questionMark.SetActive(false);
+        answerMarkexclamationMark.SetActive(false);
+
+        // 현재 상태에 따라 해당 마크 활성화
+        GameObject activeMark = null;
+
+        switch (state)
+        {
+            case EnemyState.Watching:
+                activeMark = questionMark;
+                break;
+            case EnemyState.Chasing:
+                activeMark = answerMarkexclamationMark;
+                break;
+        }
+
+        if (activeMark != null)
+        {
+            activeMark.SetActive(true);
+
+            // 마크가 항상 카메라를 바라보게
+            if (activeMark != null)
+            {
+                activeMark.SetActive(true);
+
+                // 마크가 항상 카메라를 바라보게
+                if (Camera.main != null)
+                {
+                    activeMark.transform.LookAt(Camera.main.transform);
+                    activeMark.transform.Rotate(0f, 180f, 0f);
+                }
+            }
+        }
+    }
+
+    // 소리가 들리면 플레이어 방향으로 이동
+    public void PlayerDetected(Vector3 _)
+    {
+        // 소리 감지 재시작을 허용(상태가 Chasing일 때만 무시)
+        if (state == EnemyState.Chasing)
+            return;
+
+        if (!hasHeardPlayer) // 처음 소리 감지일 때만 위치 기록
+        {
+            firstHeardPosition = player.position;
+            hasHeardPlayer = true;
+            isSoundWaiting = true;
+
+            // 소리 감지 초기화(중복 감지도 허용)
+            isSoundTriggered = true;
+            soundDetectTimer = 0f;
+            soundChaseTimer = 0f;
+
+            // 소리 들리면 바로 Watching 상태로 진입하고, 위치 설정
+            state = EnemyState.Watching;
+
+            agent.isStopped = true; // 정지 해제
+            animator.SetFloat("Speed", 0f);
+        }
     }
 
     // 시야 관련 기즈모

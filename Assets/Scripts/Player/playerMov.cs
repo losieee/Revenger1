@@ -31,6 +31,11 @@ public class PlayerMov : MonoBehaviour
     private bool isClimbing = false;
     private bool blockInput = false; // 벽 오르기 동안 입력 차단
 
+    // 움직이는 소리 범위
+    public float walkDetectRange = 6f;
+    public float runDetectRange = 12f;
+    public LayerMask aiLayerMask;
+
     // 벽에 매달려있기
     private bool isHolding = false;
     private bool canStartClimb = false;
@@ -207,7 +212,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 점프
-        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f)
+        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching)
         {
             isJumping = true;
             jumpCooldownTimer = jumpCooldown;
@@ -273,6 +278,9 @@ public class PlayerMov : MonoBehaviour
         float moveSpeed = isRunning ? speed * runSpeed : speed;
         if (isCrouching) moveSpeed *= 0.6f;
         currentMoveSpeed = moveSpeed;
+
+        // 움직이는 소리 범위
+        CheckNearbyEnemies();
     }
 
     private bool CheckGrounded()
@@ -481,5 +489,33 @@ public class PlayerMov : MonoBehaviour
 
         rb.velocity = Vector3.zero; // 혹시 튀는 이동 방지
         blockInput = false;
+    }
+
+    // 움직임 소리 범위
+    void CheckNearbyEnemies()
+    {
+        if (currentMoveInput.magnitude < 0.05f)
+            return;
+
+        float detectRange = isRunning ? runDetectRange : walkDetectRange;
+        Collider[] hits = Physics.OverlapSphere(transform.position, detectRange, aiLayerMask);
+
+        foreach (Collider col in hits)
+        {
+            EnemyMov enemy = col.GetComponent<EnemyMov>();
+            if (enemy != null)
+            {
+                enemy.PlayerDetected(transform.position);
+            }
+        }
+    }
+
+    // 범위 기즈모
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, walkDetectRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, runDetectRange);
     }
 }
