@@ -88,7 +88,7 @@ public class EnemyMov : MonoBehaviour
                 break;
 
             case EnemyState.Watching:
-                viewAngle = 90f;        // 시야각 확장
+                viewAngle = 360f;        // 시야각 확장
                 animator.SetFloat("Speed", 0f); // 애니메이션 정지
 
                 if (playerInSight)

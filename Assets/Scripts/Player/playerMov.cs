@@ -297,7 +297,7 @@ public class PlayerMov : MonoBehaviour
 
     void FixedUpdate()
     {
-        bool block = isClimbing || isHolding || (isLanding && isGrounded);
+        bool block = isClimbing || isHolding;
         if (block)
         {
             lastFixedSpeed = 0f;
