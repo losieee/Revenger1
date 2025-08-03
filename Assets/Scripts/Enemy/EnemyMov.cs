@@ -95,7 +95,7 @@ public class EnemyMov : MonoBehaviour
                 {
                     agent.isStopped = true;
                     playerStayTime += Time.deltaTime;
-                    if (playerStayTime >= 1f)       // 1초 이상 봤으면 추적 시작
+                    if (playerStayTime >= 1.5f)       // 1.5초 이상 봤으면 추적 시작
                     {
                         agent.isStopped = false;
                         state = EnemyState.Chasing;
@@ -127,11 +127,7 @@ public class EnemyMov : MonoBehaviour
 
                         if (soundChaseTimer >= maxChaseBySoundTime)
                         {
-                            isSoundTriggered = false;
-                            hasHeardPlayer = false;
-                            isSoundWaiting = false;
-                            soundDetectTimer = 0f;
-                            soundChaseTimer = 0f;
+                            ResetSoundDetection();
 
                             state = EnemyState.Patrol;
                             agent.SetDestination(waypoints[currentIndex].position);
@@ -147,6 +143,9 @@ public class EnemyMov : MonoBehaviour
                         state = EnemyState.Patrol;
                         agent.SetDestination(waypoints[currentIndex].position);
                         agent.isStopped = false;
+
+                        // 사운드 관련 초기화 추가
+                        ResetSoundDetection();
                     }
                 }
                 break;
@@ -164,6 +163,9 @@ public class EnemyMov : MonoBehaviour
                     lostPlayerTimer += Time.deltaTime;
                     if (lostPlayerTimer >= lostPlayerGraceTime)
                     {
+                        // 상태 전환 전에 사운드 감지 상태 초기화
+                        ResetSoundDetection();
+
                         state = EnemyState.Patrol;
                         agent.SetDestination(waypoints[currentIndex].position);
                     }
@@ -324,6 +326,15 @@ public class EnemyMov : MonoBehaviour
             agent.isStopped = true; // 정지 해제
             animator.SetFloat("Speed", 0f);
         }
+    }
+
+    void ResetSoundDetection()
+    {
+        isSoundTriggered = false;
+        hasHeardPlayer = false;
+        isSoundWaiting = false;
+        soundDetectTimer = 0f;
+        soundChaseTimer = 0f;
     }
 
     // 시야 관련 기즈모
