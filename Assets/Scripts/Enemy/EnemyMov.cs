@@ -19,6 +19,8 @@ public class EnemyMov : MonoBehaviour
     public Transform player;                    // 추적 대상 (플레이어)
     public GameObject questionMark;             // 물음표 (AI가 플레이어를 인식했을 때)
     public GameObject answerMarkexclamationMark;// 느낌표 (AI가 플레이어를 추격할 때)
+    public GameObject miniQuestionMark;         // 미니맵에서 물음표
+    public GameObject miniAnswerMark;           // 미니맵에서 느낌표
 
     [Header("추적 관련")]
     public float lostPlayerGraceTime = 2f;      // 플레이어를 놓친 뒤 몇 초까지 추적 유지할지
@@ -79,6 +81,8 @@ public class EnemyMov : MonoBehaviour
             case EnemyState.Patrol:
                 viewAngle = originalViewAngle;  // 시야각 복원
                 Patrol();
+                miniAnswerMark.SetActive(false);        // 다시 초기화
+                miniQuestionMark.SetActive(false);
 
                 if (playerInSight)
                 {
@@ -90,6 +94,8 @@ public class EnemyMov : MonoBehaviour
             case EnemyState.Watching:
                 viewAngle = 360f;        // 시야각 확장
                 animator.SetFloat("Speed", 0f); // 애니메이션 정지
+                miniQuestionMark.SetActive(true);   // 미니맵에 마크 표시
+                miniAnswerMark.SetActive(false);
 
                 if (playerInSight)
                 {
@@ -153,6 +159,8 @@ public class EnemyMov : MonoBehaviour
             case EnemyState.Chasing:
                 viewAngle = 360f;       // 시야 확대
                 ChasePlayer();
+                miniQuestionMark.SetActive(false);
+                miniAnswerMark.SetActive(true);     // 미니맵에 마크 표시
 
                 if (playerInSight)
                 {
@@ -181,6 +189,20 @@ public class EnemyMov : MonoBehaviour
         }
 
         UpdateMark();
+    }
+
+    void LateUpdate()
+    {
+        // 항상 월드 Z+ 방향을 향하도록 미니맵 마크 회전 고정
+        if (miniQuestionMark != null)
+        {
+            miniQuestionMark.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        }
+
+        if (miniAnswerMark != null)
+        {
+            miniAnswerMark.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        }
     }
 
     void Patrol()

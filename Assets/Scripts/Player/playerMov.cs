@@ -63,6 +63,9 @@ public class PlayerMov : MonoBehaviour
     private float jumpCooldown = 1.9f; // 점프 쿨타임
     private float jumpCooldownTimer = 0f;
     private float airMultiplier;
+    private bool ignoreGroundedCheck = false;
+    private float ignoreGroundedTimer = 0f;
+    private float ignoreDurationAfterJump = 0.14f; // 점프 후 0.14초간 isGrounded 무시
 
     // Alt 이동
     private Vector3 savedForward, savedRight;
@@ -218,6 +221,9 @@ public class PlayerMov : MonoBehaviour
             jumpCooldownTimer = jumpCooldown;
             animator.SetBool("IsJumping", true);
 
+            ignoreGroundedCheck = true;
+            ignoreGroundedTimer = ignoreDurationAfterJump;
+
             rb.isKinematic = false;
             rb.useGravity = true;
 
@@ -230,6 +236,16 @@ public class PlayerMov : MonoBehaviour
             velocity.z = jumpDir.z * jumpForwardSpeed;
             velocity.y = jumpForce;
             rb.velocity = velocity;
+        }
+
+        // 점프 직후 잠깐 Grounded 무시
+        if (ignoreGroundedCheck)
+        {
+            ignoreGroundedTimer -= Time.deltaTime;
+            if (ignoreGroundedTimer <= 0f)
+            {
+                ignoreGroundedCheck = false;
+            }
         }
 
         // 점프 쿨타임 감소
@@ -285,6 +301,8 @@ public class PlayerMov : MonoBehaviour
 
     private bool CheckGrounded()
     {
+        if (ignoreGroundedCheck) return false;
+
         Vector3 origin = transform.position + Vector3.up * 0.5f;
         float radius = 0.25f;
         float distance = 0.6f;
