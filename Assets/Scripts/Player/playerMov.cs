@@ -30,6 +30,7 @@ public class PlayerMov : MonoBehaviour
     private bool canClimbZone = false;
     private bool isClimbing = false;
     private bool blockInput = false; // 벽 오르기 동안 입력 차단
+    private float lastBoxWallRemainingHeight = 0f; // MoveToBoxTop에서 감지된 전체 높이 저장
 
     // 움직이는 소리 범위
     public float walkDetectRange = 6f;
@@ -37,6 +38,7 @@ public class PlayerMov : MonoBehaviour
     public LayerMask aiLayerMask;
 
     // 벽에 매달려있기
+    [HideInInspector] public float detectedWallHeight = 0f;
     private bool isHolding = false;
     private bool canStartClimb = false;
     private bool isLerpingHoldOffset = false;
@@ -204,13 +206,28 @@ public class PlayerMov : MonoBehaviour
         wasAltPressedLastFrame = isAlt;
         if (justReleasedAlt && !isAlt) justReleasedAlt = false;
 
-        // 벽 잡기(Holding) 시작
+        // 벽 잡기(Holding) 시작 조건 검사
         if (Input.GetKeyDown(KeyCode.Space) && canClimbZone && !isHolding && !isClimbing)
         {
-            Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
-            if (Physics.Raycast(ray, out RaycastHit wall, climbCheckDistance, climbableLayer))
+            Vector3 dir = transform.forward;
+            Vector3 rayOrigin = transform.position + Vector3.up * 0.1f; // ← 높이 조절 (발밑)
+
+            if (Physics.Raycast(rayOrigin, dir, out RaycastHit wall, climbCheckDistance, climbableLayer))
             {
-                StartHolding(wall);
+                float wallTopY = wall.collider.bounds.max.y;
+                float wallBottomY = wall.collider.bounds.min.y;
+                float wallHeight = wallTopY - wallBottomY;
+
+                detectedWallHeight = wallHeight;
+
+                float jumpHeight = Mathf.Clamp(wallHeight * 0.5f, 0.4f, 2.0f);
+                float rayStartY = Mathf.Min(transform.position.y + jumpHeight, wallTopY - 0.1f);
+                Vector3 rayStart = new Vector3(transform.position.x, rayStartY, transform.position.z);
+
+                if (Physics.Raycast(rayStart, dir, out RaycastHit wallHit, climbCheckDistance, climbableLayer))
+                {
+                    StartHolding(wallHit);
+                }
             }
         }
 
@@ -341,6 +358,19 @@ public class PlayerMov : MonoBehaviour
         isCrouching = false;  // 벽 잡을 때 자동으로 서도록 처리
         animator.SetBool("IsCrouching", false);
 
+        // 벽 높이 측정
+        float wallTop = hit.collider.bounds.max.y;
+        float playerFoot = transform.position.y;
+        float wallHeight = wallTop - playerFoot;
+
+        // 높이가 1 이하라면 BoxJump 실행
+        if (wallHeight <= 1.0f)
+        {
+            StartBoxJump(hit.point, hit.normal, wallHeight);
+            return;
+        }
+
+        // 일반 벽타기 (Hold 시작)
         blockInput = true;
         isHolding = true;
         canStartClimb = false;
@@ -372,18 +402,22 @@ public class PlayerMov : MonoBehaviour
         animator.SetBool("Hold", true);
     }
 
+
     // 벽 오르기(Climb) 시작
     public void StartClimbFromHold(float duration)
     {
         isHolding = false;
         canStartClimb = false;
         climbTimer = 0f;
-        climbDuration = duration; // 여기서 시간 설정
+        climbDuration = duration;
 
         climbStartPos = transform.position;
         climbStartRot = transform.rotation;
 
-        climbTargetPos = holdingStartPos + Vector3.up * 2.3f;
+        // 벽 높이에 따라 올라갈 높이 계산
+        float climbHeight = Mathf.Clamp(detectedWallHeight + 0.15f, 1f, 3.5f); // 약간 여유 줘야 착지 성공
+
+        climbTargetPos = holdingStartPos + Vector3.up * climbHeight;
         climbTargetRot = transform.rotation;
 
         animator.SetBool("Hold", false);
@@ -526,6 +560,108 @@ public class PlayerMov : MonoBehaviour
                 enemy.PlayerDetected(transform.position);
             }
         }
+    }
+
+    // 낮은 벽을 BoxJump 애니메이션으로 넘기기
+    void StartBoxJump(Vector3 wallPoint, Vector3 wallNormal, float height)
+    {
+        // 앉은 상태 해제
+        isCrouching = false;
+        animator.SetBool("IsCrouching", false);
+
+        // 이동 및 중력 제어
+        blockInput = true;
+        isHolding = false;
+        isClimbing = false;
+        rb.useGravity = false;
+
+        // 타겟 위치 및 회전 계산
+        Vector3 targetPos = wallPoint + wallNormal * 0.14f;
+        targetPos.y = transform.position.y;
+        Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
+
+        // 밀착을 부드럽게 처리하는 코루틴 시작
+        StartCoroutine(BoxJumpPrepareLerp(targetPos, targetRot, 0.15f));
+    }
+
+    // 벽 앞에 부드럽게 밀착시키는 코루틴
+    private IEnumerator BoxJumpPrepareLerp(Vector3 targetPos, Quaternion targetRot, float duration)
+    {
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+            float t = Mathf.Clamp01(timer / duration);
+
+            transform.position = Vector3.Lerp(startPos, targetPos, t);
+            transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+
+            yield return null;
+        }
+
+        // 위치 정렬 완료 후 애니메이션 재생
+        animator.Play("BoxJump");
+    }
+
+    // BoxJump 애니메이션 중 위치를 부드럽게 이동
+    private IEnumerator BoxJumpLerp(Vector3 targetPos, float duration)
+    {
+        Vector3 start = transform.position;
+        float t = 0f;
+
+        while (t < 1f)
+        {
+            t += Time.deltaTime / duration;
+            transform.position = Vector3.Lerp(start, targetPos, t);
+            yield return null;
+        }
+
+        // 이동 종료 후 상태 복원
+        rb.useGravity = true;
+        rb.isKinematic = false;
+        blockInput = false;
+        lastFixedPosition = rb.position;
+    }
+
+    // 박스 위로 올라가는 위치로 duration 시간 동안 이동
+    public void MoveToBoxTop(float duration)
+    {
+        float upOffset = 1f; // 기본값
+
+        // 앞 방향으로 벽 감지
+        Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hit, climbCheckDistance, climbableLayer))
+        {
+            float wallTopY = hit.collider.bounds.max.y;
+            float playerY = transform.position.y;
+            float wallHeight = Mathf.Max(0f, wallTopY - playerY); // 음수 방지
+            upOffset = wallHeight * 0.5f;
+
+            // 전체 높이를 저장
+            lastBoxWallRemainingHeight = wallHeight;
+        }
+
+        Vector3 targetPos = transform.position + Vector3.up * upOffset + transform.forward * 0.3f;
+        StartCoroutine(BoxJumpLerp(targetPos, duration));
+    }
+
+    // 박스 위로 나머지 절반 올라가기
+    public void MoveToBoxTopRemaining(float duration)
+    {
+        float upOffset = lastBoxWallRemainingHeight * 0.5f;
+        Vector3 targetPos = transform.position + Vector3.up * upOffset;
+        StartCoroutine(BoxJumpLerp(targetPos, duration));
+    }
+
+    // BoxJump 애니메이션 종료 시 호출되는 함수
+    public void OnBoxJumpEnd()
+    {
+        rb.useGravity = true;
+        rb.isKinematic = false;
+        blockInput = false;
     }
 
     // 범위 기즈모
