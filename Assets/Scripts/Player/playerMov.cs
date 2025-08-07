@@ -26,6 +26,7 @@ public class PlayerMov : MonoBehaviour
     // 벽타기 준비물
     public float climbDuration = 3.25f;
     public float climbCheckDistance = 2.0f;
+    [HideInInspector] public float remainingWallHeight = 0f;    // 벽 높이
     public LayerMask climbableLayer;
     private bool canClimbZone = false;
     private bool isClimbing = false;
@@ -362,6 +363,9 @@ public class PlayerMov : MonoBehaviour
         float wallTop = hit.collider.bounds.max.y;
         float playerFoot = transform.position.y;
         float wallHeight = wallTop - playerFoot;
+
+        // 남은 높이 계산 후 저장
+        remainingWallHeight = wallHeight;
 
         // 높이가 1 이하라면 BoxJump 실행
         if (wallHeight <= 1.0f)

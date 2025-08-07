@@ -16,14 +16,15 @@ public class AnimationCtl : MonoBehaviour
     {
         if (player != null)
         {
-            float wallHeight = player.detectedWallHeight;
-            float baseWall = 2.147f;
-            float baseJump = 0.5f;
+            float baseWall = 1.87f;
+            float baseJump = 0.181f;
+            float remaining = player.remainingWallHeight;
 
-            float height = baseJump + (wallHeight - baseWall);
-            height = Mathf.Clamp(height, 0.4f, 2.0f);
+            // 차이만큼 보정
+            float jumpHeight = baseJump + (remaining - baseWall);
+            jumpHeight = Mathf.Clamp(jumpHeight, 0.0f, 2.0f); // 0 이상으로
 
-            player.MoveUpDuringHold(height, 0.1f);
+            player.MoveUpDuringHold(jumpHeight, 0.1f);
         }
     }
 
