@@ -55,7 +55,6 @@ public class PlayerMov : MonoBehaviour
 
     // 점프 / 낙하
     private bool isJumping = false;
-    private bool collisionGrounded = false;
     private float jumpForce = 5f;
     private float verticalVelocity = 0f;
     private bool isLanding = false;
@@ -68,7 +67,14 @@ public class PlayerMov : MonoBehaviour
     private float airMultiplier;
     private bool ignoreGroundedCheck = false;
     private float ignoreGroundedTimer = 0f;
-    private float ignoreDurationAfterJump = 0.14f; // 점프 후 0.14초간 isGrounded 무시
+    private float ignoreDurationAfterJump = 0.25f; // 점프 직후 잠깐 지면 판정 무시
+
+    public LayerMask groundLayer;                 // '땅' 레이어에 닿았을 때만 착지
+    [Range(0f, 1f)] public float groundMinNormalY = 0.55f; // 허용 경사(~56˚)
+
+    // (옵션) 점프 순간 앞벽이 바짝 있으면 살짝 밀어내기
+    public float frontCheckDistance = 0.35f;
+    public float wallPushStrength = 2.0f;
 
     // Alt 이동
     private Vector3 savedForward, savedRight;
@@ -83,13 +89,16 @@ public class PlayerMov : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
         lastFixedPosition = rb.position;
+        groundLayer = LayerMask.GetMask("Ground", "Climbable");
     }
 
     void Update()
     {
-        collisionGrounded = false;
+        // space를 누르자마자 Land 트리거 제거
+        if (Input.GetKeyDown(KeyCode.Space))
+            ClearLandTriggers();
 
-        // 바닥 감지 - SphereCast 방식
+        // 바닥 감지 - SphereCast 방식(groundLayer + normal.y 기준)
         isGrounded = CheckGrounded();
 
         // 벽 붙은 상태 처리
@@ -235,10 +244,12 @@ public class PlayerMov : MonoBehaviour
         // 점프
         if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching)
         {
+            ClearLandTriggers();        // Land 트리거 초기화
             isJumping = true;
             jumpCooldownTimer = jumpCooldown;
             animator.SetBool("IsJumping", true);
 
+            // 점프 직후 Grounded 무시
             ignoreGroundedCheck = true;
             ignoreGroundedTimer = ignoreDurationAfterJump;
 
@@ -253,6 +264,18 @@ public class PlayerMov : MonoBehaviour
             velocity.x = jumpDir.x * jumpForwardSpeed;
             velocity.z = jumpDir.z * jumpForwardSpeed;
             velocity.y = jumpForce;
+
+            // (옵션) 앞에 벽이 바짝 있으면 살짝 밀어내기 → 들러붙음/착지 오인 감소
+            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, transform.forward,
+                                 out RaycastHit front, frontCheckDistance, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (((1 << front.collider.gameObject.layer) & groundLayer) == 0)
+                {
+                    Vector3 horiz = new Vector3(front.normal.x, 0f, front.normal.z).normalized;
+                    velocity += horiz * wallPushStrength;
+                }
+            }
+
             rb.velocity = velocity;
         }
 
@@ -277,12 +300,7 @@ public class PlayerMov : MonoBehaviour
         bool isFalling = verticalVelocity < -0.1f && !isGrounded;
         animator.SetBool("IsFalling", isFalling);
 
-        if (isFalling && animator.GetBool("IsJumping"))
-        {
-            //animator.SetTrigger("JumpingDown");
-        }
-
-        // 착지 감지
+        // 착지 감지(프레임 전이)
         if (!wasGroundedLastFrame && isGrounded)
         {
             animator.SetTrigger("Land");
@@ -317,18 +335,27 @@ public class PlayerMov : MonoBehaviour
         CheckNearbyEnemies();
     }
 
+    // 애니메이터 트리거/상태 초기화
+    private void ClearLandTriggers()
+    {
+        animator.ResetTrigger("Land");
+    }
+
     private bool CheckGrounded()
     {
         if (ignoreGroundedCheck) return false;
 
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-        float radius = 0.25f;
-        float distance = 0.6f;
+        Vector3 origin = transform.position + Vector3.up * 0.3f;
+        float radius = 0.23f;
+        float distance = 0.7f;
 
-        bool grounded = Physics.SphereCast(origin, radius, Vector3.down, out RaycastHit hit, distance, ~0, QueryTriggerInteraction.Ignore);
-        Debug.DrawRay(origin, Vector3.down * distance, grounded ? Color.green : Color.red); // 초록색이면 감지됨
-
-        return grounded;
+        if (Physics.SphereCast(origin, radius, Vector3.down, out RaycastHit hit, distance,
+                               groundLayer, QueryTriggerInteraction.Ignore))
+        {
+            // 위를 향한 면만 지면으로 인정
+            return hit.normal.y >= groundMinNormalY;
+        }
+        return false;
     }
 
     void FixedUpdate()
@@ -356,6 +383,7 @@ public class PlayerMov : MonoBehaviour
     // 벽 잡기(Holding) 시작
     void StartHolding(RaycastHit hit)
     {
+        ClearLandTriggers();
         isCrouching = false;  // 벽 잡을 때 자동으로 서도록 처리
         animator.SetBool("IsCrouching", false);
 
@@ -406,10 +434,10 @@ public class PlayerMov : MonoBehaviour
         animator.SetBool("Hold", true);
     }
 
-
     // 벽 오르기(Climb) 시작
     public void StartClimbFromHold(float duration)
     {
+        ClearLandTriggers();
         isHolding = false;
         canStartClimb = false;
         climbTimer = 0f;
@@ -444,27 +472,36 @@ public class PlayerMov : MonoBehaviour
             canClimbZone = false;
     }
 
+    // 지면 접촉 판단(착지 처리에만 사용)
+    private bool IsGroundContact(Collision col)
+    {
+        // groundLayer에 포함된 레이어인지 확인
+        if ((groundLayer.value & (1 << col.gameObject.layer)) == 0) return false;
+
+        // 위를 향한 면만 지면으로 인정
+        foreach (var c in col.contacts)
+            if (c.normal.y >= groundMinNormalY) return true;
+
+        return false;
+    }
+
     private void OnCollisionStay(Collision collision)
     {
-        collisionGrounded = true;
+        // 점프 직후 무시 시간에는 어떤 충돌도 착지로 처리하지 않음
+        if (ignoreGroundedCheck) return;
 
-        if (!isGrounded)
+        // 지면과의 접촉이 아니면(=벽/측면) 무시
+        if (!IsGroundContact(collision)) return;
+
+        // 여기서는 상태 보정만 하고, 트리거는 Update의
+        //  (!wasGroundedLastFrame && isGrounded) 구간에서만 건다.
+        if (isJumping || animator.GetBool("IsJumping"))
         {
-            if (isJumping || animator.GetBool("IsJumping"))
-            {
-                isJumping = false;
-                animator.SetBool("IsJumping", false);
-            }
-
-            if (animator.GetBool("IsFalling"))
-                animator.SetBool("IsFalling", false);
-
-            animator.ResetTrigger("Land");
-            animator.SetTrigger("Land");
-
-            isLanding = true;
-            landingTimer = landingDelay;
+            isJumping = false;
+            animator.SetBool("IsJumping", false);
         }
+        if (animator.GetBool("IsFalling"))
+            animator.SetBool("IsFalling", false);
     }
 
     public void OnJumpingDownComplete()
@@ -569,6 +606,7 @@ public class PlayerMov : MonoBehaviour
     // 낮은 벽을 BoxJump 애니메이션으로 넘기기
     void StartBoxJump(Vector3 wallPoint, Vector3 wallNormal, float height)
     {
+        ClearLandTriggers();
         // 앉은 상태 해제
         isCrouching = false;
         animator.SetBool("IsCrouching", false);

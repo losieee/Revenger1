@@ -30,7 +30,6 @@ public class EnemyMov : MonoBehaviour
     private int currentIndex = 0;               // 현재 이동 중인 waypoint 인덱스
     private int direction = 1;                  // 방향: 1 = 순방향, -1 = 역방향
     private bool isWaiting = false;             // 경로 중 정지 중인지
-    private float speed = 0f;                   // 현재 이동 속도
     private float playerStayTime = 0f;          // 시야 안에 플레이어가 있었던 누적 시간
     private float lostPlayerTimer = 0f;         // 플레이어를 놓친 후 경과 시간
     private float originalViewAngle;            // 원래 시야각
