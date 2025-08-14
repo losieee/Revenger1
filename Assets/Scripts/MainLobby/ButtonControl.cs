@@ -22,7 +22,7 @@ public class ButtonControl : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
     public void ClickOkay()
     {
-        SceneManager.LoadScene("SampleScene");
+        SceneManager.LoadScene("Prototype");
     }
 
     public void OnPointerEnter(PointerEventData eventData)

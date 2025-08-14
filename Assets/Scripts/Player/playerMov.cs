@@ -6,6 +6,7 @@ public class PlayerMov : MonoBehaviour
 {
     // 컴포넌트
     public Rigidbody rb;
+    public GameObject gameClearUI;
     private Animator animator;
 
     // 이동 및 회전
@@ -19,6 +20,8 @@ public class PlayerMov : MonoBehaviour
     private Vector3 lastFixedPosition;
     private float lastFixedSpeed = 0f;
     private bool isRunning;
+    [HideInInspector]
+    public bool canAttack;
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
@@ -333,6 +336,16 @@ public class PlayerMov : MonoBehaviour
 
         // 움직이는 소리 범위
         CheckNearbyEnemies();
+
+        // 보스 공격 (스테이지 클리어)
+        if (canAttack)
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                gameClearUI.SetActive(true);
+                Time.timeScale = 0f; // 게임 정지
+            }
+        }
     }
 
     // 애니메이터 트리거/상태 초기화
@@ -464,12 +477,18 @@ public class PlayerMov : MonoBehaviour
     {
         if (other.CompareTag("ClimbZone"))
             canClimbZone = true;
+
+        if (other.CompareTag("Boss"))
+            canAttack = true;
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("ClimbZone"))
             canClimbZone = false;
+
+        if (other.CompareTag("Boss"))
+            canAttack = false;
     }
 
     // 지면 접촉 판단(착지 처리에만 사용)
@@ -587,6 +606,9 @@ public class PlayerMov : MonoBehaviour
     // 움직임 소리 범위
     void CheckNearbyEnemies()
     {
+        if (isCrouching) // 앉아있으면 소리 감지 X
+            return;
+
         if (currentMoveInput.magnitude < 0.05f)
             return;
 
@@ -714,4 +736,6 @@ public class PlayerMov : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, runDetectRange);
     }
+
+    
 }
