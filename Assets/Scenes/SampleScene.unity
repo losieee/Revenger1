@@ -384,10 +384,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rb: {fileID: 0}
+  gameClearUI: {fileID: 0}
   speed: 1.5
   rotSpeed: 5
   runSpeed: 3
   cameraPivot: {fileID: 1816884328}
+  canAttack: 0
   climbDuration: 3.8
   climbCheckDistance: 2
   remainingWallHeight: 0
@@ -11294,10 +11296,30 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -390663476510613284, guid: 5c3ebb4d2d7f4af4ba139831300d7448,
+        type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 5c3ebb4d2d7f4af4ba139831300d7448,
         type: 3}
       propertyPath: m_Name
       value: test
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 5c3ebb4d2d7f4af4ba139831300d7448,
+        type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3870524464034688282, guid: 5c3ebb4d2d7f4af4ba139831300d7448,
+        type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6859055300799419565, guid: 5c3ebb4d2d7f4af4ba139831300d7448,
+        type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

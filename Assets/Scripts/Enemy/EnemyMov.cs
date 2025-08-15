@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -46,7 +47,7 @@ public class EnemyMov : MonoBehaviour
     // 컴포넌트 참조
     private Animator animator;
     private NavMeshAgent agent;
-
+    [SerializeField] private BoxCollider catchBox;
     // Enemy 상태 정의
     private enum EnemyState { Patrol, Watching, Chasing }       // 순찰 중, 경고(?) - 플레이어 최초 발각 시, 추격(!) - 플레이어 추적
     private EnemyState state = EnemyState.Patrol;
@@ -58,6 +59,7 @@ public class EnemyMov : MonoBehaviour
 
         originalViewAngle = viewAngle;      //시작할때는 기본 사야각 60으로
         lostPlayerTimer = 0f;
+        if (catchBox) catchBox.enabled = false;
 
         // 처음 목적지 설정
         agent.speed = walkSpeed;
@@ -79,6 +81,7 @@ public class EnemyMov : MonoBehaviour
         {
             case EnemyState.Patrol:
                 viewAngle = originalViewAngle;  // 시야각 복원
+                catchBox.enabled = false;       // 잡는 범위 비활성화
                 Patrol();
                 miniAnswerMark.SetActive(false);        // 다시 초기화
                 miniQuestionMark.SetActive(false);
@@ -92,6 +95,7 @@ public class EnemyMov : MonoBehaviour
 
             case EnemyState.Watching:
                 viewAngle = 360f;        // 시야각 확장
+                catchBox.enabled = false;       // 잡는 범위 비활성화
                 animator.SetFloat("Speed", 0f); // 애니메이션 정지
                 miniQuestionMark.SetActive(true);   // 미니맵에 마크 표시
                 miniAnswerMark.SetActive(false);
@@ -244,6 +248,8 @@ public class EnemyMov : MonoBehaviour
             agent.SetDestination(player.position);
             destinationUpdateTimer = 0f;
         }
+
+        if (catchBox) catchBox.enabled = true;        // 플레이어를 쫒아갈때 잡는 범위 활성화
 
         animator.SetFloat("Speed", agent.velocity.magnitude);
     }
