@@ -22,7 +22,7 @@ public class AnimationCtl : MonoBehaviour
 
             // 차이만큼 보정
             float jumpHeight = baseJump + (remaining - baseWall);
-            jumpHeight = Mathf.Clamp(jumpHeight, 0.0f, 2.0f); // 0 이상으로
+            jumpHeight = Mathf.Clamp(jumpHeight, 0.0f, 1.0f); // 0 이상으로
 
             player.MoveUpDuringHold(jumpHeight, 0.1f);
         }
