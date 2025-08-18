@@ -275,7 +275,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // มกวม
-        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching)
+        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching && canRun)
         {
             ClearLandTriggers();
             isJumping = true;
