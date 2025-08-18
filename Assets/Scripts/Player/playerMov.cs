@@ -11,7 +11,9 @@ public class PlayerMov : MonoBehaviour
     public GameObject gameOverUI;
     public GameObject missionUI;
     public GameObject nearNPC;
+    public AudioClip[] playerSounds;
     private Animator animator;
+    private AudioSource audioSource;
 
     // 이동 및 회전
     public float speed = 5f;
@@ -102,6 +104,8 @@ public class PlayerMov : MonoBehaviour
 
     // 앉기
     private bool isCrouching = false;
+    [SerializeField] private float crouchCooldown = 0.6f;       // 앉기 쿨타임
+    private float crouchCooldownTimer = 0f;
 
     // Tag 기반 벽 근접 차단(Keep-Out)
     [Header("Wall Keep-Out (by Tag)")]
@@ -121,6 +125,8 @@ public class PlayerMov : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
         box = GetComponent<BoxCollider>();
+        audioSource = GetComponent<AudioSource>();
+        
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
     }
 
@@ -134,6 +140,10 @@ public class PlayerMov : MonoBehaviour
             timeSinceLeftGround = 0f;
         if (!isGrounded)
             timeSinceLeftGround += Time.deltaTime;
+
+        // 앉기 타이머 감소
+        if (crouchCooldownTimer > 0f)
+            crouchCooldownTimer -= Time.deltaTime;
 
         // 벽 붙은 상태 처리(보간 중)
         if (isLerpingHoldOffset)
@@ -354,10 +364,18 @@ public class PlayerMov : MonoBehaviour
         wasGroundedLastFrame = isGrounded;
 
         // C 눌러 앉기
-        if (Input.GetKeyDown(KeyCode.C))
+        if (Input.GetKeyDown(KeyCode.C) && crouchCooldownTimer <= 0f)
         {
             isCrouching = !isCrouching;
             animator.SetBool("IsCrouching", isCrouching);
+
+            // C키 쿨타임 시작
+            crouchCooldownTimer = crouchCooldown;
+
+            // 효과음
+            if (!audioSource) audioSource = GetComponent<AudioSource>();
+            if (audioSource && playerSounds != null && playerSounds.Length > 0)
+                audioSource.PlayOneShot(playerSounds[0], 0.05f);
         }
 
         // 속도 조정

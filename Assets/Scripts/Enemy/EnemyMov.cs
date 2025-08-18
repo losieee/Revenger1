@@ -1,13 +1,12 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class EnemyMov : MonoBehaviour
 {
     [Header("경로 이동 관련")]
+    public AudioClip[] enemySounds;             // 소리
     public Transform[] waypoints;               // 순찰 할 경로
     public float walkSpeed = 2f;                // 걷는 속도 (순찰 중)
     public float runSpeed = 5f;                 // 달리는 속도 (추격 중)
@@ -44,10 +43,16 @@ public class EnemyMov : MonoBehaviour
     private bool hasHeardPlayer = false;        // 소리 감지로 플레이어 최초 위치 기록 여부
     private bool isSoundWaiting = false;        // 감지 직후 잠깐 멈춤 플래그
 
+    // 소리 관련
+    public float footstepVolume = 0.7f;
+    public float QuestionVolume = 0.7f;
+    private int currentSoundIndex = 0;
+
     // 컴포넌트 참조
     private Animator animator;
     private NavMeshAgent agent;
     [SerializeField] private BoxCollider catchBox;
+    private AudioSource audioSource;
     // Enemy 상태 정의
     private enum EnemyState { Patrol, Watching, Chasing }       // 순찰 중, 경고(?) - 플레이어 최초 발각 시, 추격(!) - 플레이어 추적
     private EnemyState state = EnemyState.Patrol;
@@ -56,6 +61,7 @@ public class EnemyMov : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        audioSource = GetComponent<AudioSource>();
 
         originalViewAngle = viewAngle;      //시작할때는 기본 사야각 60으로
         lostPlayerTimer = 0f;
@@ -74,6 +80,12 @@ public class EnemyMov : MonoBehaviour
 
     void Update()
     {
+        if (agent.velocity.magnitude < 0.1f)
+        {
+            animator.SetFloat("Speed", 0f);
+            currentSoundIndex = 0;          // 멈추면 다음 발소리는 무조건 index 0부터
+        }
+
         bool playerInSight = IsPlayerInSight();
 
         // 상태에 따른 동작 처리
@@ -90,6 +102,7 @@ public class EnemyMov : MonoBehaviour
                 {
                     playerStayTime = 0f;    // 본 순간 타이머 리셋
                     state = EnemyState.Watching;
+                    audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
                 }
                 break;
 
@@ -349,6 +362,7 @@ public class EnemyMov : MonoBehaviour
 
             // 소리 들리면 바로 Watching 상태로 진입하고, 위치 설정
             state = EnemyState.Watching;
+            audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
 
             agent.isStopped = true; // 정지 해제
             animator.SetFloat("Speed", 0f);
@@ -362,6 +376,24 @@ public class EnemyMov : MonoBehaviour
         isSoundWaiting = false;
         soundDetectTimer = 0f;
         soundChaseTimer = 0f;
+    }
+
+    // 애니메이션 이벤트에서 호출할 함수
+    public void PlayFootstep()
+    {
+        if (agent == null) return;
+
+        // 정지/대기 중이면 무음 (Watching이라도 이동하면 허용)
+        if (agent.isStopped || agent.velocity.magnitude < 0.1f) return;
+
+        if (audioSource == null) audioSource = GetComponent<AudioSource>();
+        if (audioSource == null || enemySounds.Length == 0) return;
+
+        audioSource.pitch = 1f + UnityEngine.Random.Range(-0.05f, 0.05f);
+
+        // 0,1 번만 번갈아 재생
+        audioSource.PlayOneShot(enemySounds[currentSoundIndex], footstepVolume);
+        currentSoundIndex = (currentSoundIndex + 1) % 2;
     }
 
     // 시야 관련 기즈모
