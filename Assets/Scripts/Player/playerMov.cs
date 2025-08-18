@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Rendering;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -22,26 +21,29 @@ public class PlayerMov : MonoBehaviour
     public Transform cameraPivot;
 
     private Vector3 currentMoveInput;
-    private Vector3 lastFixedPosition;
-    private float lastFixedSpeed = 0f;
     private bool isRunning;
     private bool canAttack;
     private bool canTakeMission;
+    private bool canRun = true;
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
 
     // 바닥 감지 (BoxCollider 기반 + 코요테 타임)
     private BoxCollider box;
-    private float boxGroundExtra = 0.25f;       // 바닥까지 여유 캐스트 거리
-    private float edgeProbeOffset = 0.18f;      // 앞/뒤/좌/우 보조 프로브 오프셋
-    private float groundedCoyoteTime = 0.12f;   // 유예 시간
+    private float boxGroundExtra = 0.1f;       // 바닥까지 여유 캐스트 거리
+    private float edgeProbeOffset = 0.18f;     // 앞/뒤/좌/우 보조 프로브 오프셋
+    private float groundedCoyoteTime = 0.12f;  // 유예 시간
     private float groundedTimer = 0f;
+
+    // 착지 판정 보정
+    [SerializeField] private float minAirTimeForLand = 0.12f; // 최소 공중시간
+    [SerializeField] private float landMinDownVel = -0.4f;    // 하강속도 임계
+    private float timeSinceLeftGround = 999f;                  // 떠난 뒤 경과시간
 
     // 벽타기
     public float climbDuration = 3.25f;
     public float climbCheckDistance = 2.0f;
-    [HideInInspector] public float remainingWallHeight = 0f;
     public LayerMask climbableLayer;
     private bool canClimbZone = false;
     private bool isClimbing = false;
@@ -55,6 +57,7 @@ public class PlayerMov : MonoBehaviour
 
     // 벽 매달리기
     [HideInInspector] public float detectedWallHeight = 0f;
+    [HideInInspector] public float remainingWallHeight = 0f;
     private bool isHolding = false;
     private bool canStartClimb = false;
     private bool isLerpingHoldOffset = false;
@@ -83,6 +86,8 @@ public class PlayerMov : MonoBehaviour
     private bool ignoreGroundedCheck = false;
     private float ignoreGroundedTimer = 0f;
     private float ignoreDurationAfterJump = 0.25f; // 점프 직후 잠깐 지면 판정 무시
+    private float fallTimer = 0f;
+    [SerializeField] private float fallDebounce = 0.10f; // 100ms
 
     public LayerMask groundLayer;                 // '땅' 레이어에 닿았을 때만 착지
     [Range(0f, 1f)] public float groundMinNormalY = 0.55f; // 허용 경사(~56˚)
@@ -93,7 +98,6 @@ public class PlayerMov : MonoBehaviour
 
     // Alt 이동
     private Vector3 savedForward, savedRight;
-    private Quaternion savedRotation;
     private bool wasAltPressedLastFrame, justReleasedAlt;
 
     // 앉기
@@ -105,7 +109,7 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float wallKeepOutRadius = 0.4f;    // 벽 최소 접근 거리(XZ 기준)
     [SerializeField] private int wallKeepOutIterations = 2;     // 모서리/다중벽 보정 반복
     [SerializeField] private float wallKeepOutSkin = 0.01f;     // 살짝 여유
-    [SerializeField] private float wallKeepOutUnderFootTolerance = 0.03f;   //발바닥 기준으로 '아래에 있는' 벽을 무시할 때 높이 오차
+    [SerializeField] private float wallKeepOutUnderFootTolerance = 0.03f;   // 발바닥보다 아래 표면 무시 허용치
 
     void Start()
     {
@@ -117,18 +121,19 @@ public class PlayerMov : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
         box = GetComponent<BoxCollider>();
-        lastFixedPosition = rb.position;
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
     }
 
     void Update()
     {
-        // space를 누르자마자 Land 트리거 제거
-        if (Input.GetKeyDown(KeyCode.Space))
-            ClearLandTriggers();
-
         // 바닥 감지
         isGrounded = CheckGrounded();
+
+        // 공중으로 떠난 순간 타이머 리셋/누적
+        if (wasGroundedLastFrame && !isGrounded)
+            timeSinceLeftGround = 0f;
+        if (!isGrounded)
+            timeSinceLeftGround += Time.deltaTime;
 
         // 벽 붙은 상태 처리(보간 중)
         if (isLerpingHoldOffset)
@@ -172,13 +177,12 @@ public class PlayerMov : MonoBehaviour
                 isClimbing = false;
                 rb.isKinematic = false;
                 rb.velocity = Vector3.zero;
-                lastFixedPosition = rb.position;
             }
             return;
         }
 
         // 입력
-        isRunning = Input.GetKey(KeyCode.LeftShift) && !isCrouching;
+        isRunning = canRun && Input.GetKey(KeyCode.LeftShift) && !isCrouching;
         bool isAlt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
         float h = Input.GetAxis("Horizontal");
@@ -193,7 +197,6 @@ public class PlayerMov : MonoBehaviour
         {
             savedForward = camForward;
             savedRight = camRight;
-            savedRotation = transform.rotation;
         }
 
         if (wasAltPressedLastFrame && !isAlt)
@@ -272,7 +275,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 점프
-        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching)
+        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching && canRun)
         {
             ClearLandTriggers();
             isJumping = true;
@@ -319,15 +322,24 @@ public class PlayerMov : MonoBehaviour
 
         // 낙하 감지
         verticalVelocity = rb.velocity.y;
-        bool isFalling = verticalVelocity < -0.1f && !isGrounded;
-        animator.SetBool("IsFalling", isFalling);
+        bool wantFall = (verticalVelocity < -0.1f) && !isGrounded;
+
+        if (wantFall) fallTimer += Time.deltaTime;
+        else fallTimer = 0f;
+
+        bool isFallingAnim = fallTimer > fallDebounce;
+        animator.SetBool("IsFalling", isFallingAnim);
 
         // 착지 트리거(프레임 전이)
-        if (!wasGroundedLastFrame && isGrounded)
+        if (!wasGroundedLastFrame && isGrounded
+                && timeSinceLeftGround >= minAirTimeForLand
+                && verticalVelocity <= landMinDownVel
+                && !ignoreGroundedCheck)
         {
             animator.SetTrigger("Land");
             animator.SetBool("IsJumping", false);
             animator.SetBool("IsFalling", false);
+            fallTimer = 0f;             // 낙하 타이머 리셋
             isJumping = false;
             isLanding = true;
             landingTimer = landingDelay;
@@ -385,9 +397,8 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 잠깐 Grounded 무시 → Land 오인 방지
-        const float extraIgnoreAfterWall = 0.12f;
         ignoreGroundedCheck = true;
-        ignoreGroundedTimer = Mathf.Max(ignoreGroundedTimer, extraIgnoreAfterWall);
+        ignoreGroundedTimer = Mathf.Max(ignoreDurationAfterJump, minAirTimeForLand);
     }
 
     // 애니메이터 트리거/상태 초기화
@@ -414,8 +425,6 @@ public class PlayerMov : MonoBehaviour
         bool block = isClimbing || isHolding;
         if (block)
         {
-            lastFixedSpeed = 0f;
-            lastFixedPosition = rb.position;
             return;
         }
 
@@ -431,10 +440,6 @@ public class PlayerMov : MonoBehaviour
         EnforceWallKeepOut(ref newPos);
 
         rb.MovePosition(newPos);
-
-        float movedDistance = (newPos - lastFixedPosition).magnitude;
-        lastFixedSpeed = movedDistance / Time.fixedDeltaTime;
-        lastFixedPosition = newPos;
     }
 
     // Tag=wall 근접 차단(Keep-Out) 보정 (수평 XZ만)
@@ -463,8 +468,6 @@ public class PlayerMov : MonoBehaviour
                 if (!col.CompareTag(wallTag)) continue;
 
                 // '발바닥보다 아래'에 있는 표면은 밀어내기 제외
-                //  - 최근접점이 발바닥보다 충분히 낮거나
-                //  - 해당 콜라이더의 최상단이 발바닥보다 충분히 낮은 경우
                 Vector3 query = new Vector3(pos.x, footY, pos.z);
                 Vector3 cp = col.ClosestPoint(query);
                 if (cp.y <= footY - wallKeepOutUnderFootTolerance ||
@@ -564,10 +567,10 @@ public class PlayerMov : MonoBehaviour
         float playerFoot = transform.position.y;
         float wallHeight = wallTop - playerFoot;
 
-        // 남은 높이 저장
+        // 남은 높이 저장 (다른 스크립트에서 참조)
         remainingWallHeight = wallHeight;
 
-        // 낮은 벽이면 BoxJump
+        // 낮은 벽이면 BoxJump(이 로직을 쓰고 있었다면 함께 유지)
         if (wallHeight <= 1.0f)
         {
             StartBoxJump(hit.point, hit.normal, wallHeight);
@@ -632,6 +635,9 @@ public class PlayerMov : MonoBehaviour
     // 트리거 충돌
     private void OnTriggerEnter(Collider other)
     {
+        if (other.CompareTag("DonRun"))
+            canRun = false;
+
         if (other.CompareTag("ClimbZone"))
             canClimbZone = true;
 
@@ -722,7 +728,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 2) 위로 올리기
-        Vector3 upTarget = start + new Vector3(0f, height, 0f);
+        Vector3 upTarget = start + new Vector3(0f, height, 0.01f);
         t = 0f;
 
         while (t < 1f)
@@ -758,7 +764,6 @@ public class PlayerMov : MonoBehaviour
         }
 
         rb.velocity = Vector3.zero;
-        lastFixedPosition = rb.position;
     }
 
     public void OnClimbEnd()
@@ -842,7 +847,6 @@ public class PlayerMov : MonoBehaviour
         rb.useGravity = true;
         rb.isKinematic = false;
         blockInput = false;
-        lastFixedPosition = rb.position;
     }
 
     public void MoveToBoxTop(float duration)
