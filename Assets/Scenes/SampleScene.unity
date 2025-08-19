@@ -357,13 +357,15 @@ MonoBehaviour:
   gameOverUI: {fileID: 0}
   missionUI: {fileID: 0}
   nearNPC: {fileID: 0}
+  playerSounds: []
   speed: 1.5
   rotSpeed: 5
   runSpeed: 3
   cameraPivot: {fileID: 1816884328}
+  minAirTimeForLand: 0.12
+  landMinDownVel: -0.4
   climbDuration: 3.8
   climbCheckDistance: 2
-  remainingWallHeight: 0
   climbableLayer:
     serializedVersion: 2
     m_Bits: 8
@@ -373,12 +375,15 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   detectedWallHeight: 0
+  remainingWallHeight: 0
+  fallDebounce: 0.1
   groundLayer:
     serializedVersion: 2
     m_Bits: 0
   groundMinNormalY: 0.55
   frontCheckDistance: 0.35
   wallPushStrength: 2
+  crouchCooldown: 0.6
   wallTag: Wall
   wallKeepOutRadius: 0.4
   wallKeepOutIterations: 2
@@ -3008,6 +3013,94 @@ Transform:
   - {fileID: 577807987}
   m_Father: {fileID: 1680421904}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &702618970
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 5.3222
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 23.858236
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 5.3222
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -39.101
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.992
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -3.539
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: b2404e07309289745b06e4868aa6584a, type: 2}
+    - target: {fileID: 919132149155446097, guid: 35a246c79f7a6c14db21858f1f4e3489,
+        type: 3}
+      propertyPath: m_Name
+      value: Fat
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 35a246c79f7a6c14db21858f1f4e3489, type: 3}
 --- !u!1 &711674578
 GameObject:
   m_ObjectHideFlags: 0
@@ -7849,6 +7942,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -2106161764300793749, guid: 80f61c62ddb40594b87ff64518ba76fa,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: e5bfcea12e2ee37409d3df9809f1d045, type: 2}
     - target: {fileID: 919132149155446097, guid: 80f61c62ddb40594b87ff64518ba76fa,
         type: 3}
       propertyPath: m_Name
@@ -18744,7 +18842,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: -4597107667637640440, guid: c2202e1942475d649b020a6327db6b69, type: 3}
+  - {fileID: 2100000, guid: e5bfcea12e2ee37409d3df9809f1d045, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -18769,7 +18867,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 2243187975604576726, guid: c2202e1942475d649b020a6327db6b69, type: 3}
+  m_Mesh: {fileID: 6604927694719916108, guid: 80f61c62ddb40594b87ff64518ba76fa, type: 3}
   m_Bones:
   - {fileID: 6515712192497527223}
   - {fileID: 5901452234164502733}
@@ -22317,7 +22415,7 @@ Animator:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 919132148114049268}
   m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: c2202e1942475d649b020a6327db6b69, type: 3}
+  m_Avatar: {fileID: 9000000, guid: 80f61c62ddb40594b87ff64518ba76fa, type: 3}
   m_Controller: {fileID: 9100000, guid: 707abd5a37defd945a14fa9d79103b3b, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
@@ -29335,6 +29433,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0523fd4c0b094ab4f87575e8ebce82fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  enemySounds: []
   waypoints:
   - {fileID: 1480821457}
   - {fileID: 840348087}
@@ -29352,6 +29451,8 @@ MonoBehaviour:
   miniQuestionMark: {fileID: 1655008882}
   miniAnswerMark: {fileID: 258454872}
   lostPlayerGraceTime: 5
+  footstepVolume: 0.7
+  QuestionVolume: 0.7
   catchBox: {fileID: 8898476554543250331}
 --- !u!1 &8817898887152861222
 GameObject:
@@ -30239,3 +30340,4 @@ SceneRoots:
   - {fileID: 2021120288}
   - {fileID: 1834120838}
   - {fileID: 2024106994}
+  - {fileID: 702618970}
