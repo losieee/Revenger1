@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using static UnityEditor.Progress;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -10,10 +11,9 @@ public class PlayerMov : MonoBehaviour
     public GameObject gameClearUI;
     public GameObject gameOverUI;
     public GameObject missionUI;
+    public GameObject optionUI;
     public GameObject nearNPC;
-    public AudioClip[] playerSounds;
     private Animator animator;
-    private AudioSource audioSource;
 
     // 이동 및 회전
     public float speed = 5f;
@@ -27,6 +27,7 @@ public class PlayerMov : MonoBehaviour
     private bool canAttack;
     private bool canTakeMission;
     private bool canRun = true;
+    private bool escStop = false;
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
@@ -125,7 +126,6 @@ public class PlayerMov : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
         box = GetComponent<BoxCollider>();
-        audioSource = GetComponent<AudioSource>();
         
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
     }
@@ -373,9 +373,7 @@ public class PlayerMov : MonoBehaviour
             crouchCooldownTimer = crouchCooldown;
 
             // 효과음
-            if (!audioSource) audioSource = GetComponent<AudioSource>();
-            if (audioSource && playerSounds != null && playerSounds.Length > 0)
-                audioSource.PlayOneShot(playerSounds[0], 0.05f);
+            SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
         }
 
         // 속도 조정
@@ -393,6 +391,19 @@ public class PlayerMov : MonoBehaviour
         // 미션 받기
         if (canTakeMission && Input.GetKeyDown(KeyCode.E))
             ShowPausePanel(missionUI);
+
+        // ESC로 옵션창 토글
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            escStop = !escStop;
+
+            if (escStop)
+                ShowPausePanel(optionUI);
+            else
+                HidePausePanel(optionUI);
+        }
+        if (escStop)
+            return;
     }
 
     // 점프 직전 앞벽 밀어내기(태그 wall 대상)
