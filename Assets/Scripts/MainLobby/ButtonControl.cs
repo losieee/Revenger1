@@ -12,7 +12,6 @@ public class ButtonControl : MonoBehaviour
     public GameObject optionPop;
     private bool onOption = false;
     public GameObject exitPop;
-    private bool onExit = false;
 
     [Header("Sliders")]
     public Slider musicSlider;
@@ -106,7 +105,6 @@ public class ButtonControl : MonoBehaviour
     public void ExitGame()
     {
         exitPop.SetActive(true);
-        onExit = true;
         if (SoundManager.i != null)
             SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
     }
@@ -114,7 +112,6 @@ public class ButtonControl : MonoBehaviour
     public void OffExit()
     {
         exitPop.SetActive(false);
-        onExit = false;
         if (SoundManager.i != null)
             SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
     }

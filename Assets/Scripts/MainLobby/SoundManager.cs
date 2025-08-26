@@ -48,6 +48,9 @@ public class SoundManager : MonoBehaviour
     const string MUSIC = "MusicVol";
     const string EFFECT = "EffectVol";
 
+    public AudioMixerGroup effectGroup;
+    public AudioMixerGroup EffectGroup => effectGroup;
+
     void Awake()
     {
         if (i == null) { i = this; DontDestroyOnLoad(gameObject); }
@@ -59,13 +62,51 @@ public class SoundManager : MonoBehaviour
         sfxMap = new Dictionary<PlayerSfx, SfxEntry>();
         foreach (var e in playerSfx)
             sfxMap[e.id] = e;
+
+        ReapplyVolumesAndUnpause();
+
+        if (sfxEffectSource && effectGroup) sfxEffectSource.outputAudioMixerGroup = effectGroup;
+        if (sfxButtonSource && effectGroup) sfxButtonSource.outputAudioMixerGroup = effectGroup;
     }
 
     void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
     void OnDisable() { SceneManager.sceneLoaded -= OnSceneLoaded; }
 
-    void Start() { TryPlaySceneBgm(SceneManager.GetActiveScene().name); }
-    void OnSceneLoaded(Scene scene, LoadSceneMode mode) { TryPlaySceneBgm(scene.name); }
+    void Start()
+    {
+        // 시작 시에도 1프레임 후 오디오 그래프 안정화 뒤 BGM 적용
+        StartCoroutine(CoInitAudioThenPlay(SceneManager.GetActiveScene().name));
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // 장면 바뀔 때마다: 언파즈 -> 볼륨 재적용 -> 1프레임 대기 -> BGM 교체
+        StartCoroutine(CoInitAudioThenPlay(scene.name));
+    }
+
+
+    // 장면 전환 직후 오디오 초기화 + BGM 적용을 순서대로 보장
+    IEnumerator CoInitAudioThenPlay(string sceneName)
+    {
+        ReapplyVolumesAndUnpause();
+
+        yield return null;
+        TryPlaySceneBgm(sceneName);
+    }
+
+    // 공통: 리스너 언파즈 + 저장된 볼륨 다시 적용 + 소스들 강제 unmute
+    void ReapplyVolumesAndUnpause()
+    {
+        AudioListener.pause = false;                // 혹시 남아있을 수 있는 전역 일시정지 해제
+        Time.timeScale = Mathf.Max(Time.timeScale, 0f); // 음수 방지
+
+        LoadVolume();
+
+        if (bgmSource) { bgmSource.mute = false; }
+        if (sfxEffectSource) { sfxEffectSource.mute = false; }
+        if (sfxButtonSource) { sfxButtonSource.mute = false; }
+    }
+
 
     public void SetMusicVolume(float v)
     {

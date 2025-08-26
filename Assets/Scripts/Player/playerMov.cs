@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using static UnityEditor.Progress;
@@ -28,12 +29,14 @@ public class PlayerMov : MonoBehaviour
     private bool canTakeMission;
     private bool canRun = true;
     private bool escStop = false;
+    private bool canKill = false;
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
 
     // 바닥 감지 (BoxCollider 기반 + 코요테 타임)
     private BoxCollider box;
+    private EnemyMov killTarget = null;        // 암살 대상
     private float boxGroundExtra = 0.1f;       // 바닥까지 여유 캐스트 거리
     private float edgeProbeOffset = 0.18f;     // 앞/뒤/좌/우 보조 프로브 오프셋
     private float groundedCoyoteTime = 0.12f;  // 유예 시간
@@ -404,6 +407,17 @@ public class PlayerMov : MonoBehaviour
         }
         if (escStop)
             return;
+
+        // 암살
+        if (canKill && Input.GetKeyDown(KeyCode.E))
+        {
+            if (killTarget != null)
+            {
+                killTarget.Kill();
+                canKill = false;
+                killTarget = null;
+            }
+        }
     }
 
     // 점프 직전 앞벽 밀어내기(태그 wall 대상)
@@ -681,6 +695,18 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("Discorver"))
             ShowPausePanel(gameOverUI);
+
+        if (other.CompareTag("Attack"))
+        {
+            var enemy = other.GetComponentInParent<EnemyMov>();
+            if (enemy == null) enemy = other.GetComponent<EnemyMov>();
+            if (enemy != null)
+            {
+                killTarget = enemy;
+                canKill = true;
+            }
+        }
+
     }
 
     private void OnTriggerExit(Collider other)
@@ -695,6 +721,16 @@ public class PlayerMov : MonoBehaviour
         {
             nearNPC.SetActive(false);
             canTakeMission = false;
+        }
+        if (other.CompareTag("Attack"))
+        {
+            var enemy = other.GetComponentInParent<EnemyMov>();
+            if (enemy == null) enemy = other.GetComponent<EnemyMov>();
+            if (enemy == killTarget)
+            {
+                killTarget = null;
+                canKill = false;
+            }
         }
     }
 
@@ -946,6 +982,7 @@ public class PlayerMov : MonoBehaviour
         if (!EventSystem.current)
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
+        AudioListener.pause = true;
         Time.timeScale = 0f;
     }
 
@@ -962,6 +999,7 @@ public class PlayerMov : MonoBehaviour
         }
         panel.SetActive(false);
 
+        AudioListener.pause = false;
         Time.timeScale = 1f;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
