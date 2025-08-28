@@ -24,20 +24,28 @@ public class EnemyMov : MonoBehaviour
     public GameObject miniQuestionMark;             // 미니맵에서 물음표
     public GameObject miniAnswerMark;               // 미니맵에서 느낌표
 
+    [Header("수직 시야 관련")]
+    public float eyeHeight = 1.5f;                  // 적 눈 높이
+    public float targetHeight = 0.9f;               // 플레이어 기준 높이
+    public float maxDetectUp = 1.0f;                // 눈보다 위로 허용 높이
+    public float maxDetectDown = 2.5f;              // 눈보다 아래로 허용 높이
+    public float verticalFovUp = 30f;               // 위쪽 수직 FOV(도)
+    public float verticalFovDown = 45f;             // 아래쪽 수직 FOV(도)
+
     [Header("추적 관련")]
     public float lostPlayerGraceTime = 2f;          // 플레이어를 놓친 뒤 몇 초까지 추적 유지할지
-    public bool infiniteChaseAfterCorpse = true;    // 시체로 추격 시작 시 무한 유지
-    private bool chasingFromCorpse = false;         // 시체로 인해 추격 시작했는가
+    public float lostAfterPlayer = 2f;              // 플레이어로 시작
+    public float lostAfterCorpse = 6f;              // 시체로 시작
+    public bool infiniteChaseAfterCorpse = false;    // 시체로 추격 시작 시 무한 유지
 
     [Header("추격 시 가시 거리 보정")]
     public float chaseViewDistance = 50f;           // Chasing에서만 적용할 넓은 시야거리
 
     [Header("시체 인지 설정")]
     public bool corpseRequiresLineOfSight = true;   // 시체도 가림막 체크할지
-    private bool sawCorpse = false;                 // 시체 보고 Watching에 들어왔는지 플래그
-    public static event Action<Transform> OnAnyEnemyKilled;     // 모든 적이 공유하는 시체 브로드캐스트 이벤트
-    private static readonly List<EnemyMov> Instances = new List<EnemyMov>();    // 맵에 있는 Enemy들
 
+    [Header("시야 가림막 레이어")]
+    public LayerMask occluderMask;
 
     // 내부 상태
     private int currentIndex = 0;               // 현재 이동 중인 waypoint 인덱스
@@ -49,7 +57,10 @@ public class EnemyMov : MonoBehaviour
     private float destinationUpdateRate = 0.2f; // 추격 중 목표 위치 갱신 간격
     private float destinationUpdateTimer = 0f;  // 현재 추격 위치 갱신 타이머
     private bool isDead = false;                // 사망
+
     private static readonly List<Transform> Corpses = new List<Transform>();    // 시야각안에 시체가 있는지 검사
+    private bool chasingFromCorpse = false;
+    private bool sawCorpse = false;
 
     // 소리 감지 이동 관련
     private bool isSoundTriggered = false;      // 소리 감지가 발생했는지 여부
@@ -81,13 +92,22 @@ public class EnemyMov : MonoBehaviour
     private bool hasChaseVoice = false;
 
     // Enemy 상태 정의
-    private enum EnemyState { Patrol, Watching, Chasing }       // 순찰 중, 경고(?) - 플레이어 최초 발각 시, 추격(!) - 플레이어 추적
+    private enum EnemyState { Patrol, Watching, Chasing, Dead }       // 순찰 중, 경고(?) - 플레이어 최초 발각 시, 추격(!) - 플레이어 추적
     private EnemyState state = EnemyState.Patrol;
+
+    public static event Action<Transform> OnAnyEnemyKilled;
+    private static readonly List<EnemyMov> Instances = new List<EnemyMov>();
 
     void OnEnable()
     {
         OnAnyEnemyKilled += HandleCorpseCreated; // 시체 알림 구독
         if (!Instances.Contains(this)) Instances.Add(this);
+    }
+
+    // 에러 가드
+    bool AgentReady()
+    {
+        return agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh;
     }
 
     void Start()
@@ -135,17 +155,34 @@ public class EnemyMov : MonoBehaviour
 
         // 처음 목적지 설정
         agent.speed = walkSpeed;
-        agent.SetDestination(waypoints[currentIndex].position);
-
         agent.acceleration = 40f;
         agent.angularSpeed = 720f;
         agent.updateRotation = false;
         agent.autoBraking = false;
         agent.stoppingDistance = 0f;
+
+        if (waypoints != null && waypoints.Length > 0)
+            agent.SetDestination(waypoints[currentIndex].position);
+
+        NavMeshHit hit;
+        if (agent && (!agent.isOnNavMesh) &&
+            NavMesh.SamplePosition(transform.position, out hit, 2f, NavMesh.AllAreas))
+        {
+            agent.Warp(hit.position); // NavMesh 위로 스냅
+        }
+
+        if (waypoints != null && waypoints.Length > 0 && AgentReady())
+            agent.SetDestination(waypoints[currentIndex].position);
     }
 
     void Update()
     {
+        if (isDead || state == EnemyState.Dead)
+        {
+            animator?.SetFloat("Speed", 0f);
+            return;
+        }
+
         if (agent.velocity.magnitude < 0.1f)
         {
             animator.SetFloat("Speed", 0f);
@@ -280,7 +317,7 @@ public class EnemyMov : MonoBehaviour
                 else
                 {
                     // 시체로 시작된 추격이고, 무한 옵션이 켜져 있으면 절대 포기하지 않음
-                    if (infiniteChaseAfterCorpse && chasingFromCorpse)
+                    if (chasingFromCorpse && infiniteChaseAfterCorpse)
                     {
                         // 끝없이 Chasing 유지
                         lostPlayerTimer = 0f;
@@ -288,18 +325,8 @@ public class EnemyMov : MonoBehaviour
                     else
                     {
                         lostPlayerTimer += Time.deltaTime;
-                        if (lostPlayerTimer >= lostPlayerGraceTime)
-                        {
-                            StopChaseLoopCapped();
-                            audioSource.Stop();
-                            ResetSoundDetection();
-
-                            // 일반적으로 종료할 때만 플래그 해제
-                            chasingFromCorpse = false;
-
-                            state = EnemyState.Patrol;
-                            agent.SetDestination(waypoints[currentIndex].position);
-                        }
+                        float limit = chasingFromCorpse ? lostAfterCorpse : lostAfterPlayer;
+                        if (lostPlayerTimer >= limit) EndChase();
                     }
                 }
                 break;
@@ -314,9 +341,29 @@ public class EnemyMov : MonoBehaviour
 
         UpdateMark();
     }
+    
+    // 추적 종료
+    void EndChase()
+    {
+        StopChaseLoopCapped();
+        audioSource.Stop();
+        ResetSoundDetection();
+
+        chasingFromCorpse = false;
+        lostPlayerTimer = 0f;
+
+        state = EnemyState.Patrol;
+
+        if (AgentReady() && waypoints != null && waypoints.Length > 0)
+            agent.SetDestination(waypoints[currentIndex].position);
+        if (AgentReady())
+            agent.isStopped = false;
+    }
 
     void LateUpdate()
     {
+        if (isDead || state == EnemyState.Dead) return;
+
         // 항상 월드 Z+ 방향을 향하도록 미니맵 마크 회전 고정
         if (miniQuestionMark != null)
         {
@@ -332,6 +379,7 @@ public class EnemyMov : MonoBehaviour
     void Patrol()
     {
         if (waypoints == null || waypoints.Length < 2 || isWaiting) return;
+        if (!AgentReady()) return;
 
         agent.speed = walkSpeed;
 
@@ -351,6 +399,9 @@ public class EnemyMov : MonoBehaviour
 
             // 다음 목적지 설정
             agent.SetDestination(waypoints[currentIndex].position);
+
+            if (AgentReady())
+                agent.SetDestination(waypoints[currentIndex].position);
         }
 
         // 속도 보간을 통해 애니메이션 부드럽게 처리
@@ -361,12 +412,14 @@ public class EnemyMov : MonoBehaviour
     // 추격 행동
     void ChasePlayer()
     {
+        if (!AgentReady()) return;
         agent.speed = runSpeed;
 
         destinationUpdateTimer += Time.deltaTime;
         if (destinationUpdateTimer >= destinationUpdateRate)
         {
-            agent.SetDestination(player.position);
+            if (AgentReady())
+                agent.SetDestination(player.position);
             destinationUpdateTimer = 0f;
         }
 
@@ -383,59 +436,76 @@ public class EnemyMov : MonoBehaviour
         isWaiting = true;
         yield return new WaitForSeconds(waitTimeAtEnds);
         isWaiting = false;
+
+        if (!AgentReady()) yield break;
+
         agent.isStopped = false;
-        agent.SetDestination(waypoints[currentIndex].position);
+        if (waypoints != null && waypoints.Length > 0)
+            agent.SetDestination(waypoints[currentIndex].position);
     }
 
     // 플레이어가 시야 내에 있는지 검사
     bool IsPlayerInSight()
     {
+        if (isDead || state == EnemyState.Dead) return false;
         if (player == null) return false;
 
-        Vector3 eyePos = transform.position + Vector3.up * 1.5f;
-        Vector3 dirToPlayer = player.position - eyePos;
-        float distanceToPlayer = dirToPlayer.magnitude;
+        Vector3 eyePos = transform.position + Vector3.up * eyeHeight;
+        Vector3 targetPos = player.position + Vector3.up * targetHeight;
+
+        Vector3 to = targetPos - eyePos;
+        float dist = to.magnitude;
 
         float maxDist = (state == EnemyState.Chasing) ? chaseViewDistance : viewDistance;
-        if (distanceToPlayer > maxDist)
+        if (dist > maxDist) return false;
+
+        // 1) 수직 높이 차 컷
+        float dy = targetPos.y - eyePos.y;
+        if (dy > maxDetectUp || dy < -maxDetectDown) return false;
+
+        // 2) 수평 FOV(바닥 평면 기준)
+        Vector3 toFlat = new Vector3(to.x, 0f, to.z);
+        if (toFlat.sqrMagnitude < 0.0001f) return false;
+        float hAngle = Vector3.Angle(transform.forward, toFlat.normalized);
+        if (hAngle > viewAngle * 0.5f) return false;
+
+        // 3) 수직 FOV(상하)
+        float vAngle = Mathf.Atan2(dy, toFlat.magnitude) * Mathf.Rad2Deg;
+        if (vAngle > verticalFovUp || vAngle < -verticalFovDown) return false;
+
+        // 4) 가림막 체크(기존 그대로)
+        if (Physics.Raycast(eyePos, to.normalized, dist, occluderMask, QueryTriggerInteraction.Ignore))
             return false;
 
-        // 시야각 확인 (3D 방향 포함)
-        float angleToPlayer = Vector3.Angle(transform.forward, dirToPlayer.normalized);
-        if (angleToPlayer > viewAngle / 2f)
-            return false;
-
-        // 장애물 Raycast 확인
-        if (Physics.Raycast(eyePos, dirToPlayer.normalized, out RaycastHit hit, maxDist))
-            return hit.transform == player;
-
-        return false;
+        return true;
     }
 
     // 시체 체크
     private bool IsTargetVisible(Transform target, float maxDistance, float fov, bool checkLOS)
     {
         if (!target) return false;
+
         Vector3 eyePos = transform.position + Vector3.up * 1.5f;
-        Vector3 dir = target.position - eyePos;
-        float dist = dir.magnitude;
+        Vector3 toTarget = (target.position + Vector3.up * 0.9f) - eyePos;
+        float dist = toTarget.magnitude;
 
         if (dist > maxDistance) return false;
-        float angle = Vector3.Angle(transform.forward, dir.normalized);
+
+        float angle = Vector3.Angle(transform.forward, toTarget.normalized);
         if (angle > fov * 0.5f) return false;
 
         if (checkLOS)
         {
-            if (Physics.Raycast(eyePos, dir.normalized, out RaycastHit hit, dist))
-            {
-                if (!hit.transform.IsChildOf(target)) return false; // 가림막 있으면 false
-            }
+            if (Physics.Raycast(eyePos, toTarget.normalized, dist, occluderMask, QueryTriggerInteraction.Ignore))
+                return false; // 사이에 벽이 있으면 안보임
         }
         return true;
     }
 
     private bool IsAnyCorpseVisible()
     {
+        if (isDead || state == EnemyState.Dead) return false;
+
         for (int i = Corpses.Count - 1; i >= 0; --i)
         {
             var c = Corpses[i];
@@ -451,7 +521,7 @@ public class EnemyMov : MonoBehaviour
     // 다른 Enemy가 죽었을 때(시체 생김) 호출되는 콜백
     private void HandleCorpseCreated(Transform corpse)
     {
-        if (isDead || corpse == null || corpse == transform) return;
+        if (isDead || state == EnemyState.Dead || corpse == null || corpse == transform) return;
 
         // "평소 시야"로만 시체 발견 → Watching 진입
         if (IsTargetVisible(corpse, viewDistance, viewAngle, corpseRequiresLineOfSight))
@@ -473,8 +543,10 @@ public class EnemyMov : MonoBehaviour
     void UpdateMark()
     {
         // 모든 마크 비활성화
-        questionMark.SetActive(false);
-        answerMarkexclamationMark.SetActive(false);
+        if (questionMark) questionMark.SetActive(false);
+        if (answerMarkexclamationMark) answerMarkexclamationMark.SetActive(false);
+
+        if (isDead || state == EnemyState.Dead) return;
 
         // 현재 상태에 따라 해당 마크 활성화
         GameObject activeMark = null;
@@ -511,6 +583,8 @@ public class EnemyMov : MonoBehaviour
     // 소리가 들리면 플레이어 방향으로 이동
     public void PlayerDetected(Vector3 _)
     {
+        if (isDead || state == EnemyState.Dead) return;
+
         // 소리 감지 재시작을 허용(상태가 Chasing일 때만 무시)
         if (state == EnemyState.Chasing)
             return;
@@ -547,7 +621,9 @@ public class EnemyMov : MonoBehaviour
     // 애니메이션 이벤트에서 호출할 함수
     public void PlayFootstep()
     {
-        if (agent == null) return;
+        if (isDead || state == EnemyState.Dead) return;
+
+        if (agent == null || !agent.isActiveAndEnabled || !agent.isOnNavMesh) return;
 
         // 정지/대기 중이면 무음 (Watching이라도 이동하면 허용)
         if (agent.isStopped || agent.velocity.magnitude < 0.1f) return;
@@ -618,6 +694,8 @@ public class EnemyMov : MonoBehaviour
     {
         OnAnyEnemyKilled -= HandleCorpseCreated; // 해제
         Instances.Remove(this);
+
+        StopAllCoroutines();
         chasingFromCorpse = false;
         StopChaseLoopCapped();
         audioSource?.Stop();
@@ -633,10 +711,10 @@ public class EnemyMov : MonoBehaviour
     // 모든 적에게 '시체로 유발된 추격'
     private static void TriggerGlobalAggro(Vector3 targetPos)
     {
-        for (int i = 0; i < Instances.Count; i++)
+        foreach (var e in Instances)
         {
-            var e = Instances[i];
             if (!e || e.isDead) continue;
+            if (e.state == EnemyState.Chasing) continue;     // 이미 추격 중이면 손대지 않음
             e.ForceChaseFromCorpse(targetPos);
         }
     }
@@ -647,15 +725,17 @@ public class EnemyMov : MonoBehaviour
 
         bool wasChasing = (state == EnemyState.Chasing);
 
-        chasingFromCorpse = true;
-        lostPlayerTimer = 0f;
-        state = EnemyState.Chasing;
+        if (!wasChasing)
+        {
+            chasingFromCorpse = true;
+            lostPlayerTimer = 0f;
+            state = EnemyState.Chasing;
+            StartChaseLoopCapped();
+        }
 
         agent.isStopped = false;
         agent.speed = runSpeed;
         agent.SetDestination(targetPos);
-
-        StartChaseLoopCapped();
 
         miniQuestionMark?.SetActive(false);
         miniAnswerMark?.SetActive(true);
@@ -668,6 +748,9 @@ public class EnemyMov : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+        state = EnemyState.Dead;
+
+        StopAllCoroutines();
 
         Corpses.Add(transform);
 
@@ -680,14 +763,26 @@ public class EnemyMov : MonoBehaviour
         // 에이전트 정지
         if (agent != null)
         {
-            agent.isStopped = true;
-            agent.ResetPath();
+            if (agent.isActiveAndEnabled && agent.isOnNavMesh)
+            {
+                agent.isStopped = true;
+                agent.ResetPath();
+            }
             agent.velocity = Vector3.zero;
+            agent.enabled = false;
         }
 
         // 콜라이더/표식 끄기
         if (catchBox) catchBox.enabled = false;
         if (attackBox) attackBox.enabled = false;
+
+        // 길막 유발 콜라이더 전부 비활성 (시체 감지는 occluderMask 방식이므로 문제 없음)
+        foreach (var col in GetComponentsInChildren<Collider>())
+        {
+            if (col == catchBox || col == attackBox) continue;
+            col.enabled = false; // 또는 col.isTrigger = true;
+        }
+
         if (questionMark) questionMark.SetActive(false);
         if (answerMarkexclamationMark) answerMarkexclamationMark.SetActive(false);
         if (miniQuestionMark) miniQuestionMark.SetActive(false);
@@ -697,10 +792,29 @@ public class EnemyMov : MonoBehaviour
         if (animator)
         {
             animator.SetFloat("Speed", 0f);
-            // animator.SetTrigger("Die"); // 'Die' 애니메이션 있으면 사용
+            animator.SetTrigger("IsDead");
         }
 
-        // 이 스크립트 비활성화해서 상태머신/Update 완전 정지
+        var drag = GetComponent<DraggableCorpse>();
+
+        foreach (var col in GetComponentsInChildren<Collider>())
+        {
+            if (col == catchBox || col == attackBox) continue;
+            if (drag && col == drag.handleTrigger) continue;
+            col.enabled = false;
+        }
+
+        GetComponent<DraggableCorpse>()?.OnDeath();
+    }
+
+    // 애니메이션 끝에 모든 행동 비활성화
+    public void OnDeathAnimationEnd()
+    {
+        // 애니메이터 끄기(루트모션/포즈 되감기 차단)
+        if (animator) animator.enabled = false;
+
+        // 드래그 가능한 상태 최종 온
+        GetComponent<DraggableCorpse>()?.OnDeath();
         enabled = false;
     }
 

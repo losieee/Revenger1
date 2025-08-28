@@ -3301,6 +3301,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 910635712639546400}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &8401656148336570834
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5395927085212567902}
+  - component: {fileID: 3373454246647405550}
+  m_Layer: 11
+  m_Name: Handle
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5395927085212567902
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8401656148336570834}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.2039299, y: 0.27092022, z: 1.813696}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2011114680242093824}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3373454246647405550
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8401656148336570834}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8458920220039815370
 GameObject:
   m_ObjectHideFlags: 0
@@ -3443,6 +3496,7 @@ GameObject:
   - component: {fileID: 980607094276064533}
   - component: {fileID: 3009650870402587836}
   - component: {fileID: -3430891887863726406}
+  - component: {fileID: -7709429424623323665}
   m_Layer: 7
   m_Name: Enemy
   m_TagString: Untagged
@@ -3476,6 +3530,7 @@ Transform:
   - {fileID: 4889513899042480251}
   - {fileID: 6589341431055119428}
   - {fileID: 9042252827956609398}
+  - {fileID: 5395927085212567902}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &526333531887757623
@@ -3494,8 +3549,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: b4e99dc9a0a09d040a28311a65b64d56, type: 3}
   - {fileID: 8300000, guid: 802073fb56dc0544c9aa83e1917f105d, type: 3}
   - {fileID: 8300000, guid: c0b0bc5da8f0a014a9516a32286753c1, type: 3}
+  - {fileID: 8300000, guid: 4488f14b8c95c7841a6014f52502bf95, type: 3}
   waypoints:
-  - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
@@ -3510,7 +3565,21 @@ MonoBehaviour:
   answerMarkexclamationMark: {fileID: 3368670387931445373}
   miniQuestionMark: {fileID: 9042778843922821732}
   miniAnswerMark: {fileID: 629037071900078198}
+  eyeHeight: 1.5
+  targetHeight: 0.9
+  maxDetectUp: 1.55
+  maxDetectDown: 2.5
+  verticalFovUp: 60
+  verticalFovDown: 45
   lostPlayerGraceTime: 5
+  lostAfterPlayer: 5
+  lostAfterCorpse: 6
+  infiniteChaseAfterCorpse: 0
+  chaseViewDistance: 50
+  corpseRequiresLineOfSight: 1
+  occluderMask:
+    serializedVersion: 2
+    m_Bits: 73
   footstepVolume: 1
   QuestionVolume: 4
   chaseVolume: 0.7
@@ -3546,7 +3615,7 @@ Rigidbody:
   m_GameObject: {fileID: 8773297124730230785}
   serializedVersion: 4
   m_Mass: 1
-  m_Drag: 0
+  m_Drag: 10
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
@@ -3562,7 +3631,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 126
+  m_Constraints: 116
   m_CollisionDetection: 0
 --- !u!65 &980607094276064533
 BoxCollider:
@@ -3704,6 +3773,21 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &-7709429424623323665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8773297124730230785}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c68876414076af4bbf0ec0f25ee7dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  handleTrigger: {fileID: 3373454246647405550}
+  visualRoot: {fileID: 2011114680242093824}
+  followSpeed: 10
 --- !u!1 &9042778843922821732
 GameObject:
   m_ObjectHideFlags: 0

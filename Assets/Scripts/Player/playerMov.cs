@@ -23,7 +23,12 @@ public class PlayerMov : MonoBehaviour
     public float runSpeed = 3f;
     public Transform cameraPivot;
 
-    private Vector3 currentMoveInput;
+    // 시체 처리 전용
+    [HideInInspector] public bool isDraggingCorpse = false;
+    public float dragMoveSpeed = 0.5f;
+
+
+    public Vector3 currentMoveInput;
     private bool isRunning;
     private bool canAttack;
     private bool canTakeMission;
@@ -206,11 +211,7 @@ public class PlayerMov : MonoBehaviour
         camForward.y = 0; camRight.y = 0;
         camForward.Normalize(); camRight.Normalize();
 
-        if (isAlt && !wasAltPressedLastFrame)
-        {
-            savedForward = camForward;
-            savedRight = camRight;
-        }
+        if (isAlt && !wasAltPressedLastFrame) { savedForward = camForward; savedRight = camRight; }
 
         if (wasAltPressedLastFrame && !isAlt)
         {
@@ -221,8 +222,9 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
-        // 이동 입력 (blockInput 이면 0)
-        if (!blockInput)
+        // 시체 끌땐 뒤로가기만 허용
+        // 1) 일반 입력 (드래그/블록 아닐 때만)
+        if (!blockInput && !isDraggingCorpse)
         {
             Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
             float lerpSpeed = (isGrounded && !isLanding) ? 15f : 5f;
@@ -231,29 +233,51 @@ public class PlayerMov : MonoBehaviour
             if (currentMoveInput.magnitude < 0.05f)
                 currentMoveInput = Vector3.zero;
         }
-        else
+        else if (blockInput)
         {
             currentMoveInput = Vector3.zero;
         }
 
-        // 애니메이션 파라미터
-        Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
-        moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
-        moveY = Mathf.SmoothDamp(moveY, Mathf.Max(localMove.z, 0f), ref velY, smoothTime);
-        animator.SetFloat("MoveX", moveX);
-        animator.SetFloat("MoveY", moveY);
-
-        float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f) ? (isRunning ? 1f : 0.5f) : 0f;
-        animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
-
-        if (speedParam == 0f)
+        // 2) 드래그 전용 입력: 뒤로가기만 허용 (S키)
+        float back01 = 0f;
+        if (isDraggingCorpse)
         {
+            back01 = Mathf.Max(0f, -Input.GetAxisRaw("Vertical")); // S만 반응 (0~1)
+            currentMoveInput = -transform.forward * back01;              // 뒤로만
+        }
+
+        // 3) (애니메이션 파라미터는 여기서 계산)
+
+        // 애니메이션 파라미터
+        if (isDraggingCorpse)
+        {
+            // 전용 파라미터(권장: 애니메이터에 Bool/Float 추가)
+            //animator.SetBool("IsDragging", true);
+            //animator.SetFloat("DragSpeed", back01);   // 0~1
+
+            // 기존 파라미터도 쓰고 싶다면 안정적으로 고정
             animator.SetFloat("MoveX", 0f);
-            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("MoveY", -back01);      // 뒤로가는 값
+            animator.SetFloat("Speed", back01, 0.1f, Time.deltaTime);
+        }
+        else
+        {
+            //animator.SetBool("IsDragging", false);
+
+            Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
+            moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
+            moveY = Mathf.SmoothDamp(moveY, localMove.z, ref velY, smoothTime);
+            animator.SetFloat("MoveX", moveX);
+            animator.SetFloat("MoveY", moveY);
+
+            float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f)
+                                ? (isRunning ? 1f : 0.5f) : 0f;
+            animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
+            if (speedParam == 0f) { animator.SetFloat("MoveX", 0f); animator.SetFloat("MoveY", 0f); }
         }
 
         // 회전
-        if (currentMoveInput.sqrMagnitude > 0.001f)
+        if (!isDraggingCorpse && currentMoveInput.sqrMagnitude > 0.001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(currentMoveInput);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * 100f * Time.deltaTime);
@@ -380,8 +404,10 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 속도 조정
-        float moveSpeed = isRunning ? speed * runSpeed : speed;
-        if (isCrouching) moveSpeed *= 0.6f;
+        float moveSpeed = isDraggingCorpse ? dragMoveSpeed : (isRunning ? speed * runSpeed : speed);        // 드래그 중엔 무조건 이 값
+
+        if (!isDraggingCorpse && isCrouching) moveSpeed *= 0.6f;
+
         currentMoveSpeed = moveSpeed;
 
         // 움직이는 소리 범위
@@ -472,7 +498,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 이동 처리
-        airMultiplier = isGrounded ? 1f : 0.5f;
+        airMultiplier = (isDraggingCorpse || isGrounded) ? 1f : 0.5f;
 
         Vector3 move = currentMoveInput * currentMoveSpeed * airMultiplier * Time.fixedDeltaTime;
 
@@ -1003,5 +1029,17 @@ public class PlayerMov : MonoBehaviour
         Time.timeScale = 1f;
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
+    }
+
+    // 드래그 중 달리기 무시
+    public void OnDragStart()
+    {
+        isDraggingCorpse = true;
+        canRun = false;                  // 달리기 입력 무시
+    }
+    public void OnDragStop()
+    {
+        isDraggingCorpse = false;
+        canRun = true;
     }
 }
