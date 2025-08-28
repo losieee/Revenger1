@@ -57,4 +57,16 @@ public class AnimationCtl : MonoBehaviour
         if (player != null)
             player.MoveToBoxTopRemaining(0.07f);
     }
+
+    public void AllowHoldCancel()
+    {
+        if (player != null)
+            player.AllowHoldCancel();
+    }
+
+    public void BlockHoldCancel()
+    {
+        if (player != null)
+            player.BlockHoldCancel();
+    }
 }

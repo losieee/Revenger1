@@ -27,7 +27,6 @@ public class PlayerMov : MonoBehaviour
     [HideInInspector] public bool isDraggingCorpse = false;
     public float dragMoveSpeed = 0.5f;
 
-
     public Vector3 currentMoveInput;
     private bool isRunning;
     private bool canAttack;
@@ -81,6 +80,19 @@ public class PlayerMov : MonoBehaviour
     private Vector3 climbStartPos, climbTargetPos;
     private Quaternion climbStartRot, climbTargetRot;
     private float climbTimer = 0f;
+
+    // 매달리기 취소용 저장값
+    private Vector3 preHoldPos;
+    private Quaternion preHoldRot;
+    private bool isCancellingHold = false;
+    [SerializeField] private float holdCancelDuration = 0.18f;
+    [SerializeField] private float holdCancelLock = 0.25f;  // 처음 붙을 때 S 잠금 시간
+    private float holdCancelTimer = 0f;
+    [SerializeField] private bool holdCancelAllowed;        // 이벤트가 true로 열어줄 때만 S 허용
+    public void SetHoldCancelAllowed(bool allowed) => holdCancelAllowed = allowed;
+
+    public void AllowHoldCancel() { holdCancelAllowed = true; }
+    public void BlockHoldCancel() { holdCancelAllowed = false; }
 
     // 점프 / 낙하
     private bool isJumping = false;
@@ -167,9 +179,22 @@ public class PlayerMov : MonoBehaviour
         // 매달린 상태
         if (isHolding)
         {
+            var st = animator.GetCurrentAnimatorStateInfo(0);
+            bool isHoldingState = st.IsName("Holding") || st.IsTag("Holding");
+            if (animator.IsInTransition(0)) isHoldingState = false;
+
+            bool canCancelNow = holdCancelAllowed
+                                && !isLerpingHoldOffset
+                                && canStartClimb
+                                && isHoldingState;
+
+            if (canCancelNow && !isCancellingHold && Input.GetKeyDown(KeyCode.S))
+                StartCoroutine(CancelHoldAndReturn());
+
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
             animator.SetFloat("Speed", 0f);
+
             if (Input.GetKeyDown(KeyCode.Space) && canStartClimb)
                 StartClimbFromHold(0.52f);
             return;
@@ -435,7 +460,7 @@ public class PlayerMov : MonoBehaviour
             return;
 
         // 암살
-        if (canKill && Input.GetKeyDown(KeyCode.E))
+        if (canKill && Input.GetMouseButtonDown(0))
         {
             if (killTarget != null)
             {
@@ -444,6 +469,43 @@ public class PlayerMov : MonoBehaviour
                 killTarget = null;
             }
         }
+    }
+
+    // 벽타기 취소
+    IEnumerator CancelHoldAndReturn()
+    {
+        if (isCancellingHold) yield break;
+        isCancellingHold = true;
+
+        holdCancelAllowed = false;
+
+        // 원위치로 부드럽게 복귀
+        float dur = 0.18f;
+        float t = 0f;
+        Vector3 fromPos = transform.position;
+        Quaternion fromRot = transform.rotation;
+
+        // 이동/입력 잠깐 막기
+        blockInput = true;
+
+        while (t < 1f)
+        {
+            t += Time.deltaTime / dur;
+            transform.position = Vector3.Lerp(fromPos, holdLerpStartPos, t);
+            transform.rotation = Quaternion.Slerp(fromRot, holdLerpStartRot, t);
+            yield return null;
+        }
+
+        // 상태/물리/애니메이터 복구
+        isHolding = false;
+        isLerpingHoldOffset = false;
+        rb.isKinematic = false;
+        rb.useGravity = true;
+
+        animator.SetBool("Hold", false);
+        blockInput = false;
+
+        isCancellingHold = false;
     }
 
     // 점프 직전 앞벽 밀어내기(태그 wall 대상)
@@ -631,6 +693,10 @@ public class PlayerMov : MonoBehaviour
         isCrouching = false;
         animator.SetBool("IsCrouching", false);
 
+        // 잡기 시작 직전 상태 저장 (돌아올 좌표)
+        preHoldPos = transform.position;
+        preHoldRot = transform.rotation;
+
         // 벽 높이 측정
         float wallTop = hit.collider.bounds.max.y;
         float playerFoot = transform.position.y;
@@ -674,6 +740,8 @@ public class PlayerMov : MonoBehaviour
         holdingStartPos = targetPos;
 
         animator.SetBool("Hold", true);
+
+        holdCancelAllowed = false;
     }
 
     // 벽 오르기(Climb) 시작
@@ -800,6 +868,7 @@ public class PlayerMov : MonoBehaviour
     public void MoveUpDuringHold(float height, float duration)
     {
         if (!isHolding) return;
+        holdCancelTimer = Mathf.Max(holdCancelTimer, duration + 0.15f);
         StartCoroutine(MoveHoldWithDip(height, duration));
     }
 
