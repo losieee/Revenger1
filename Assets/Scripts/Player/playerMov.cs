@@ -85,8 +85,6 @@ public class PlayerMov : MonoBehaviour
     private Vector3 preHoldPos;
     private Quaternion preHoldRot;
     private bool isCancellingHold = false;
-    [SerializeField] private float holdCancelDuration = 0.18f;
-    [SerializeField] private float holdCancelLock = 0.25f;  // 처음 붙을 때 S 잠금 시간
     private float holdCancelTimer = 0f;
     [SerializeField] private bool holdCancelAllowed;        // 이벤트가 true로 열어줄 때만 S 허용
     public void SetHoldCancelAllowed(bool allowed) => holdCancelAllowed = allowed;
@@ -137,7 +135,6 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float wallKeepOutUnderFootTolerance = 0.03f;   // 발바닥보다 아래 표면 무시 허용치
 
     [Header("Door")]
-    [SerializeField] private string doorLeafName = "Door"; // 회전시킬 자식 이름
     [SerializeField] private float doorRotateDuration = 0.6f; // 회전 시간(초)
     [SerializeField] private float doorOpenAngleY = -90f;     // 열릴 때 Y 로테이션(상대각)
 
