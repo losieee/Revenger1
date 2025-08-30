@@ -136,6 +136,20 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float wallKeepOutSkin = 0.01f;     // 살짝 여유
     [SerializeField] private float wallKeepOutUnderFootTolerance = 0.03f;   // 발바닥보다 아래 표면 무시 허용치
 
+    [Header("Door")]
+    [SerializeField] private string doorLeafName = "Door"; // 회전시킬 자식 이름
+    [SerializeField] private float doorRotateDuration = 0.6f; // 회전 시간(초)
+    [SerializeField] private float doorOpenAngleY = -90f;     // 열릴 때 Y 로테이션(상대각)
+
+    private bool nearDoor = false;
+    private Transform nearDoorRoot;    // 트리거에 걸린 Door 루트
+    private Transform nearDoorLeaf;    // 실제로 회전시킬 자식
+    private bool doorOpen = false;     // 현재 열린 상태인지
+    private bool isDoorRotating = false;
+    private Quaternion doorClosedRot;  // 닫힘 기준 회전값
+    private Quaternion doorOpenRot;    // 열림 목표 회전값
+    private Coroutine doorRoutine;
+
     void Start()
     {
         Cursor.visible = false;
@@ -469,6 +483,33 @@ public class PlayerMov : MonoBehaviour
                 killTarget = null;
             }
         }
+
+        // 문열기
+        if (nearDoor && Input.GetKeyDown(KeyCode.E) && nearDoorLeaf != null && !isDoorRotating)
+        {
+            // 목표 회전 선택
+            Quaternion target = doorOpen ? doorClosedRot : doorOpenRot;
+
+            if (doorRoutine != null) StopCoroutine(doorRoutine);
+            doorRoutine = StartCoroutine(RotateLocalY_Smooth(nearDoorLeaf, nearDoorLeaf.localRotation, target, doorRotateDuration));
+
+            doorOpen = !doorOpen; // 상태 토글
+        }
+    }
+
+    // 부드럽게 문열기
+    private IEnumerator RotateLocalY_Smooth(Transform tr, Quaternion from, Quaternion to, float duration)
+    {
+        isDoorRotating = true;
+        float t = 0f;
+        while (t < 1f)
+        {
+            t += Time.deltaTime / Mathf.Max(0.0001f, duration);
+            tr.localRotation = Quaternion.Slerp(from, to, t);
+            yield return null;
+        }
+        tr.localRotation = to; // 정밀 보정
+        isDoorRotating = false;
     }
 
     // 벽타기 취소
@@ -801,6 +842,22 @@ public class PlayerMov : MonoBehaviour
             }
         }
 
+        if (other.CompareTag("Door"))
+        {
+            nearDoor = true;
+
+            // 문 루트 & 첫 번째 자식(없으면 루트 자체)
+            nearDoorRoot = other.transform.root;
+            nearDoorLeaf = (nearDoorRoot.childCount > 0) ? nearDoorRoot.GetChild(0) : nearDoorRoot;
+
+            // 0도 닫힘, -90도 열림
+            doorClosedRot = Quaternion.Euler(0f, 0f, 0f);
+            doorOpenRot = Quaternion.Euler(0f, doorOpenAngleY, 0f);
+
+            // 현재 열린 상태인지(0/-90 중 어디에 더 가까운지) 추정
+            float yNow = nearDoorLeaf.localEulerAngles.y;
+            doorOpen = Mathf.Abs(Mathf.DeltaAngle(yNow, doorOpenAngleY)) < 5f; // -90°에 더 가까우면 열린 상태로 간주
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -824,6 +881,16 @@ public class PlayerMov : MonoBehaviour
             {
                 killTarget = null;
                 canKill = false;
+            }
+        }
+        if (other.CompareTag("Door"))
+        {
+            // 같은 문 루트에서 나갔을 때만 해제 (겹치는 문의 간섭 방지)
+            if (nearDoorRoot == null || other.transform.root == nearDoorRoot)
+            {
+                nearDoor = false;
+                nearDoorRoot = null;
+                nearDoorLeaf = null;
             }
         }
     }
