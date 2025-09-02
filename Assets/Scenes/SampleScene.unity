@@ -358,6 +358,7 @@ MonoBehaviour:
   missionUI: {fileID: 0}
   optionUI: {fileID: 0}
   nearNPC: {fileID: 0}
+  weapon: {fileID: 0}
   speed: 1.5
   rotSpeed: 5
   runSpeed: 3
@@ -395,6 +396,7 @@ MonoBehaviour:
   wallKeepOutUnderFootTolerance: 0.03
   doorRotateDuration: 0.6
   doorOpenAngleY: -90
+  canWeaponSwitch: 1
 --- !u!65 &62681436
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7889,94 +7891,6 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.029013649, y: -0.4175014, z: -0.009478368}
     m_Extent: {x: 0.26855147, y: 0.584091, z: 0.24473491}
   m_DirtyAABB: 0
---- !u!1001 &1739980444
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalScale.x
-      value: 5.5728683
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalScale.y
-      value: 5.5728683
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalScale.z
-      value: 5.5728683
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -38.206
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.815
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -4.386
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -7511558181221131132, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: 00ca337f15c8f7d4db9c48866474b71a, type: 2}
-    - target: {fileID: 919132149155446097, guid: e118b9af907051c409ccc00d0ef2419b,
-        type: 3}
-      propertyPath: m_Name
-      value: Gun
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: e118b9af907051c409ccc00d0ef2419b, type: 3}
 --- !u!1 &1746795990
 GameObject:
   m_ObjectHideFlags: 0
@@ -30725,5 +30639,4 @@ SceneRoots:
   - {fileID: 2024106994}
   - {fileID: 702618970}
   - {fileID: 1702104288}
-  - {fileID: 1739980444}
   - {fileID: 1180662953}

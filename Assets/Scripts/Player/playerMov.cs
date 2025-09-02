@@ -15,6 +15,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject optionUI;
     public GameObject nearNPC;
     private Animator animator;
+    public GameObject weapon;
 
     // 이동 및 회전
     public float speed = 5f;
@@ -82,8 +83,6 @@ public class PlayerMov : MonoBehaviour
     private float climbTimer = 0f;
 
     // 매달리기 취소용 저장값
-    private Vector3 preHoldPos;
-    private Quaternion preHoldRot;
     private bool isCancellingHold = false;
     private float holdCancelTimer = 0f;
     [SerializeField] private bool holdCancelAllowed;        // 이벤트가 true로 열어줄 때만 S 허용
@@ -125,6 +124,11 @@ public class PlayerMov : MonoBehaviour
     private bool isCrouching = false;
     [SerializeField] private float crouchCooldown = 0.6f;       // 앉기 쿨타임
     private float crouchCooldownTimer = 0f;
+    [SerializeField] float crouchHeight = 1.0f;                 // 앉을 때 콜라이더 높이
+    [SerializeField] float colliderLerpTime = 0.10f;
+    Vector3 boxSizeStand, boxCenterStand;
+    Vector3 boxSizeCrouch, boxCenterCrouch;
+    Coroutine crouchColRoutine;
 
     // Tag 기반 벽 근접 차단(Keep-Out)
     [Header("Wall Keep-Out (by Tag)")]
@@ -147,6 +151,14 @@ public class PlayerMov : MonoBehaviour
     private Quaternion doorOpenRot;    // 열림 목표 회전값
     private Coroutine doorRoutine;
 
+    // 무기 바꾸기 관련
+    [HideInInspector] public bool canWeaponSwitch = true;
+
+    // RightHandGrip 애니메이션 레이어 제어
+    private int gripLayer;
+    private int gripIdleHash;
+    private int gripGunPoseHash;
+
     void Start()
     {
         Cursor.visible = false;
@@ -156,8 +168,27 @@ public class PlayerMov : MonoBehaviour
 
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
+
+        // 레이어/상태 세팅
+        gripLayer = animator.GetLayerIndex("RightHandGrip");
+        gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
+        gripGunPoseHash = Animator.StringToHash("RightHandGrip.GunPose");
+
+        // 보조 레이어가 항상 영향을 주도록
+        if (gripLayer >= 0) animator.SetLayerWeight(gripLayer, 1f);
+
         box = GetComponent<BoxCollider>();
-        
+
+        // 서있는 값 저장
+        boxSizeStand = box.size;
+        boxCenterStand = box.center;
+
+        // 앉은 값 계산(바닥 고정: center.y를 절반만큼 내려줌)
+        float newH = crouchHeight;
+        boxSizeCrouch = new Vector3(box.size.x, newH, box.size.z);
+        float deltaH = box.size.y - newH;
+        boxCenterCrouch = new Vector3(box.center.x, box.center.y - deltaH * 0.5f, box.center.z);
+
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
     }
 
@@ -429,7 +460,15 @@ public class PlayerMov : MonoBehaviour
         // C 눌러 앉기
         if (Input.GetKeyDown(KeyCode.C) && crouchCooldownTimer <= 0f)
         {
-            isCrouching = !isCrouching;
+            bool wantCrouch = !isCrouching;
+
+            // 앉은 상태에서 서려고 할 때 머리 공간 체크
+            if (!wantCrouch && !CanStandUp())
+            {
+                return;
+            }
+
+            isCrouching = wantCrouch;
             animator.SetBool("IsCrouching", isCrouching);
 
             // C키 쿨타임 시작
@@ -437,6 +476,9 @@ public class PlayerMov : MonoBehaviour
 
             // 효과음
             SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
+
+            // 앉는 콜라이더로 번경
+            ApplyCrouchCollider(isCrouching);
         }
 
         // 속도 조정
@@ -492,6 +534,20 @@ public class PlayerMov : MonoBehaviour
 
             doorOpen = !doorOpen; // 상태 토글
         }
+
+        // 무기 바꾸기
+        if (Input.GetKeyDown(KeyCode.Alpha1) && canWeaponSwitch)    // 맨손
+        {
+            if (gripLayer >= 0)
+                animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
+            if (weapon) weapon.SetActive(false);
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch)    // 무기 들었을 때
+        {
+            if (gripLayer >= 0)
+                animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
+            if (weapon) weapon.SetActive(true);
+        }
     }
 
     // 부드럽게 문열기
@@ -507,6 +563,65 @@ public class PlayerMov : MonoBehaviour
         }
         tr.localRotation = to; // 정밀 보정
         isDoorRotating = false;
+    }
+
+    // 앉을 때 콜라이더 변경
+    void ApplyCrouchCollider(bool crouch)
+    {
+        if (!box) return;
+        if (crouchColRoutine != null) StopCoroutine(crouchColRoutine);
+
+        Vector3 targetSize = crouch ? boxSizeCrouch : boxSizeStand;
+        Vector3 targetCenter = crouch ? boxCenterCrouch : boxCenterStand;
+
+        crouchColRoutine = StartCoroutine(LerpCollider(box, targetSize, targetCenter, colliderLerpTime));
+    }
+
+    IEnumerator LerpCollider(BoxCollider bc, Vector3 toSize, Vector3 toCenter, float dur)
+    {
+        Vector3 fromSize = bc.size;
+        Vector3 fromCenter = bc.center;
+        float t = 0f;
+
+        // 물리 프레임과 맞추기 위해 FixedUpdate 타이밍으로 보간
+        while (t < 1f)
+        {
+            t += Time.deltaTime / Mathf.Max(0.0001f, dur);
+            bc.size = Vector3.Lerp(fromSize, toSize, t);
+            bc.center = Vector3.Lerp(fromCenter, toCenter, t);
+            yield return new WaitForFixedUpdate();
+        }
+        bc.size = toSize;
+        bc.center = toCenter;
+    }
+
+    // 앉았다 일어날 때 머리 위에 벽있으면 못일어남
+    bool CanStandUp()
+    {
+        float standTop = boxCenterStand.y + boxSizeStand.y * 0.5f;
+        float crouchTop = boxCenterCrouch.y + boxSizeCrouch.y * 0.5f;
+        float deltaTop = standTop - crouchTop;
+        if (deltaTop <= 0.001f) return true;
+
+        // 머리 쪽 추가로 차지하게 될 윗부분만 검사
+        float sliceCenterLocalY = (standTop + crouchTop) * 0.5f;
+        Vector3 localCenter = new Vector3(boxCenterStand.x, sliceCenterLocalY, boxCenterStand.z);
+        Vector3 worldCenter = transform.TransformPoint(localCenter);
+
+        Vector3 half = new Vector3(
+            boxSizeStand.x * 0.5f * transform.lossyScale.x,
+            deltaTop * 0.5f * transform.lossyScale.y,
+            boxSizeStand.z * 0.5f * transform.lossyScale.z
+        );
+
+        var hits = Physics.OverlapBox(worldCenter, half, transform.rotation, ~0, QueryTriggerInteraction.Ignore);
+        foreach (var h in hits)
+        {
+            if (!h || h.isTrigger) continue;
+            if (h.transform.IsChildOf(transform)) continue;
+            return false;
+        }
+        return true;
     }
 
     // 벽타기 취소
@@ -525,6 +640,7 @@ public class PlayerMov : MonoBehaviour
 
         // 이동/입력 잠깐 막기
         blockInput = true;
+        animator.SetBool("Hold", false);
 
         while (t < 1f)
         {
@@ -540,7 +656,6 @@ public class PlayerMov : MonoBehaviour
         rb.isKinematic = false;
         rb.useGravity = true;
 
-        animator.SetBool("Hold", false);
         blockInput = false;
 
         isCancellingHold = false;
@@ -730,10 +845,6 @@ public class PlayerMov : MonoBehaviour
         ClearLandTriggers();
         isCrouching = false;
         animator.SetBool("IsCrouching", false);
-
-        // 잡기 시작 직전 상태 저장 (돌아올 좌표)
-        preHoldPos = transform.position;
-        preHoldRot = transform.rotation;
 
         // 벽 높이 측정
         float wallTop = hit.collider.bounds.max.y;

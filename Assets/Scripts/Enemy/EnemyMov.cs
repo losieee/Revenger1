@@ -23,6 +23,7 @@ public class EnemyMov : MonoBehaviour
     public GameObject answerMarkexclamationMark;    // 느낌표 (AI가 플레이어를 추격할 때)
     public GameObject miniQuestionMark;             // 미니맵에서 물음표
     public GameObject miniAnswerMark;               // 미니맵에서 느낌표
+    public GameObject viewFov;                      // 죽었을 때 비활성화 할 시야각
 
     [Header("수직 시야 관련")]
     public float eyeHeight = 1.5f;                  // 적 눈 높이
@@ -142,6 +143,7 @@ public class EnemyMov : MonoBehaviour
 
         originalViewAngle = viewAngle;      //시작할때는 기본 사야각 60으로
         lostPlayerTimer = 0f;
+        viewFov.SetActive(true);
 
         if (SoundManager.i && SoundManager.i.EffectGroup != null)
         {
@@ -749,6 +751,7 @@ public class EnemyMov : MonoBehaviour
         if (isDead) return;
         isDead = true;
         state = EnemyState.Dead;
+        if(viewFov) viewFov.SetActive(false);
 
         StopAllCoroutines();
 
