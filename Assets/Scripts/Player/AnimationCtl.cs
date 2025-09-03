@@ -24,7 +24,7 @@ public class AnimationCtl : MonoBehaviour
             float jumpHeight = baseJump + (remaining - baseWall);
             jumpHeight = Mathf.Clamp(jumpHeight, 0.0f, 1.0f); // 0 이상으로
 
-            player.MoveUpDuringHold(jumpHeight, 0.1f);
+            player.MoveUpDuringHold(jumpHeight, 0.06f);
         }
     }
 
@@ -68,5 +68,11 @@ public class AnimationCtl : MonoBehaviour
     {
         if (player != null)
             player.BlockHoldCancel();
+    }
+
+    public void JumpForWall()
+    {
+        if (player != null)
+            player.AE_AttachToWall();
     }
 }

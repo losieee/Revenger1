@@ -77,6 +77,14 @@ public class PlayerMov : MonoBehaviour
     private float holdLerpTimer = 0f;
     private float holdLerpDuration = 0.1f;
     private Vector3 holdingStartPos;
+    // 애니메이션 이벤트로 '붙기'를 지연하기 위한 대기 값
+    private bool hasPendingWall = false;
+    private Vector3 pendingWallPoint;
+    private Vector3 pendingWallNormal;
+    private float pendingWallTopY;
+
+    [SerializeField] private float attachHoldDistanceFromWall = 0.14f; // 벽에서 떨어져 붙는 거리
+    [SerializeField] private float attachLerpDuration = 0.12f;         // 붙을 때 보간 시간
 
     private Vector3 climbStartPos, climbTargetPos;
     private Quaternion climbStartRot, climbTargetRot;
@@ -214,7 +222,14 @@ public class PlayerMov : MonoBehaviour
             float t = Mathf.Clamp01(holdLerpTimer / holdLerpDuration);
             transform.position = Vector3.Lerp(holdLerpStartPos, holdLerpTargetPos, t);
             transform.rotation = Quaternion.Slerp(holdLerpStartRot, holdLerpTargetRot, t);
-            if (t >= 1f) isLerpingHoldOffset = false;
+            if (t >= 1f)
+            {
+                isLerpingHoldOffset = false;
+
+                // ★ 붙기 보간이 끝난 '지금' 중력/키네마틱 전환
+                rb.useGravity = false;
+                rb.isKinematic = true;
+            }
             return;
         }
 
@@ -846,51 +861,56 @@ public class PlayerMov : MonoBehaviour
         isCrouching = false;
         animator.SetBool("IsCrouching", false);
 
-        // 벽 높이 측정
         float wallTop = hit.collider.bounds.max.y;
-        float playerFoot = transform.position.y;
-        float wallHeight = wallTop - playerFoot;
+        float footY = box ? box.bounds.min.y : transform.position.y;
+        float wallHeight = Mathf.Max(0f, wallTop - footY);
 
-        // 남은 높이 저장 (다른 스크립트에서 참조)
         remainingWallHeight = wallHeight;
+        detectedWallHeight = wallHeight; // 안전하게 갱신
 
-        // 낮은 벽이면 BoxJump(이 로직을 쓰고 있었다면 함께 유지)
         if (wallHeight <= 1.0f)
         {
             StartBoxJump(hit.point, hit.normal, wallHeight);
             return;
         }
 
-        // 일반 Hold
+        // 여기서는 '대기'만: 실제 붙기는 애니메이션 이벤트에서
         blockInput = true;
+        isHolding = false;               // 아직 안 붙음
+        isLerpingHoldOffset = false;
+
+        hasPendingWall = true;
+        pendingWallPoint = hit.point;
+        pendingWallNormal = hit.normal;
+        pendingWallTopY = wallTop;
+
+        animator.SetTrigger("Hold");     // 제자리에서 손 뻗는 모션 재생
+        holdCancelAllowed = false;
+    }
+
+    // 애니메이션 이벤트: 실제로 벽으로 '붙기' 시작
+    public void AE_AttachToWall()
+    {
+        if (!hasPendingWall) return;
+        hasPendingWall = false;
+
+        // 붙는 중엔 isHolding을 켜두되, 최우선은 보간 블록(isLerpingHoldOffset)이라 Update가 안전하게 return 됨
         isHolding = true;
-        canStartClimb = false;
-        rb.useGravity = false;
-        rb.isKinematic = true;
 
-        float holdDistanceFromWall = 0.14f;
+        Vector3 targetPos = pendingWallPoint + pendingWallNormal * attachHoldDistanceFromWall;
+        targetPos.y = transform.position.y;                 // 스페이스 누른 '그 자리' 높이 유지 (공중 시작 X)
+        Quaternion targetRot = Quaternion.LookRotation(-pendingWallNormal);
 
-        // 벽 법선 기준 밀착 위치
-        Vector3 wallNormal = hit.normal;
-        Vector3 targetPos = hit.point + wallNormal * holdDistanceFromWall;
-        targetPos.y = transform.position.y; // 현재 Y 유지
-
-        // 회전
-        Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
-
-        // 보간
         holdLerpStartPos = transform.position;
         holdLerpTargetPos = targetPos;
         holdLerpStartRot = transform.rotation;
         holdLerpTargetRot = targetRot;
         holdLerpTimer = 0f;
+        holdLerpDuration = attachLerpDuration;
         isLerpingHoldOffset = true;
 
         holdingStartPos = targetPos;
-
-        animator.SetBool("Hold", true);
-
-        holdCancelAllowed = false;
+        holdCancelAllowed = false; // 필요시 이후 이벤트로 열어줘
     }
 
     // 벽 오르기(Climb) 시작
@@ -1042,9 +1062,22 @@ public class PlayerMov : MonoBehaviour
     // 매달리기 전 단계 모션
     public void MoveUpDuringHold(float height, float duration)
     {
-        if (!isHolding) return;
-        holdCancelTimer = Mathf.Max(holdCancelTimer, duration + 0.15f);
-        StartCoroutine(MoveHoldWithDip(height, duration));
+        StartCoroutine(MoveUpDuringHold_Safe(height, duration));
+    }
+
+    private IEnumerator MoveUpDuringHold_Safe(float height, float duration)
+    {
+        // AE_AttachToWall 호출 후 붙기 보간이 끝날 때까지 대기
+        float wait = 0f, timeout = 1.0f; // 필요시 조정
+        while ((isLerpingHoldOffset || !isHolding) && wait < timeout)
+        {
+            wait += Time.deltaTime;
+            yield return null;
+        }
+        if (!isHolding) yield break; // 붙지 못했으면 취소
+
+        // 이제 보간 충돌 없음: 살짝 내려갔다가 위로 올리기
+        yield return StartCoroutine(MoveHoldWithDip(height, duration));
     }
 
     private IEnumerator MoveHoldWithDip(float height, float duration)
