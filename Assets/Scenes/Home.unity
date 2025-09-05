@@ -2053,10 +2053,14 @@ MonoBehaviour:
   missionUI: {fileID: 2076348923}
   optionUI: {fileID: 1533121324}
   nearNPC: {fileID: 231282708}
+  weapon: {fileID: 0}
   speed: 1.5
   rotSpeed: 5
   runSpeed: 3
   cameraPivot: {fileID: 975927125}
+  isDraggingCorpse: 0
+  dragMoveSpeed: 0.5
+  currentMoveInput: {x: 0, y: 0, z: 0}
   minAirTimeForLand: 0.12
   landMinDownVel: -0.4
   climbDuration: 3.8
@@ -2071,6 +2075,9 @@ MonoBehaviour:
     m_Bits: 128
   detectedWallHeight: 0
   remainingWallHeight: 0
+  attachHoldDistanceFromWall: 0.14
+  attachLerpDuration: 0.12
+  holdCancelAllowed: 0
   fallDebounce: 0.1
   groundLayer:
     serializedVersion: 2
@@ -2079,11 +2086,16 @@ MonoBehaviour:
   frontCheckDistance: 0.35
   wallPushStrength: 3
   crouchCooldown: 0.6
+  crouchHeight: 1
+  colliderLerpTime: 0.1
   wallTag: Wall
   wallKeepOutRadius: 0.4
   wallKeepOutIterations: 2
   wallKeepOutSkin: 0.01
   wallKeepOutUnderFootTolerance: 0.03
+  doorRotateDuration: 0.6
+  doorOpenAngleY: -90
+  canWeaponSwitch: 1
 --- !u!4 &672046978
 Transform:
   m_ObjectHideFlags: 0
@@ -11288,7 +11300,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 5775865398287329665, guid: 80f61c62ddb40594b87ff64518ba76fa, type: 3}
+  - {fileID: 2100000, guid: e5bfcea12e2ee37409d3df9809f1d045, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
