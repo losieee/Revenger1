@@ -765,7 +765,32 @@ public class PlayerMov : MonoBehaviour
         // 태그가 wall인 오브젝트에 wallKeepOutRadius 이하로 접근 금지(수평)
         EnforceWallKeepOut(ref newPos);
 
+        Vector3 pos = rb.position;
+        SlideCast(ref pos, newPos, /*radius*/0.3f, /*height*/box.size.y * transform.lossyScale.y, groundLayer);
         rb.MovePosition(newPos);
+    }
+
+    // 벽 뚫기 보강
+    bool SlideCast(ref Vector3 from, Vector3 to, float radius, float height, LayerMask mask, float skin = 0.02f)
+    {
+        Vector3 dir = to - from;
+        float dist = dir.magnitude;
+        if (dist < 1e-4f) return false;
+        dir /= dist;
+
+        Vector3 p1 = from + Vector3.up * (radius);
+        Vector3 p2 = from + Vector3.up * (height - radius);
+
+        if (Physics.CapsuleCast(p1, p2, radius, dir, out RaycastHit hit, dist, mask, QueryTriggerInteraction.Ignore))
+        {
+            // 벽에 붙여놓고 표면을 따라 미끄러지기
+            from = hit.point + hit.normal * skin;
+            Vector3 remain = (to - from);
+            Vector3 slide = Vector3.ProjectOnPlane(remain, hit.normal);
+            from += slide;            // 표면 따라 이동
+            return true;
+        }
+        return false;
     }
 
     // Tag=wall 근접 차단(Keep-Out) 보정 (수평 XZ만)
