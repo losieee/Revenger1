@@ -16,6 +16,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject nearNPC;
     private Animator animator;
     public GameObject weapon;
+    public GameObject weaponChangePanel;
 
     // 이동 및 회전
     public float speed = 5f;
@@ -92,7 +93,6 @@ public class PlayerMov : MonoBehaviour
 
     // 매달리기 취소용 저장값
     private bool isCancellingHold = false;
-    private float holdCancelTimer = 0f;
     [SerializeField] private bool holdCancelAllowed;        // 이벤트가 true로 열어줄 때만 S 허용
     public void SetHoldCancelAllowed(bool allowed) => holdCancelAllowed = allowed;
 
@@ -160,12 +160,19 @@ public class PlayerMov : MonoBehaviour
     private Coroutine doorRoutine;
 
     // 무기 바꾸기 관련
-    [HideInInspector] public bool canWeaponSwitch = true;
+    private bool canWeaponSwitch = false;
+
+    // 무기 선택
+    private bool choiceWeapon;
+    private bool canChoiceWeapon = false;
 
     // RightHandGrip 애니메이션 레이어 제어
     private int gripLayer;
     private int gripIdleHash;
     private int gripGunPoseHash;
+    // RightArm 애니메이션 레이어 제어
+    private int rightArmLayer;
+    private float rightArmMaxWeight = 0.61f;
 
     void Start()
     {
@@ -181,9 +188,11 @@ public class PlayerMov : MonoBehaviour
         gripLayer = animator.GetLayerIndex("RightHandGrip");
         gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
         gripGunPoseHash = Animator.StringToHash("RightHandGrip.GunPose");
+        rightArmLayer = animator.GetLayerIndex("RightArm");
 
         // 보조 레이어가 항상 영향을 주도록
         if (gripLayer >= 0) animator.SetLayerWeight(gripLayer, 1f);
+        if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
 
         box = GetComponent<BoxCollider>();
 
@@ -550,17 +559,35 @@ public class PlayerMov : MonoBehaviour
             doorOpen = !doorOpen; // 상태 토글
         }
 
+        // 무기 선택창
+        if (choiceWeapon && Input.GetKeyDown(KeyCode.E))
+        {
+            canChoiceWeapon = !canChoiceWeapon;
+
+            if (canChoiceWeapon)
+                ShowPausePanel(weaponChangePanel);
+            else
+                HidePausePanel(weaponChangePanel);
+        }
+
+        // 무기를 들수있는지 확인
+        if (WeaponManager.i.canSwitch)
+        {
+            canWeaponSwitch = true;
+            HidePausePanel(weaponChangePanel);
+        }
+
         // 무기 바꾸기
         if (Input.GetKeyDown(KeyCode.Alpha1) && canWeaponSwitch)    // 맨손
         {
-            if (gripLayer >= 0)
-                animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
+            if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
+            if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
             if (weapon) weapon.SetActive(false);
         }
         if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch)    // 무기 들었을 때
         {
-            if (gripLayer >= 0)
-                animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
+            if (gripLayer >= 0) animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
+            if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
             if (weapon) weapon.SetActive(true);
         }
     }
@@ -986,6 +1013,11 @@ public class PlayerMov : MonoBehaviour
             float yNow = nearDoorLeaf.localEulerAngles.y;
             doorOpen = Mathf.Abs(Mathf.DeltaAngle(yNow, doorOpenAngleY)) < 5f; // -90°에 더 가까우면 열린 상태로 간주
         }
+
+        if (other.CompareTag("WeaponBox"))
+        {
+            choiceWeapon = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -1020,6 +1052,10 @@ public class PlayerMov : MonoBehaviour
                 nearDoorRoot = null;
                 nearDoorLeaf = null;
             }
+        }
+        if (other.CompareTag("WeaponBox"))
+        {
+            choiceWeapon = false;
         }
     }
 
