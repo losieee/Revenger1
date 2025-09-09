@@ -2,6 +2,7 @@ using System.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using static UnityEditor.Progress;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -24,6 +25,7 @@ public class PlayerMov : MonoBehaviour
     public float rotSpeed = 5f;
     public float runSpeed = 3f;
     public Transform cameraPivot;
+    int donRunZoneCount = 0;
 
     // 시체 처리 전용
     [HideInInspector] public bool isDraggingCorpse = false;
@@ -34,7 +36,6 @@ public class PlayerMov : MonoBehaviour
     private bool canAttack;
     private bool canTakeMission;
     private bool canRun = true;
-    private bool escStop = false;
     private bool canKill = false;
 
     private float moveX, moveY, velX, velY;
@@ -174,6 +175,45 @@ public class PlayerMov : MonoBehaviour
     private int rightArmLayer;
     private float rightArmMaxWeight = 0.61f;
 
+    void OnEnable()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += (scene, mode) =>
+        {
+            donRunZoneCount = 0;
+            UpdateRunLock();
+
+            // UI 초기화
+            canTakeMission = false;
+            nearNPC?.SetActive(false);
+            if (missionUI && missionUI.activeSelf) HidePausePanel(missionUI);
+
+            // 커서는 씬에 따라
+            bool isMenu = scene.name == "MainLobby";
+            Cursor.visible = isMenu;
+            Cursor.lockState = isMenu ? CursorLockMode.None : CursorLockMode.Locked;
+
+            // 메뉴가 아니면 혹시 모를 일시정지 상태 복구
+            if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
+        };
+    }
+
+    void Awake()
+    {
+        RebindSceneUI();
+        SceneManager.sceneLoaded += (_, __) => RebindSceneUI();
+    }
+
+    void RebindSceneUI()
+    {
+        // 플레이어 자식 캔버스 쪽부터 찾아보고, 없으면 씬 전체에서 태그/이름으로 찾기
+        var canvas = GetComponentInChildren<Canvas>(true);
+
+        missionUI = missionUI && missionUI.scene.IsValid() ? missionUI : canvas?.transform.Find("MissionImg")?.gameObject ?? GameObject.FindWithTag("MissionUI");
+        optionUI = optionUI && optionUI.scene.IsValid() ? optionUI : canvas?.transform.Find("OptionPop")?.gameObject ?? GameObject.Find("OptionPop");
+        gameOverUI = gameOverUI && gameOverUI.scene.IsValid() ? gameOverUI : canvas?.transform.Find("GameOver")?.gameObject ?? GameObject.Find("GameOver");
+        weaponChangePanel = weaponChangePanel && weaponChangePanel.scene.IsValid() ? weaponChangePanel : canvas?.transform.Find("Weapon_Choice_Panel")?.gameObject ?? GameObject.Find("Weapon_Choice_Panel");
+    }
+
     void Start()
     {
         Cursor.visible = false;
@@ -207,6 +247,14 @@ public class PlayerMov : MonoBehaviour
         boxCenterCrouch = new Vector3(box.center.x, box.center.y - deltaH * 0.5f, box.center.z);
 
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
+
+        // 혹시 비어있으면 자동 바인딩 (씬마다 안전)
+        if (!cameraPivot)
+        {
+            var cam = FindObjectOfType<CameraMov>(true);
+            if (cam) cameraPivot = cam.transform;
+            else if (Camera.main) cameraPivot = Camera.main.transform;
+        }
     }
 
     void Update()
@@ -526,15 +574,16 @@ public class PlayerMov : MonoBehaviour
         // ESC로 옵션창 토글
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            escStop = !escStop;
+            // 1) 열려 있는 다른 패널이 있다면 그걸 먼저 닫기
+            if (missionUI && missionUI.activeSelf) { HidePausePanel(missionUI); return; }
+            if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
+            if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
+            if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
+            if (optionUI && optionUI.activeSelf) { HidePausePanel(optionUI); return; }
 
-            if (escStop)
-                ShowPausePanel(optionUI);
-            else
-                HidePausePanel(optionUI);
+            // 2) 어느 것도 안 열려 있으면 옵션창 열기
+            ShowPausePanel(optionUI);
         }
-        if (escStop)
-            return;
 
         // 암살
         if (canKill && Input.GetMouseButtonDown(0))
@@ -562,6 +611,9 @@ public class PlayerMov : MonoBehaviour
         // 무기 선택창
         if (choiceWeapon && Input.GetKeyDown(KeyCode.E))
         {
+            ButtonControl button = transform.GetChild(1).GetChild(0).GetChild(1).GetComponent<ButtonControl>();
+            button.canNextStage = true;
+
             canChoiceWeapon = !canChoiceWeapon;
 
             if (canChoiceWeapon)
@@ -571,10 +623,13 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 무기를 들수있는지 확인
-        if (WeaponManager.i.canSwitch)
+        if (WeaponManager.i && WeaponManager.i.canSwitch && !canWeaponSwitch)
         {
             canWeaponSwitch = true;
-            HidePausePanel(weaponChangePanel);
+
+            // 무기창이 실제로 열려 있을 때만 닫기
+            if (weaponChangePanel && weaponChangePanel.activeSelf)
+                HidePausePanel(weaponChangePanel);
         }
 
         // 무기 바꾸기
@@ -994,7 +1049,10 @@ public class PlayerMov : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("DonRun"))
-            canRun = false;
+        {
+            donRunZoneCount++;
+            UpdateRunLock();
+        }
 
         if (other.CompareTag("ClimbZone"))
             canClimbZone = true;
@@ -1047,6 +1105,12 @@ public class PlayerMov : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
+        if (other.CompareTag("DonRun"))
+        {
+            donRunZoneCount = Mathf.Max(0, donRunZoneCount - 1);
+            UpdateRunLock();
+        }
+
         if (other.CompareTag("ClimbZone"))
             canClimbZone = false;
 
@@ -1082,6 +1146,13 @@ public class PlayerMov : MonoBehaviour
         {
             choiceWeapon = false;
         }
+    }
+
+    // 달리기 제한
+    void UpdateRunLock()
+    {
+        // 시체를 끄는 중엔 계속 못 달리게 유지
+        canRun = (donRunZoneCount == 0) && !isDraggingCorpse;
     }
 
     // 지면 접촉 판단(착지 처리에만 사용)
@@ -1350,6 +1421,16 @@ public class PlayerMov : MonoBehaviour
         Time.timeScale = 0f;
     }
 
+    // 다른 패널이 열려있으면 전역 해제하지 않도록
+    bool AnyPauseOpen()
+    {
+        return (missionUI && missionUI.activeSelf)
+            || (gameClearUI && gameClearUI.activeSelf)
+            || (gameOverUI && gameOverUI.activeSelf)
+            || (optionUI && optionUI.activeSelf)
+            || (weaponChangePanel && weaponChangePanel.activeSelf);
+    }
+
     void HidePausePanel(GameObject panel)
     {
         if (!panel) return;
@@ -1363,10 +1444,13 @@ public class PlayerMov : MonoBehaviour
         }
         panel.SetActive(false);
 
-        AudioListener.pause = false;
-        Time.timeScale = 1f;
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        if (!AnyPauseOpen())
+        {
+            AudioListener.pause = false;
+            Time.timeScale = 1f;
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+        }
     }
 
     // 드래그 중 달리기 무시
@@ -1380,4 +1464,6 @@ public class PlayerMov : MonoBehaviour
         isDraggingCorpse = false;
         canRun = true;
     }
+
+    public void BindCameraPivot(Transform pivot) { cameraPivot = pivot; }
 }

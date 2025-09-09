@@ -1,8 +1,12 @@
 using UnityEngine;
 using System.Collections;
+using System;
+using UnityEngine.SceneManagement;
+using static UnityEngine.GraphicsBuffer;
 
 public class CameraMov : MonoBehaviour
 {
+    public static CameraMov i;
     public Transform target; // 플레이어
     [Header("카메라 옵션")]
     public float mouseSensitivity = 3f;
@@ -28,6 +32,22 @@ public class CameraMov : MonoBehaviour
     private float distanceVelocity;             // SmoothDamp용 내부 속도
 
     private Coroutine recenterCoroutine;
+
+    void Awake()
+    {
+        if (i && i != this) { Destroy(gameObject); return; }
+        i = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    void OnEnable() => SceneManager.sceneLoaded += OnLoaded;
+    void OnDisable() => SceneManager.sceneLoaded -= OnLoaded;
+
+    void OnLoaded(Scene s, LoadSceneMode m)
+    {
+        var p = GameObject.FindWithTag("Player");
+        if (p) target = p.transform; // 새 플레이어로 자동 재바인드
+    }
 
     void Start()
     {
@@ -121,4 +141,6 @@ public class CameraMov : MonoBehaviour
         yaw = targetYaw;
         recenterCoroutine = null;
     }
+
+    public void SetTarget(Transform t) => target = t;
 }

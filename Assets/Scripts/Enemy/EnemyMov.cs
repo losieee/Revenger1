@@ -58,6 +58,7 @@ public class EnemyMov : MonoBehaviour
     private float destinationUpdateRate = 0.2f; // 추격 중 목표 위치 갱신 간격
     private float destinationUpdateTimer = 0f;  // 현재 추격 위치 갱신 타이머
     private bool isDead = false;                // 사망
+    private float _rebindTick = 0f;
 
     private static readonly List<Transform> Corpses = new List<Transform>();    // 시야각안에 시체가 있는지 검사
     private bool chasingFromCorpse = false;
@@ -175,10 +176,28 @@ public class EnemyMov : MonoBehaviour
 
         if (waypoints != null && waypoints.Length > 0 && AgentReady())
             agent.SetDestination(waypoints[currentIndex].position);
+
+        player = TryFindPlayer();
+    }
+
+    Transform TryFindPlayer()
+    {
+        return GameBootstrap.i?.PlayerTr ?? GameObject.FindWithTag("Player")?.transform;
     }
 
     void Update()
     {
+        if (!player)
+        {
+            _rebindTick -= Time.deltaTime;
+            if (_rebindTick <= 0f)
+            {
+                player = TryFindPlayer();
+                _rebindTick = 0.5f; // 0.5초마다 재시도
+            }
+            return; // player 없으면 시야/추격 로직 스킵
+        }
+
         if (isDead || state == EnemyState.Dead)
         {
             animator?.SetFloat("Speed", 0f);
@@ -583,30 +602,25 @@ public class EnemyMov : MonoBehaviour
     }
 
     // 소리가 들리면 플레이어 방향으로 이동
-    public void PlayerDetected(Vector3 _)
+    public void PlayerDetected(Vector3 playerPos)
     {
         if (isDead || state == EnemyState.Dead) return;
+        if (state == EnemyState.Chasing) return;
 
-        // 소리 감지 재시작을 허용(상태가 Chasing일 때만 무시)
-        if (state == EnemyState.Chasing)
-            return;
-
-        if (!hasHeardPlayer) // 처음 소리 감지일 때만 위치 기록
+        if (!hasHeardPlayer)
         {
-            firstHeardPosition = player.position;
+            firstHeardPosition = playerPos; // 인자로 받은 위치 사용!
             hasHeardPlayer = true;
             isSoundWaiting = true;
 
-            // 소리 감지 초기화(중복 감지도 허용)
             isSoundTriggered = true;
             soundDetectTimer = 0f;
             soundChaseTimer = 0f;
 
-            // 소리 들리면 바로 Watching 상태로 진입하고, 위치 설정
             state = EnemyState.Watching;
-            audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
+            PlayOneShotSafe(enemySounds, 2, QuestionVolume);
 
-            agent.isStopped = true; // 정지 해제
+            agent.isStopped = true;
             animator.SetFloat("Speed", 0f);
         }
     }

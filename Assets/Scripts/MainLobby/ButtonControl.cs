@@ -21,6 +21,12 @@ public class ButtonControl : MonoBehaviour
     public AudioClip activateSound;
     public AudioClip deactivateSound;
 
+    [Header("Scene Jump")]
+    [SerializeField] string spawnId = "Default";
+
+
+    [HideInInspector] public bool canNextStage = false;
+
     void Start()
     {
         // 슬라이더 초기화
@@ -69,8 +75,35 @@ public class ButtonControl : MonoBehaviour
     {
         if (string.IsNullOrEmpty(sceneName)) return;
 
+        if (!canNextStage)
+        {
+            StartCoroutine(TextCount());
+        }
+        else
+        {
+            Time.timeScale = 1f;
+            SceneTransit.Go(sceneName, spawnId);
+        }
+    }
+
+    public void LoadSceneSimple(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return;
+
+        // 혹시 일시정지/볼륨이 켜져 있던 상황 복구
+        AudioListener.pause = false;
         Time.timeScale = 1f;
-        SceneManager.LoadScene(sceneName);
+
+        SceneManager.LoadScene(sceneName);   // Home 진입
+    }
+
+    public void StartGame() => LoadSceneSimple("Home");
+
+    IEnumerator TextCount()
+    {
+        transform.GetChild(1).gameObject.SetActive(true);
+        yield return new WaitForSecondsRealtime(0.5f);
+        transform.GetChild(1).gameObject.SetActive(false);
     }
 
     // 슬라이더 → 오디오
@@ -119,5 +152,13 @@ public class ButtonControl : MonoBehaviour
     public void RealExitGame()
     {
         Application.Quit();
+    }
+
+    public void InGameOrigin()
+    {
+        AudioListener.pause = false;
+        Time.timeScale = 1f;
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 }

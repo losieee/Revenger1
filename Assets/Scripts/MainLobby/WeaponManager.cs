@@ -8,9 +8,11 @@ public class WeaponManager : MonoBehaviour
 
     [HideInInspector] public bool canSwitch = false;
 
-    private void Awake()
+    void Awake()
     {
+        if (i != null && i != this) { Destroy(gameObject); return; } // 중복 방지
         i = this;
+        DontDestroyOnLoad(gameObject); // 씬 넘어가도 유지
     }
 
     public void OnClickCrowbar()

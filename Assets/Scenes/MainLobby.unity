@@ -1834,8 +1834,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1941475552}
         m_TargetAssemblyTypeName: ButtonControl, Assembly-CSharp
-        m_MethodName: LoadScene
-        m_Mode: 5
+        m_MethodName: StartGame
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -4810,6 +4810,8 @@ MonoBehaviour:
   effectSlider: {fileID: 230991191}
   activateSound: {fileID: 8300000, guid: a43c4be60a7f3034fbf532893c062a4e, type: 3}
   deactivateSound: {fileID: 8300000, guid: bf5aadd071a980a49a905bd16022c88a, type: 3}
+  spawnId: Default
+  canNextStage: 0
 --- !u!4 &1941475553
 Transform:
   m_ObjectHideFlags: 0
@@ -5002,7 +5004,7 @@ MonoBehaviour:
   - sceneName: Home
     clip: {fileID: 8300000, guid: 9e6a4cef8363a754692af03592d751f3, type: 3}
     baseVolume: 1
-  - sceneName: Prototype
+  - sceneName: Stage1
     clip: {fileID: 8300000, guid: c0b0bc5da8f0a014a9516a32286753c1, type: 3}
     baseVolume: 1
   bgmFadeTime: 1
