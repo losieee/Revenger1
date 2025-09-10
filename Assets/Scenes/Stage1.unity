@@ -371,7 +371,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -530,18 +530,6 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 109898121}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &109898124 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 526333531887757623, guid: caae3ff84dbbb0245825e0f8242ebaca,
-    type: 3}
-  m_PrefabInstance: {fileID: 109898121}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0523fd4c0b094ab4f87575e8ebce82fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &110683442
 GameObject:
   m_ObjectHideFlags: 0
@@ -1413,7 +1401,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -1469,6 +1457,21 @@ PrefabInstance:
         type: 3}
       propertyPath: waypoints.Array.data[5]
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: villainViewAngle
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: occluderMask.m_Bits
+      value: 73
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: villainViewDistance
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2011114680242093824, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -1991,7 +1994,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -3794,7 +3797,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   segments: 50
-  enemy: {fileID: 109898124}
+  enemy: {fileID: 0}
+  villain: {fileID: 2115050785}
+  occluderMask:
+    serializedVersion: 2
+    m_Bits: 73
+  syncToTargetTransform: 1
+  enemyUseChaseDistance: 0
+  villainViewAngle: 320
+  villainViewDistance: 18
+  villainChaseViewDistance: 60
+  villainEyeHeight: 1.7
 --- !u!23 &719659690
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4145,7 +4158,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -4379,7 +4392,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -4435,6 +4448,21 @@ PrefabInstance:
         type: 3}
       propertyPath: waypoints.Array.data[5]
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: villainViewAngle
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: occluderMask.m_Bits
+      value: 73
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: villainViewDistance
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2011114680242093824, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -5624,7 +5652,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -6252,7 +6280,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -8134,7 +8162,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -8190,6 +8218,21 @@ PrefabInstance:
         type: 3}
       propertyPath: waypoints.Array.data[5]
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: villainViewAngle
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: occluderMask.m_Bits
+      value: 73
+      objectReference: {fileID: 0}
+    - target: {fileID: 1350796113525945793, guid: caae3ff84dbbb0245825e0f8242ebaca,
+        type: 3}
+      propertyPath: villainViewDistance
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 2011114680242093824, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -8891,7 +8934,7 @@ Transform:
   m_GameObject: {fileID: 1696130371}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.12, y: 0, z: -17.17}
+  m_LocalPosition: {x: -0.12, y: 0, z: -27.33}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9851,7 +9894,7 @@ PrefabInstance:
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
       propertyPath: yawOffset
-      value: 180
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -7709429424623323665, guid: caae3ff84dbbb0245825e0f8242ebaca,
         type: 3}
@@ -10688,7 +10731,6 @@ GameObject:
   - component: {fileID: 2115050781}
   - component: {fileID: 2115050780}
   - component: {fileID: 2115050779}
-  - component: {fileID: 2115050782}
   - component: {fileID: 2115050784}
   - component: {fileID: 2115050785}
   m_Layer: 0
@@ -10762,56 +10804,6 @@ Transform:
   - {fileID: 1565491458}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -3.25, z: 0}
---- !u!114 &2115050782
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2115050778}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0523fd4c0b094ab4f87575e8ebce82fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  enemySounds:
-  - {fileID: 8300000, guid: b4e99dc9a0a09d040a28311a65b64d56, type: 3}
-  - {fileID: 8300000, guid: 802073fb56dc0544c9aa83e1917f105d, type: 3}
-  - {fileID: 8300000, guid: c0b0bc5da8f0a014a9516a32286753c1, type: 3}
-  - {fileID: 8300000, guid: 4488f14b8c95c7841a6014f52502bf95, type: 3}
-  waypoints: []
-  walkSpeed: 2
-  runSpeed: 5
-  waitTimeAtEnds: 1.5
-  rotationSpeed: 5
-  viewDistance: 10
-  viewAngle: 300
-  player: {fileID: 0}
-  questionMark: {fileID: 454309911}
-  answerMarkexclamationMark: {fileID: 1574059391}
-  miniQuestionMark: {fileID: 1587651681}
-  miniAnswerMark: {fileID: 1565491456}
-  viewFov: {fileID: 719659688}
-  eyeHeight: 1.5
-  targetHeight: 0.9
-  maxDetectUp: 1
-  maxDetectDown: 2.5
-  verticalFovUp: 30
-  verticalFovDown: 45
-  lostPlayerGraceTime: 2
-  lostAfterPlayer: 2
-  lostAfterCorpse: 6
-  infiniteChaseAfterCorpse: 0
-  chaseViewDistance: 50
-  corpseRequiresLineOfSight: 1
-  occluderMask:
-    serializedVersion: 2
-    m_Bits: 73
-  footstepVolume: 0.7
-  QuestionVolume: 0.7
-  chaseVolume: 0.7
-  catchBox: {fileID: 2115050779}
-  attackBox: {fileID: 2115050779}
 --- !u!82 &2115050784
 AudioSource:
   m_ObjectHideFlags: 0
@@ -10909,28 +10901,48 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!195 &2115050785
-NavMeshAgent:
+--- !u!114 &2115050785
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2115050778}
   m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 2.75
-  m_BaseOffset: 1.54
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ee10e6bd8a9dd14e8210614256b048b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  state: 0
+  reactToSound: 1
+  soundWatchDuration: 1.5
+  questionMark: {fileID: 454309911}
+  answerMarkexclamationMark: {fileID: 1574059391}
+  miniQuestionMark: {fileID: 1587651681}
+  miniAnswerMark: {fileID: 1565491456}
+  triggerGlobalAggroOnChase: 1
+  chaseTarget: {fileID: 0}
+  autoDetectPlayer: 1
+  player: {fileID: 0}
+  rebindPlayerInterval: 0.5
+  watchConfirmTime: 2
+  watchLoseGrace: 0.1
+  watchEnterGrace: 0.1
+  idleViewAngle: 320
+  watchingViewAngle: 360
+  chasingViewAngle: 360
+  viewDistance: 18
+  chaseViewDistance: 60
+  viewAngle: 320
+  eyeHeight: 1.7
+  targetHeight: 1
+  verticalFovUp: 35
+  verticalFovDown: 50
+  maxDetectUp: 1.5
+  maxDetectDown: 3
+  occluderMask:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!1 &2132567365
 GameObject:
   m_ObjectHideFlags: 0

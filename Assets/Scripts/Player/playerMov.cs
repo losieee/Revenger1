@@ -175,32 +175,75 @@ public class PlayerMov : MonoBehaviour
     private int rightArmLayer;
     private float rightArmMaxWeight = 0.61f;
 
+    float _sceneInputGraceTimer = 0f;
+
     void OnEnable()
     {
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded += (scene, mode) =>
-        {
-            donRunZoneCount = 0;
-            UpdateRunLock();
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
 
-            // UI 초기화
-            canTakeMission = false;
-            nearNPC?.SetActive(false);
-            if (missionUI && missionUI.activeSelf) HidePausePanel(missionUI);
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
 
-            // 커서는 씬에 따라
-            bool isMenu = scene.name == "MainLobby";
-            Cursor.visible = isMenu;
-            Cursor.lockState = isMenu ? CursorLockMode.None : CursorLockMode.Locked;
+    GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
 
-            // 메뉴가 아니면 혹시 모를 일시정지 상태 복구
-            if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
-        };
+    void CloseAllPlayerUI()
+    {
+        foreach (var p in Panels())
+            HidePausePanel(p);
+
+        if (nearNPC) nearNPC.SetActive(false);
+
+        // 씬 전환 직후 남아있는 클릭/키보드 잔상 제거
+        Input.ResetInputAxes();
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // UI 레퍼런스 다시 물기
+        RebindSceneUI();
+
+        // 상태/트리거 리셋
+        donRunZoneCount = 0;
+        UpdateRunLock();
+
+        canAttack = false;
+        killTarget = null;
+        choiceWeapon = false;
+        canTakeMission = false;
+
+        nearDoor = false;
+        nearDoorRoot = null;
+        nearDoorLeaf = null;
+
+        canClimbZone = false;
+        isHolding = false;
+        isClimbing = false;
+        blockInput = false;
+
+        // 모든 UI 닫기 + 입력 잔상 제거
+        CloseAllPlayerUI();
+
+        // 입력 그레이스
+        _sceneInputGraceTimer = 0.2f;
+
+        // 커서/타임스케일
+        bool isMenu = scene.name == "MainLobby";
+        Cursor.visible = isMenu;
+        Cursor.lockState = isMenu ? CursorLockMode.None : CursorLockMode.Locked;
+        if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
+    }
+
+    bool IsPointerOverUI()
+    {
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
     }
 
     void Awake()
     {
         RebindSceneUI();
-        SceneManager.sceneLoaded += (_, __) => RebindSceneUI();
     }
 
     void RebindSceneUI()
@@ -259,6 +302,9 @@ public class PlayerMov : MonoBehaviour
 
     void Update()
     {
+        if (_sceneInputGraceTimer > 0f)
+            _sceneInputGraceTimer -= Time.deltaTime;
+
         // 바닥 감지
         isGrounded = CheckGrounded();
 
@@ -564,7 +610,7 @@ public class PlayerMov : MonoBehaviour
         CheckNearbyEnemies();
 
         // 클리어
-        if (canAttack && Input.GetMouseButtonDown(0))
+        if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && Input.GetMouseButtonDown(0))
             ShowPausePanel(gameClearUI);
 
         // 미션 받기
@@ -1287,9 +1333,15 @@ public class PlayerMov : MonoBehaviour
 
         foreach (Collider col in hits)
         {
-            EnemyMov enemy = col.GetComponent<EnemyMov>();
+            // Enemy
+            var enemy = col.GetComponentInParent<EnemyMov>() ?? col.GetComponent<EnemyMov>();
             if (enemy != null)
                 enemy.PlayerDetected(transform.position);
+
+            // Villain
+            var villain = col.GetComponentInParent<Villain>() ?? col.GetComponent<Villain>();
+            if (villain != null)
+                villain.PlayerDetectedBySound(transform.position);
         }
     }
 

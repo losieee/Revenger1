@@ -100,6 +100,8 @@ public class EnemyMov : MonoBehaviour
     public static event Action<Transform> OnAnyEnemyKilled;
     private static readonly List<EnemyMov> Instances = new List<EnemyMov>();
 
+    public bool IsChasingPublic => state == EnemyState.Chasing;
+
     void OnEnable()
     {
         OnAnyEnemyKilled += HandleCorpseCreated; // 시체 알림 구독
@@ -725,7 +727,7 @@ public class EnemyMov : MonoBehaviour
     }
 
     // 모든 적에게 '시체로 유발된 추격'
-    private static void TriggerGlobalAggro(Vector3 targetPos)
+    public static void TriggerGlobalAggro(Vector3 targetPos)
     {
         foreach (var e in Instances)
         {

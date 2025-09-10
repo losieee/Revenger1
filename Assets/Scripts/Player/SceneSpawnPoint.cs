@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 public class SceneSpawnPoint : MonoBehaviour
 {
-    public string id = "Default";
+    public string id;
     void OnDrawGizmos()
     {
         Gizmos.color = Color.cyan;

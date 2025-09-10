@@ -97,7 +97,42 @@ public class ButtonControl : MonoBehaviour
         SceneManager.LoadScene(sceneName);   // Home 진입
     }
 
-    public void StartGame() => LoadSceneSimple("Home");
+    public void StartGame()
+    {
+        // 전역 상태 복구
+        AudioListener.pause = false;
+        Time.timeScale = 1f;
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
+        // 멈춤/클리어/오버 패널들 숨기기 (있으면)
+        HidePanelByName("GameOver");
+        HidePanelByName("GameClear");
+        HidePanelByName("OptionPop");
+        HidePanelByName("Weapon_Choice_Panel");
+        HidePanelByName("MissionImg");  // 미션창을 멈춤 패널로 쓰면 같이
+
+        // 선택 포커스 초기화(가끔 버튼이 남아있는 문제 방지)
+        if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
+
+        // 스폰 포인트로 씬 이동
+        SceneTransit.Go("Home", "Home_Start");
+    }
+
+    static void HidePanelByName(string name)
+    {
+        var go = GameObject.Find(name);
+        if (!go) return;
+
+        var cg = go.GetComponent<CanvasGroup>();
+        if (cg)
+        {
+            cg.alpha = 0f;
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
+        }
+        go.SetActive(false);
+    }
 
     IEnumerator TextCount()
     {
