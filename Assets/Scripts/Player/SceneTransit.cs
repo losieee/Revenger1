@@ -8,7 +8,7 @@ public static class SceneTransit
 
     public static void Go(string sceneName, string spawnId)
     {
-        // ★ 여기서 세팅 (씬 로드 전에)
+        // 여기서 세팅 (씬 로드 전에)
         nextSpawnId = spawnId;
 
         // 상태 복구(혹시 호출자가 안했어도 안전망)

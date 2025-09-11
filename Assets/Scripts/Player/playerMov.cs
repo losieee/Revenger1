@@ -175,6 +175,12 @@ public class PlayerMov : MonoBehaviour
     private int rightArmLayer;
     private float rightArmMaxWeight = 0.61f;
 
+    [Header("Minimap UI")]
+    public GameObject minimapPanel;
+    public GameObject miniPos;
+    public float miniPosYOffset = -30f;
+    public bool minimapStartsHidden = true;     // 시작 시 숨김 여부
+
     float _sceneInputGraceTimer = 0f;
 
     void OnEnable()
@@ -276,6 +282,7 @@ public class PlayerMov : MonoBehaviour
         // 보조 레이어가 항상 영향을 주도록
         if (gripLayer >= 0) animator.SetLayerWeight(gripLayer, 1f);
         if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
+        if (minimapPanel) minimapPanel.SetActive(!minimapStartsHidden);
 
         box = GetComponent<BoxCollider>();
 
@@ -613,6 +620,10 @@ public class PlayerMov : MonoBehaviour
         if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && Input.GetMouseButtonDown(0))
             ShowPausePanel(gameClearUI);
 
+        // 미니맵
+        if (Input.GetKeyDown(KeyCode.Tab)) minimapPanel?.SetActive(true);
+        if (Input.GetKeyUp(KeyCode.Tab)) minimapPanel?.SetActive(false);
+
         // 미션 받기
         if (canTakeMission && Input.GetKeyDown(KeyCode.E))
             ShowPausePanel(missionUI);
@@ -691,6 +702,19 @@ public class PlayerMov : MonoBehaviour
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
             if (weapon) weapon.SetActive(true);
         }
+    }
+
+    void LateUpdate()
+    {
+        UpdateMiniPos();
+    }
+
+    // 플레이어 미니맵 항상 따라다니게
+    void UpdateMiniPos()
+    {
+        if (!miniPos) return;
+        Vector3 p = transform.position;
+        miniPos.transform.position = new Vector3(p.x, p.y + miniPosYOffset, p.z);
     }
 
     // 부드럽게 문열기

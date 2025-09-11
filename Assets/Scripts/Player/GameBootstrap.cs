@@ -1,4 +1,3 @@
-// GameBootstrap.cs
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
