@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-public class FOVVisualizer : MonoBehaviour
+public class FOVVisualizer2F : MonoBehaviour
 {
     public int segments = 50;
 
@@ -75,7 +75,7 @@ public class FOVVisualizer : MonoBehaviour
         Vector3[] vertices = new Vector3[segments + 2];
         int[] triangles = new int[segments * 3];
 
-        vertices[0] = Vector3.zero + Vector3.down * 51.2f;
+        vertices[0] = Vector3.zero + Vector3.down * 100f;
 
         for (int i = 0; i <= segments; i++)
         {
@@ -90,7 +90,7 @@ public class FOVVisualizer : MonoBehaviour
                 distance = hit.distance;
 
             Vector3 localPos = transform.InverseTransformPoint(rayOrigin + worldDir * distance);
-            localPos += Vector3.down * 51.2f;
+            localPos += Vector3.down * 100f;
             vertices[i + 1] = localPos;
         }
 

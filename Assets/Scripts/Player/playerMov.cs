@@ -1,9 +1,7 @@
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
-using static UnityEditor.Progress;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -18,6 +16,8 @@ public class PlayerMov : MonoBehaviour
     private Animator animator;
     public GameObject weapon;
     public GameObject weaponChangePanel;
+    public GameObject minimap1fPicture;
+    public GameObject[] enemies1f;
 
     // 이동 및 회전
     public float speed = 5f;
@@ -240,6 +240,9 @@ public class PlayerMov : MonoBehaviour
         Cursor.visible = isMenu;
         Cursor.lockState = isMenu ? CursorLockMode.None : CursorLockMode.Locked;
         if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
+
+        // 씬마다 다시 불러오도록
+        RebindMinimapAndEnemies();
     }
 
     bool IsPointerOverUI()
@@ -278,6 +281,7 @@ public class PlayerMov : MonoBehaviour
         gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
         gripGunPoseHash = Animator.StringToHash("RightHandGrip.GunPose");
         rightArmLayer = animator.GetLayerIndex("RightArm");
+        RebindMinimapAndEnemies();
 
         // 보조 레이어가 항상 영향을 주도록
         if (gripLayer >= 0) animator.SetLayerWeight(gripLayer, 1f);
@@ -305,6 +309,16 @@ public class PlayerMov : MonoBehaviour
             if (cam) cameraPivot = cam.transform;
             else if (Camera.main) cameraPivot = Camera.main.transform;
         }
+    }
+
+    // 오브젝트 찾아오기
+    void RebindMinimapAndEnemies()
+    {
+        // 이름/태그는 각 씬 프리팹과 정확히 일치해야 함
+        minimap1fPicture = GameObject.Find("1FMapPicture");
+
+        // 태그로 전부 다시 수집
+        enemies1f = GameObject.FindGameObjectsWithTag("Enemy1F");
     }
 
     void Update()
@@ -336,7 +350,7 @@ public class PlayerMov : MonoBehaviour
             {
                 isLerpingHoldOffset = false;
 
-                // ★ 붙기 보간이 끝난 '지금' 중력/키네마틱 전환
+                // 붙기 보간이 끝난 '지금' 중력/키네마틱 전환
                 rb.useGravity = false;
                 rb.isKinematic = true;
             }
@@ -707,6 +721,26 @@ public class PlayerMov : MonoBehaviour
     void LateUpdate()
     {
         UpdateMiniPos();
+
+        bool inTwoFloor = false;
+
+        if (Range2F.i != null)
+            inTwoFloor = Range2F.i.inTwoFloor;
+
+        if (inTwoFloor)
+        {
+            if (minimap1fPicture) minimap1fPicture.SetActive(false);
+            if (enemies1f != null)
+                foreach (var enemy in enemies1f)
+                    if (enemy) enemy.SetActive(false);
+        }
+        else
+        {
+            if (minimap1fPicture) minimap1fPicture.SetActive(true);
+            if (enemies1f != null)
+                foreach (var enemy in enemies1f)
+                    if (enemy) enemy.SetActive(true);
+        }
     }
 
     // 플레이어 미니맵 항상 따라다니게
