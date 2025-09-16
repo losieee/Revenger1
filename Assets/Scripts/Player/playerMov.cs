@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using System;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -27,7 +28,19 @@ public class PlayerMov : MonoBehaviour
     public Transform cameraPivot;
     int donRunZoneCount = 0;
 
+    // 공격 전용
+    private bool isAssassinating = false;
+    private EnemyMov pendingAssassination = null;
+    [SerializeField] private float assassinateApproachDuration = 0.20f;  // 적 뒤로 붙는 시간
+    [SerializeField] private float assassinateBackOffset = 0.65f;        // 적 등 뒤 거리
+    [SerializeField] private float assassinateSideClamp = 0.25f;         // 약간 좌우 보정 허용
+    [SerializeField] private float assassinateRotLerp = 20f;             // 회전 보간속도
+
     // 시체 처리 전용
+    [SerializeField] private string pickupTrigger = "Pickup"; // 트리거 이름
+    [SerializeField] private string pickupTag = "Pickup"; // 상태 태그(이름 아님)
+    [SerializeField] private bool allowCancelDuringPickup = false; // E로 취소 허용 여부
+    private bool isPickupInProgress = false;
     [HideInInspector] public bool isDraggingCorpse = false;
     public float dragMoveSpeed = 0.5f;
 
@@ -186,11 +199,13 @@ public class PlayerMov : MonoBehaviour
     void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        EnemyMov.OnAnyEnemyKilled += HandleEnemyKilled;
     }
 
     void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        EnemyMov.OnAnyEnemyKilled -= HandleEnemyKilled;
     }
 
     GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
@@ -243,6 +258,30 @@ public class PlayerMov : MonoBehaviour
 
         // 씬마다 다시 불러오도록
         RebindMinimapAndEnemies();
+    }
+
+    // Enemy가 죽을 때 정리
+    private void HandleEnemyKilled(Transform deadTr)
+    {
+        var dead = deadTr ? deadTr.GetComponent<EnemyMov>() : null;
+        if (dead == null) return;
+
+        // 암살 중 그 적을 죽였거나, 현재 타겟이 그 적이라면 정리
+        if (pendingAssassination == dead)
+        {
+            pendingAssassination = null;
+            isAssassinating = false;
+            blockInput = false;
+            animator.ResetTrigger("AttackCrowbar");
+            rb.isKinematic = false;
+            rb.useGravity = true;
+        }
+
+        if (killTarget == dead)
+        {
+            killTarget = null;
+            canKill = false;
+        }
     }
 
     bool IsPointerOverUI()
@@ -427,6 +466,17 @@ public class PlayerMov : MonoBehaviour
 
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
+
+        // 시체 픽업할땐 못움직임
+        if (isPickupInProgress)
+        {
+            // 이동/애니 파라미터 고정
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+            currentMoveInput = Vector3.zero;
+            return; // 나머지 입력/행동 전부 무시
+        }
 
         // 시체 끌땐 뒤로가기만 허용
         // 1) 일반 입력 (드래그/블록 아닐 때만)
@@ -661,9 +711,7 @@ public class PlayerMov : MonoBehaviour
         {
             if (killTarget != null)
             {
-                killTarget.Kill();
-                canKill = false;
-                killTarget = null;
+                StartAssassination(killTarget);
             }
         }
 
@@ -716,6 +764,97 @@ public class PlayerMov : MonoBehaviour
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
             if (weapon) weapon.SetActive(true);
         }
+    }
+
+    // 공격 (암살)
+    private void StartAssassination(EnemyMov enemy)
+    {
+        if (enemy == null) return;
+
+        // 클릭 즉시 Enemy 움직임 멈춤
+        enemy.FreezeForAssassination(true);
+
+        isAssassinating = true;
+        pendingAssassination = enemy;
+
+        // 클릭과 동시에 암살 가능 상태 해제
+        canKill = false;
+        killTarget = null;
+
+        // 입력/이동 락
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+
+        // 물리 안정화
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
+        rb.useGravity = false;
+
+        // 적도 준비(정지/감지 비활성 등)
+        pendingAssassination.PrepareForAssassination(true);
+
+        StartCoroutine(AssassinationApproachRoutine(enemy));
+    }
+
+    private IEnumerator AssassinationApproachRoutine(EnemyMov enemy)
+    {
+        if (enemy == null) yield break;
+        Transform et = enemy.transform;
+
+        // 적의 뒤쪽 위치
+        Vector3 backDir = -et.forward;
+        Vector3 startPos = transform.position;
+
+        // 좌/우로 조금 유동성
+        Vector3 lateral = Vector3.ProjectOnPlane(transform.position - et.position, Vector3.up);
+        float side = Mathf.Clamp(Vector3.Dot(lateral.sqrMagnitude > 1e-4f ? lateral.normalized : Vector3.zero, et.right), -assassinateSideClamp, assassinateSideClamp);
+
+        Vector3 targetPos = et.position + backDir * assassinateBackOffset + et.right * side;
+        targetPos.y = startPos.y; // 높이 유지
+
+        float t = 0f;
+        float dur = Mathf.Max(0.01f, assassinateApproachDuration);
+
+        while (t < 1f)
+        {
+            if (enemy == null || !et) yield break; // 도중에 적이 사라지면 중단
+
+            t += Time.deltaTime / dur;
+
+            // 위치 보간
+            transform.position = Vector3.Lerp(startPos, targetPos, t);
+
+            // 매 프레임 적을 바라보게
+            Vector3 toEnemy = et.position - transform.position;
+            toEnemy.y = 0f;
+            if (toEnemy.sqrMagnitude > 1e-6f)
+            {
+                Quaternion lookRot = Quaternion.LookRotation(toEnemy, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRot, assassinateRotLerp * 100f * Time.deltaTime);
+            }
+
+            // 루프 끝난 뒤 (피니시 순간)
+            Vector3 f = Vector3.ProjectOnPlane(et.forward, Vector3.up);
+            if (f.sqrMagnitude > 1e-6f)
+                transform.rotation = Quaternion.LookRotation(f, Vector3.up);
+
+            yield return null;
+        }
+
+        // 공격 직전 정확히 적을 향해 스냅
+        {
+            Vector3 toEnemy = et.position - transform.position;
+            toEnemy.y = 0f;
+            if (toEnemy.sqrMagnitude > 1e-6f)
+                transform.rotation = Quaternion.LookRotation(toEnemy, Vector3.up);
+        }
+
+        // 크로우바 공격 애니메이션 트리거
+        animator.ResetTrigger("AttackGun");  // 혹시 모를 충돌 제거
+        animator.SetTrigger("AttackCrowbar");
     }
 
     void LateUpdate()
@@ -1566,14 +1705,125 @@ public class PlayerMov : MonoBehaviour
     // 드래그 중 달리기 무시
     public void OnDragStart()
     {
-        isDraggingCorpse = true;
-        canRun = false;                  // 달리기 입력 무시
+        if (isDraggingCorpse || isPickupInProgress) return;
+        StartCoroutine(PickupThenStartDrag());
     }
     public void OnDragStop()
     {
+        // 드래그 종료(해제)
         isDraggingCorpse = false;
+        isPickupInProgress = false;
+        blockInput = false;
         canRun = true;
+
+        // 필요하면 애니 파라미터 리셋
+        animator.ResetTrigger(pickupTrigger);
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+    }
+
+    // 시체 드래그
+    private IEnumerator PickupThenStartDrag()
+    {
+        isPickupInProgress = true;
+
+        // 입력/이동 잠금
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        rb.velocity = Vector3.zero;
+
+        // 픽업 트리거 발사
+        animator.ResetTrigger(pickupTrigger);
+        animator.SetTrigger(pickupTrigger);
+
+        int baseLayer = 0;
+
+        // 1) Pickup 태그 상태로 "진입"할 때까지 대기 (전이 시작 포함)
+        yield return null; // 한 프레임 양보
+        while (true)
+        {
+            var st = animator.GetCurrentAnimatorStateInfo(baseLayer);
+            var next = animator.GetNextAnimatorStateInfo(baseLayer);
+
+            bool inPickupNow = st.tagHash == Animator.StringToHash(pickupTag);
+            bool nextPickup = next.tagHash == Animator.StringToHash(pickupTag);
+
+            if (inPickupNow || nextPickup) break;
+
+            // (옵션) 취소 허용
+            if (allowCancelDuringPickup && Input.GetKeyDown(KeyCode.E))
+                goto CANCEL;
+
+            yield return null;
+        }
+
+        // 2) Pickup 태그 상태가 "끝날 때"까지 대기
+        while (true)
+        {
+            var st = animator.GetCurrentAnimatorStateInfo(baseLayer);
+            bool inPickup = st.tagHash == Animator.StringToHash(pickupTag);
+
+            // 전이가 끝났고 더 이상 Pickup 태그가 아니면 종료
+            if (!inPickup && !animator.IsInTransition(baseLayer)) break;
+
+            // (옵션) 취소 허용
+            if (allowCancelDuringPickup && Input.GetKeyDown(KeyCode.E))
+                goto CANCEL;
+
+            // 픽업 중에는 완전 정지
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+            currentMoveInput = Vector3.zero;
+
+            yield return null;
+        }
+
+        // 3) 드래그 시작 전환
+        isPickupInProgress = false;
+        isDraggingCorpse = true;
+        canRun = false;          // 드래그 중엔 뛰기 금지
+        blockInput = false;      // 드래그 전용 입력(뒤로)만 허용되는 기존 로직 유지
+        yield break;
+
+    CANCEL:
+        // 취소 처리(원상복구)
+        isPickupInProgress = false;
+        blockInput = false;
+        // 필요 시 트리거 초기화/크로스페이드
+        animator.ResetTrigger(pickupTrigger);
+        yield break;
     }
 
     public void BindCameraPivot(Transform pivot) { cameraPivot = pivot; }
+
+    // 공격 애니메이션 이벤트
+    public void OnAssassinationHit()
+    {
+        if (!isAssassinating || pendingAssassination == null) return;
+
+        var toKill = pendingAssassination; // 보관
+        pendingAssassination = null;       // 먼저 비워 재진입 방지
+
+        toKill.Kill();                     // 보관한 대상에게 Kill()
+    }
+
+    // 공격 애니메이션 이벤트 해제
+    public void OnAssassinationEnd()
+    {
+        // 상태/물리 복구
+        rb.isKinematic = false;
+        rb.useGravity = true;
+
+        if (pendingAssassination != null)
+            pendingAssassination.PrepareForAssassination(false);
+
+        pendingAssassination = null;
+        isAssassinating = false;
+        blockInput = false;
+
+        // 안전하게 암살 트리거 초기화
+        animator.ResetTrigger("AttackCrowbar");
+    }
 }

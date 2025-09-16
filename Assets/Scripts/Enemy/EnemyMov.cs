@@ -42,6 +42,10 @@ public class EnemyMov : MonoBehaviour
     [Header("추격 시 가시 거리 보정")]
     public float chaseViewDistance = 50f;           // Chasing에서만 적용할 넓은 시야거리
 
+    [Header("시체 상태")]
+    private bool isFrozen = false;
+    public bool IsFrozen => isFrozen;
+
     [Header("시체 인지 설정")]
     public bool corpseRequiresLineOfSight = true;   // 시체도 가림막 체크할지
 
@@ -200,7 +204,7 @@ public class EnemyMov : MonoBehaviour
             return; // player 없으면 시야/추격 로직 스킵
         }
 
-        if (isDead || state == EnemyState.Dead)
+        if (isDead || state == EnemyState.Dead || isFrozen)
         {
             animator?.SetFloat("Speed", 0f);
             return;
@@ -836,6 +840,65 @@ public class EnemyMov : MonoBehaviour
         GetComponent<DraggableCorpse>()?.OnDeath();
         enabled = false;
     }
+
+    // 공격 받자마자 행동 정지
+    public void FreezeForAssassination(bool on)
+    {
+        isFrozen = on;
+
+        // 네비 정지
+        if (AgentReady())
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();
+        }
+
+        // 애니/사운드/표식 정리
+        animator.SetFloat("Speed", 0f);
+        StopChaseLoopCapped();
+        audioSource?.Stop();
+        if (miniQuestionMark) miniQuestionMark.SetActive(false);
+        if (miniAnswerMark) miniAnswerMark.SetActive(false);
+        if (catchBox) catchBox.enabled = false;
+        if (attackBox) attackBox.enabled = false;
+    }
+
+    // 공격(암살) 당함
+    public void PrepareForAssassination(bool on)
+    {
+        if (on)
+        {
+            // 감지/추격 멈춤
+            state = EnemyState.Watching;  // 또는 별도 Frozen 상태 만들어도 됨
+            if (AgentReady())
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                agent.ResetPath();
+            }
+            animator.SetFloat("Speed", 0f);
+            miniQuestionMark?.SetActive(false);
+            miniAnswerMark?.SetActive(false);
+            // 공격 박스/캐치 박스도 꺼두기
+            if (catchBox) catchBox.enabled = false;
+            if (attackBox) attackBox.enabled = false;
+        }
+        else
+        {
+            // 원상복구(시체라면 Kill()에서 이미 정리됨)
+            if (!isDead && state != EnemyState.Dead)
+            {
+                state = EnemyState.Patrol;
+                if (AgentReady() && waypoints != null && waypoints.Length > 0)
+                {
+                    agent.isStopped = false;
+                    agent.SetDestination(waypoints[currentIndex].position);
+                }
+            }
+        }
+    }
+
 
     // 시야 관련 기즈모
     void OnDrawGizmosSelected()

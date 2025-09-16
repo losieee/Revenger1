@@ -75,4 +75,16 @@ public class AnimationCtl : MonoBehaviour
         if (player != null)
             player.AE_AttachToWall();
     }
+
+    public void Crowbar_Assassinate_Hit()
+    {
+        if (player != null)
+            player.OnAssassinationHit();
+    }
+
+    public void Crowbar_Assassinate_End()
+    {
+        if (player != null)
+            player.OnAssassinationEnd();
+    }
 }
