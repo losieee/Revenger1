@@ -804,16 +804,8 @@ public class PlayerMov : MonoBehaviour
         if (enemy == null) yield break;
         Transform et = enemy.transform;
 
-        // 적의 뒤쪽 위치
-        Vector3 backDir = -et.forward;
+        // 공격한 그 자리
         Vector3 startPos = transform.position;
-
-        // 좌/우로 조금 유동성
-        Vector3 lateral = Vector3.ProjectOnPlane(transform.position - et.position, Vector3.up);
-        float side = Mathf.Clamp(Vector3.Dot(lateral.sqrMagnitude > 1e-4f ? lateral.normalized : Vector3.zero, et.right), -assassinateSideClamp, assassinateSideClamp);
-
-        Vector3 targetPos = et.position + backDir * assassinateBackOffset + et.right * side;
-        targetPos.y = startPos.y; // 높이 유지
 
         float t = 0f;
         float dur = Mathf.Max(0.01f, assassinateApproachDuration);
@@ -824,8 +816,8 @@ public class PlayerMov : MonoBehaviour
 
             t += Time.deltaTime / dur;
 
-            // 위치 보간
-            transform.position = Vector3.Lerp(startPos, targetPos, t);
+            // 위치 고정
+            transform.position = startPos;
 
             // 매 프레임 적을 바라보게
             Vector3 toEnemy = et.position - transform.position;
@@ -833,24 +825,20 @@ public class PlayerMov : MonoBehaviour
             if (toEnemy.sqrMagnitude > 1e-6f)
             {
                 Quaternion lookRot = Quaternion.LookRotation(toEnemy, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, lookRot, assassinateRotLerp * 100f * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation, lookRot,
+                    assassinateRotLerp * 100f * Time.deltaTime
+                );
             }
-
-            // 루프 끝난 뒤 (피니시 순간)
-            Vector3 f = Vector3.ProjectOnPlane(et.forward, Vector3.up);
-            if (f.sqrMagnitude > 1e-6f)
-                transform.rotation = Quaternion.LookRotation(f, Vector3.up);
 
             yield return null;
         }
 
         // 공격 직전 정확히 적을 향해 스냅
-        {
-            Vector3 toEnemy = et.position - transform.position;
-            toEnemy.y = 0f;
-            if (toEnemy.sqrMagnitude > 1e-6f)
-                transform.rotation = Quaternion.LookRotation(toEnemy, Vector3.up);
-        }
+        Vector3 finalDir = et.position - transform.position;
+        finalDir.y = 0f;
+        if (finalDir.sqrMagnitude > 1e-6f)
+            transform.rotation = Quaternion.LookRotation(finalDir, Vector3.up);
 
         // 크로우바 공격 애니메이션 트리거
         animator.ResetTrigger("AttackGun");  // 혹시 모를 충돌 제거
