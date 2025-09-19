@@ -225,6 +225,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   segments: 50
   enemy: {fileID: 526333531887757623}
+  villain: {fileID: 0}
+  occluderMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  syncToTargetTransform: 1
+  enemyUseChaseDistance: 0
+  villainViewAngle: 70
+  villainViewDistance: 18
+  villainChaseViewDistance: 60
+  villainEyeHeight: 1.7
 --- !u!1 &506086173498831465
 GameObject:
   m_ObjectHideFlags: 0
@@ -3497,6 +3507,7 @@ GameObject:
   - component: {fileID: 3009650870402587836}
   - component: {fileID: -3430891887863726406}
   - component: {fileID: -7709429424623323665}
+  - component: {fileID: 6072847499534726613}
   m_Layer: 7
   m_Name: Enemy
   m_TagString: Untagged
@@ -3792,6 +3803,27 @@ MonoBehaviour:
   keepFacingOpposite: 1
   rotFollowSpeed: 12
   yawOffset: 0
+--- !u!114 &6072847499534726613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8773297124730230785}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa25f49a760f9754985e5013c5018bd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  miniIcon: {fileID: 1250711373506831899}
+  miniFov: {fileID: 7145886202444186024}
+  bodyRenderers: []
+  losPoint: {fileID: 0}
+  occluderMask:
+    serializedVersion: 2
+    m_Bits: 1
+  checkInterval: 0.1
+  losSamples: 3
 --- !u!1 &9042778843922821732
 GameObject:
   m_ObjectHideFlags: 0

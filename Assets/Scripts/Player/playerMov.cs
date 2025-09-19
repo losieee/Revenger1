@@ -43,6 +43,36 @@ public class PlayerMov : MonoBehaviour
     private bool isPickupInProgress = false;
     [HideInInspector] public bool isDraggingCorpse = false;
     public float dragMoveSpeed = 0.5f;
+    // E키 쿨다운
+    [SerializeField] private float eCooldownDuration = 0.6f;
+    private bool eLocked = false;
+    private Coroutine eLockCo;
+
+    private IEnumerator ELock(float sec)
+    {
+        eLocked = true;
+        yield return new WaitForSecondsRealtime(sec); // 타임스케일 0이어도 흐름 유지
+        eLocked = false;
+        eLockCo = null;
+    }
+
+    private void ArmELock(float sec = -1f)
+    {
+        if (sec <= 0f) sec = eCooldownDuration;
+        if (eLockCo != null) StopCoroutine(eLockCo); // 새로 누르면 쿨타임 리셋
+        eLockCo = StartCoroutine(ELock(sec));
+    }
+
+    bool EPressed()
+    {
+        if (eLocked) return false;                 // 잠금 중이면 무시
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            ArmELock();                            // 누른 순간 코루틴 락 시작
+            return true;
+        }
+        return false;
+    }
 
     public Vector3 currentMoveInput;
     private bool isRunning;
@@ -468,14 +498,12 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
         // 시체 픽업할땐 못움직임
-        if (isPickupInProgress)
+        if (blockInput)
         {
-            // 이동/애니 파라미터 고정
+            currentMoveInput = Vector3.zero;
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
             animator.SetFloat("Speed", 0f);
-            currentMoveInput = Vector3.zero;
-            return; // 나머지 입력/행동 전부 무시
         }
 
         // 시체 끌땐 뒤로가기만 허용
@@ -499,27 +527,34 @@ public class PlayerMov : MonoBehaviour
         if (isDraggingCorpse)
         {
             back01 = Mathf.Max(0f, -Input.GetAxisRaw("Vertical")); // S만 반응 (0~1)
-            currentMoveInput = -transform.forward * back01;              // 뒤로만
+            currentMoveInput = -transform.forward * back01;        // 뒤로만
+
+            // 취소(E)
+            if (!isPickupInProgress && isDraggingCorpse && EPressed())
+            {
+                OnDragStop();
+                animator.SetBool("IsDragging", false);
+                animator.CrossFade("Locomotion", 0.1f, 0, 0f);
+                return;
+            }
         }
-
-        // 3) (애니메이션 파라미터는 여기서 계산)
-
         // 애니메이션 파라미터
         if (isDraggingCorpse)
         {
-            // 전용 파라미터(권장: 애니메이터에 Bool/Float 추가)
-            //animator.SetBool("IsDragging", true);
-            //animator.SetFloat("DragSpeed", back01);   // 0~1
+            // Drag 전용 파라미터만 사용
+            animator.SetBool("IsDragging", true);   // 드래그 상태 유지
+            animator.SetFloat("DragMove", back01);  // 0이면 Drag Idle, >0이면 Drag
 
-            // 기존 파라미터도 쓰고 싶다면 안정적으로 고정
+            // Locomotion 파라미터는 고정(블렌드트리로 못 빠지게)
             animator.SetFloat("MoveX", 0f);
-            animator.SetFloat("MoveY", -back01);      // 뒤로가는 값
-            animator.SetFloat("Speed", back01, 0.1f, Time.deltaTime);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
         }
         else
         {
-            //animator.SetBool("IsDragging", false);
+            animator.SetBool("IsDragging", false);
 
+            // 기존 Locomotion 계산 그대로
             Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
             moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
             moveY = Mathf.SmoothDamp(moveY, localMove.z, ref velY, smoothTime);
@@ -689,7 +724,7 @@ public class PlayerMov : MonoBehaviour
         if (Input.GetKeyUp(KeyCode.Tab)) minimapPanel?.SetActive(false);
 
         // 미션 받기
-        if (canTakeMission && Input.GetKeyDown(KeyCode.E))
+        if (canTakeMission && EPressed())
             ShowPausePanel(missionUI);
 
         // ESC로 옵션창 토글
@@ -716,7 +751,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 문열기
-        if (nearDoor && Input.GetKeyDown(KeyCode.E) && nearDoorLeaf != null && !isDoorRotating)
+        if (nearDoor && EPressed() && nearDoorLeaf != null && !isDoorRotating)
         {
             // 목표 회전 선택
             Quaternion target = doorOpen ? doorClosedRot : doorOpenRot;
@@ -728,7 +763,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 무기 선택창
-        if (choiceWeapon && Input.GetKeyDown(KeyCode.E))
+        if (choiceWeapon && EPressed())
         {
             ButtonControl button = transform.GetChild(1).GetChild(0).GetChild(1).GetComponent<ButtonControl>();
             button.canNextStage = true;
@@ -1694,6 +1729,10 @@ public class PlayerMov : MonoBehaviour
     public void OnDragStart()
     {
         if (isDraggingCorpse || isPickupInProgress) return;
+
+        ArmELock();
+        Input.ResetInputAxes();  // 입력 플러시
+
         StartCoroutine(PickupThenStartDrag());
     }
     public void OnDragStop()
@@ -1704,8 +1743,10 @@ public class PlayerMov : MonoBehaviour
         blockInput = false;
         canRun = true;
 
-        // 필요하면 애니 파라미터 리셋
+        animator.SetBool("IsDragging", false);
         animator.ResetTrigger(pickupTrigger);
+
+        // 애니 파라미터 리셋
         animator.SetFloat("MoveX", 0f);
         animator.SetFloat("MoveY", 0f);
         animator.SetFloat("Speed", 0f);
@@ -1716,48 +1757,38 @@ public class PlayerMov : MonoBehaviour
     {
         isPickupInProgress = true;
 
-        // 입력/이동 잠금
         blockInput = true;
         currentMoveInput = Vector3.zero;
         rb.velocity = Vector3.zero;
 
-        // 픽업 트리거 발사
         animator.ResetTrigger(pickupTrigger);
         animator.SetTrigger(pickupTrigger);
 
         int baseLayer = 0;
+        int tagHash = Animator.StringToHash(pickupTag);
 
-        // 1) Pickup 태그 상태로 "진입"할 때까지 대기 (전이 시작 포함)
+        // 1) Pickup 태그로 진입할 때까지 대기 (최대 1.0s)
+        float t = 0f, maxWaitEnter = 1.0f;
         yield return null; // 한 프레임 양보
-        while (true)
+        while (t < maxWaitEnter)
         {
             var st = animator.GetCurrentAnimatorStateInfo(baseLayer);
             var next = animator.GetNextAnimatorStateInfo(baseLayer);
+            bool inOrNextPickup = (st.tagHash == tagHash) || (next.tagHash == tagHash);
+            if (inOrNextPickup) break;
 
-            bool inPickupNow = st.tagHash == Animator.StringToHash(pickupTag);
-            bool nextPickup = next.tagHash == Animator.StringToHash(pickupTag);
+            if (allowCancelDuringPickup && EPressed()) goto CANCEL;
 
-            if (inPickupNow || nextPickup) break;
-
-            // (옵션) 취소 허용
-            if (allowCancelDuringPickup && Input.GetKeyDown(KeyCode.E))
-                goto CANCEL;
-
+            t += Time.deltaTime;
             yield return null;
         }
 
-        // 2) Pickup 태그 상태가 "끝날 때"까지 대기
-        while (true)
+        // 2) Pickup 태그가 끝나길 대기 (최대 3.0s, 이벤트가 오면 바로 끝남)
+        t = 0f; float maxWaitExit = 3.0f;
+        while (isPickupInProgress && t < maxWaitExit)
         {
             var st = animator.GetCurrentAnimatorStateInfo(baseLayer);
-            bool inPickup = st.tagHash == Animator.StringToHash(pickupTag);
-
-            // 전이가 끝났고 더 이상 Pickup 태그가 아니면 종료
-            if (!inPickup && !animator.IsInTransition(baseLayer)) break;
-
-            // (옵션) 취소 허용
-            if (allowCancelDuringPickup && Input.GetKeyDown(KeyCode.E))
-                goto CANCEL;
+            bool inPickup = st.tagHash == tagHash;
 
             // 픽업 중에는 완전 정지
             animator.SetFloat("MoveX", 0f);
@@ -1765,21 +1796,23 @@ public class PlayerMov : MonoBehaviour
             animator.SetFloat("Speed", 0f);
             currentMoveInput = Vector3.zero;
 
+            if (allowCancelDuringPickup && EPressed()) goto CANCEL;
+
+            // 이벤트가 오면 isPickupInProgress=false가 되며 루프 탈출
+            t += Time.deltaTime;
             yield return null;
         }
 
-        // 3) 드래그 시작 전환
-        isPickupInProgress = false;
-        isDraggingCorpse = true;
-        canRun = false;          // 드래그 중엔 뛰기 금지
-        blockInput = false;      // 드래그 전용 입력(뒤로)만 허용되는 기존 로직 유지
+        // 3) 안전망: 이벤트가 안 왔어도 타임아웃이면 강제 전환
+        if (isPickupInProgress)
+        {
+            AE_PickupFinished(); // 강제 전환
+        }
         yield break;
 
     CANCEL:
-        // 취소 처리(원상복구)
         isPickupInProgress = false;
         blockInput = false;
-        // 필요 시 트리거 초기화/크로스페이드
         animator.ResetTrigger(pickupTrigger);
         yield break;
     }
@@ -1813,5 +1846,38 @@ public class PlayerMov : MonoBehaviour
 
         // 안전하게 암살 트리거 초기화
         animator.ResetTrigger("AttackCrowbar");
+    }
+
+    // 픽업 시작 애니메이션 이벤트
+    public void AE_PickupFinished()
+    {
+        if (!isPickupInProgress) return;
+
+        isPickupInProgress = false;
+        isDraggingCorpse = true;
+        canRun = false;   // 드래그 중엔 달리기 금지
+        blockInput = false;   // 드래그 입력 허용
+
+        // 드래그 전용 파라미터
+        animator.SetBool("IsDragging", true);
+        animator.SetFloat("DragMove", 0f);
+
+        // 로코모션 잠금
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+    }
+    public void AE_PickupLockOn()    // 픽업 중 잠금 시작
+    {
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+    }
+
+    public void AE_PickupLockOff()   // 픽업 중 잠금 해제
+    {
+        blockInput = false; // 이제 입력 허용 (여전히 Pick 상태일 수 있음)
     }
 }

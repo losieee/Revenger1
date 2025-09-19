@@ -7036,6 +7036,16 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1807735290907849497, guid: 5c6a21563938a0c49bc693630f4b0e4b,
+        type: 3}
+      propertyPath: dragMoveSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1807735290907849497, guid: 5c6a21563938a0c49bc693630f4b0e4b,
+        type: 3}
+      propertyPath: eCooldownDuration
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2548317127869875083, guid: 5c6a21563938a0c49bc693630f4b0e4b,
         type: 3}
       propertyPath: m_Name
@@ -7049,7 +7059,7 @@ PrefabInstance:
     - target: {fileID: 2587397433449547118, guid: 5c6a21563938a0c49bc693630f4b0e4b,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 2587397433449547118, guid: 5c6a21563938a0c49bc693630f4b0e4b,
         type: 3}
@@ -7090,6 +7100,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7583684954617309260, guid: 5c6a21563938a0c49bc693630f4b0e4b,
+        type: 3}
+      propertyPath: m_Center.y
+      value: 0.75
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -12997,8 +13012,7 @@ MeshRenderer:
   m_RayTraceProcedural: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_Materials: []
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

@@ -87,4 +87,20 @@ public class AnimationCtl : MonoBehaviour
         if (player != null)
             player.OnAssassinationEnd();
     }
+
+    public void PickupFinished()
+    {
+        if (player != null)
+            player.AE_PickupFinished();
+    }
+    public void PickupLockOn()
+    {
+        if (player != null)
+            player.AE_PickupLockOn();
+    }
+    public void PickupLockOff()
+    {
+        if (player != null)
+            player.AE_PickupLockOff();
+    }
 }
