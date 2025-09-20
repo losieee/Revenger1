@@ -1,4 +1,4 @@
-using System.Collections;
+癤퓎sing System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,9 +20,8 @@ public class AnimationCtl : MonoBehaviour
             float baseJump = 0.181f;
             float remaining = player.remainingWallHeight;
 
-            // 차이만큼 보정
             float jumpHeight = baseJump + (remaining - baseWall);
-            jumpHeight = Mathf.Clamp(jumpHeight, 0.0f, 1.0f); // 0 이상으로
+            jumpHeight = Mathf.Clamp(jumpHeight, 0.0f, 1.0f);
 
             player.MoveUpDuringHold(jumpHeight, 0.06f);
         }
@@ -31,7 +30,7 @@ public class AnimationCtl : MonoBehaviour
     public void ForwardClimb()
     {
         if (player != null)
-            player.MoveForwardAfterClimb(0.5f,0.38f);
+            player.MoveForwardAfterClimb(0.5f, 0.38f);
     }
 
     public void OnClimbEnd()
@@ -51,7 +50,7 @@ public class AnimationCtl : MonoBehaviour
         if (player != null)
             player.MoveToBoxTop(0.06f);
     }
-    
+
     public void MoveToBoxTopRemaining()
     {
         if (player != null)

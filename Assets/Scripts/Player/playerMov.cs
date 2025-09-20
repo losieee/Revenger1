@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -7,7 +7,7 @@ using System;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
 {
-    // ÄÄÆ÷³ÍÆ®
+    // ì»´í¬ë„ŒíŠ¸
     public Rigidbody rb;
     public GameObject gameClearUI;
     public GameObject gameOverUI;
@@ -20,7 +20,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimap1fPicture;
     public GameObject[] enemies1f;
 
-    // ÀÌµ¿ ¹× È¸Àü
+    // ì´ë™ ë° íšŒì „
     public float speed = 5f;
     private float currentMoveSpeed = 0f;
     public float rotSpeed = 5f;
@@ -28,47 +28,49 @@ public class PlayerMov : MonoBehaviour
     public Transform cameraPivot;
     int donRunZoneCount = 0;
 
-    // °ø°İ Àü¿ë
+    // ê³µê²© ì „ìš©
     private bool isAssassinating = false;
     private EnemyMov pendingAssassination = null;
-    [SerializeField] private float assassinateApproachDuration = 0.20f;  // Àû µÚ·Î ºÙ´Â ½Ã°£
-    [SerializeField] private float assassinateBackOffset = 0.65f;        // Àû µî µÚ °Å¸®
-    [SerializeField] private float assassinateSideClamp = 0.25f;         // ¾à°£ ÁÂ¿ì º¸Á¤ Çã¿ë
-    [SerializeField] private float assassinateRotLerp = 20f;             // È¸Àü º¸°£¼Óµµ
+    [SerializeField] private float assassinateApproachDuration = 0.20f;  // ì  ë’¤ë¡œ ë¶™ëŠ” ì‹œê°„
+    [SerializeField] private float assassinateBackOffset = 0.65f;        // ì  ë“± ë’¤ ê±°ë¦¬
+    [SerializeField] private float assassinateSideClamp = 0.25f;         // ì•½ê°„ ì¢Œìš° ë³´ì • í—ˆìš©
+    [SerializeField] private float assassinateRotLerp = 20f;             // íšŒì „ ë³´ê°„ì†ë„
 
-    // ½ÃÃ¼ Ã³¸® Àü¿ë
-    [SerializeField] private string pickupTrigger = "Pickup"; // Æ®¸®°Å ÀÌ¸§
-    [SerializeField] private string pickupTag = "Pickup"; // »óÅÂ ÅÂ±×(ÀÌ¸§ ¾Æ´Ô)
-    [SerializeField] private bool allowCancelDuringPickup = false; // E·Î Ãë¼Ò Çã¿ë ¿©ºÎ
+    // ì‹œì²´ ì²˜ë¦¬ ì „ìš©
+    [SerializeField] private string pickupTrigger = "Pickup"; // íŠ¸ë¦¬ê±° ì´ë¦„
+    [SerializeField] private bool allowCancelDuringPickup = false; // (ìœ ì§€) í•„ìš”ì‹œ ì‚¬ìš©í•  ìˆ˜ ìˆìŒ
     private bool isPickupInProgress = false;
     [HideInInspector] public bool isDraggingCorpse = false;
     public float dragMoveSpeed = 0.5f;
-    // EÅ° Äğ´Ù¿î
+
+    // Eí‚¤ ì¿¨ë‹¤ìš´
     [SerializeField] private float eCooldownDuration = 0.6f;
     private bool eLocked = false;
     private Coroutine eLockCo;
 
+    // ì™¸ë¶€ì—ì„œ ì½ì„ ìˆ˜ ìˆë„ë¡ ê³µê°œ(ì¶”ê°€)
+    public bool IsPickupInProgress => isPickupInProgress;
+    public bool IsELocked => eLocked;
+
     private IEnumerator ELock(float sec)
     {
         eLocked = true;
-        yield return new WaitForSecondsRealtime(sec); // Å¸ÀÓ½ºÄÉÀÏ 0ÀÌ¾îµµ Èå¸§ À¯Áö
+        yield return new WaitForSecondsRealtime(sec); // íƒ€ì„ìŠ¤ì¼€ì¼ 0ì´ì–´ë„ íë¦„ ìœ ì§€
         eLocked = false;
         eLockCo = null;
     }
-
     private void ArmELock(float sec = -1f)
     {
         if (sec <= 0f) sec = eCooldownDuration;
-        if (eLockCo != null) StopCoroutine(eLockCo); // »õ·Î ´©¸£¸é ÄğÅ¸ÀÓ ¸®¼Â
+        if (eLockCo != null) StopCoroutine(eLockCo); // ìƒˆë¡œ ëˆ„ë¥´ë©´ ì¿¨íƒ€ì„ ë¦¬ì…‹
         eLockCo = StartCoroutine(ELock(sec));
     }
-
     bool EPressed()
     {
-        if (eLocked) return false;                 // Àá±İ ÁßÀÌ¸é ¹«½Ã
+        if (eLocked) return false;                 // ì ê¸ˆ ì¤‘ì´ë©´ ë¬´ì‹œ
         if (Input.GetKeyDown(KeyCode.E))
         {
-            ArmELock();                            // ´©¸¥ ¼ø°£ ÄÚ·çÆ¾ ¶ô ½ÃÀÛ
+            ArmELock();                            // ëˆ„ë¥¸ ìˆœê°„ ì½”ë£¨í‹´ ë½ ì‹œì‘
             return true;
         }
         return false;
@@ -84,20 +86,20 @@ public class PlayerMov : MonoBehaviour
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
 
-    // ¹Ù´Ú °¨Áö (BoxCollider ±â¹İ + ÄÚ¿äÅ× Å¸ÀÓ)
+    // ë°”ë‹¥ ê°ì§€ (BoxCollider ê¸°ë°˜ + ì½”ìš”í…Œ íƒ€ì„)
     private BoxCollider box;
-    private EnemyMov killTarget = null;        // ¾Ï»ì ´ë»ó
-    private float boxGroundExtra = 0.1f;       // ¹Ù´Ú±îÁö ¿©À¯ Ä³½ºÆ® °Å¸®
-    private float edgeProbeOffset = 0.18f;     // ¾Õ/µÚ/ÁÂ/¿ì º¸Á¶ ÇÁ·Îºê ¿ÀÇÁ¼Â
-    private float groundedCoyoteTime = 0.12f;  // À¯¿¹ ½Ã°£
+    private EnemyMov killTarget = null;        // ì•”ì‚´ ëŒ€ìƒ
+    private float boxGroundExtra = 0.1f;       // ë°”ë‹¥ê¹Œì§€ ì—¬ìœ  ìºìŠ¤íŠ¸ ê±°ë¦¬
+    private float edgeProbeOffset = 0.18f;     // ì•/ë’¤/ì¢Œ/ìš° ë³´ì¡° í”„ë¡œë¸Œ ì˜¤í”„ì…‹
+    private float groundedCoyoteTime = 0.12f;  // ìœ ì˜ˆ ì‹œê°„
     private float groundedTimer = 0f;
 
-    // ÂøÁö ÆÇÁ¤ º¸Á¤
-    [SerializeField] private float minAirTimeForLand = 0.12f; // ÃÖ¼Ò °øÁß½Ã°£
-    [SerializeField] private float landMinDownVel = -0.4f;    // ÇÏ°­¼Óµµ ÀÓ°è
-    private float timeSinceLeftGround = 999f;                  // ¶°³­ µÚ °æ°ú½Ã°£
+    // ì°©ì§€ íŒì • ë³´ì •
+    [SerializeField] private float minAirTimeForLand = 0.12f; // ìµœì†Œ ê³µì¤‘ì‹œê°„
+    [SerializeField] private float landMinDownVel = -0.4f;    // í•˜ê°•ì†ë„ ì„ê³„
+    private float timeSinceLeftGround = 999f;                  // ë– ë‚œ ë’¤ ê²½ê³¼ì‹œê°„
 
-    // º®Å¸±â
+    // ë²½íƒ€ê¸°
     public float climbDuration = 3.25f;
     public float climbCheckDistance = 2.0f;
     public LayerMask climbableLayer;
@@ -106,12 +108,12 @@ public class PlayerMov : MonoBehaviour
     private bool blockInput = false;
     private float lastBoxWallRemainingHeight = 0f;
 
-    // ¿òÁ÷ÀÌ´Â ¼Ò¸® ¹üÀ§
+    // ì›€ì§ì´ëŠ” ì†Œë¦¬ ë²”ìœ„
     public float walkDetectRange = 6f;
     public float runDetectRange = 12f;
     public LayerMask aiLayerMask;
 
-    // º® ¸Å´Ş¸®±â
+    // ë²½ ë§¤ë‹¬ë¦¬ê¸°
     [HideInInspector] public float detectedWallHeight = 0f;
     [HideInInspector] public float remainingWallHeight = 0f;
     private bool isHolding = false;
@@ -122,28 +124,26 @@ public class PlayerMov : MonoBehaviour
     private float holdLerpTimer = 0f;
     private float holdLerpDuration = 0.1f;
     private Vector3 holdingStartPos;
-    // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®·Î 'ºÙ±â'¸¦ Áö¿¬ÇÏ±â À§ÇÑ ´ë±â °ª
     private bool hasPendingWall = false;
     private Vector3 pendingWallPoint;
     private Vector3 pendingWallNormal;
     private float pendingWallTopY;
 
-    [SerializeField] private float attachHoldDistanceFromWall = 0.14f; // º®¿¡¼­ ¶³¾îÁ® ºÙ´Â °Å¸®
-    [SerializeField] private float attachLerpDuration = 0.12f;         // ºÙÀ» ¶§ º¸°£ ½Ã°£
+    [SerializeField] private float attachHoldDistanceFromWall = 0.14f; // ë²½ì—ì„œ ë–¨ì–´ì ¸ ë¶™ëŠ” ê±°ë¦¬
+    [SerializeField] private float attachLerpDuration = 0.12f;         // ë¶™ì„ ë•Œ ë³´ê°„ ì‹œê°„
 
     private Vector3 climbStartPos, climbTargetPos;
     private Quaternion climbStartRot, climbTargetRot;
     private float climbTimer = 0f;
 
-    // ¸Å´Ş¸®±â Ãë¼Ò¿ë ÀúÀå°ª
+    // ë§¤ë‹¬ë¦¬ê¸° ì·¨ì†Œìš© ì €ì¥ê°’
     private bool isCancellingHold = false;
-    [SerializeField] private bool holdCancelAllowed;        // ÀÌº¥Æ®°¡ true·Î ¿­¾îÁÙ ¶§¸¸ S Çã¿ë
+    [SerializeField] private bool holdCancelAllowed;
     public void SetHoldCancelAllowed(bool allowed) => holdCancelAllowed = allowed;
-
     public void AllowHoldCancel() { holdCancelAllowed = true; }
     public void BlockHoldCancel() { holdCancelAllowed = false; }
 
-    // Á¡ÇÁ / ³«ÇÏ
+    // ì í”„ / ë‚™í•˜
     private bool isJumping = false;
     private float jumpForce = 5f;
     private float verticalVelocity = 0f;
@@ -152,69 +152,69 @@ public class PlayerMov : MonoBehaviour
     private float landingDelay = 0.6f;
     private bool isGrounded = true;
     private bool wasGroundedLastFrame = true;
-    private float jumpCooldown = 1.9f; // Á¡ÇÁ ÄğÅ¸ÀÓ
+    private float jumpCooldown = 1.9f; // ì í”„ ì¿¨íƒ€ì„
     private float jumpCooldownTimer = 0f;
     private float airMultiplier;
     private bool ignoreGroundedCheck = false;
     private float ignoreGroundedTimer = 0f;
-    private float ignoreDurationAfterJump = 0.25f; // Á¡ÇÁ Á÷ÈÄ Àá±ñ Áö¸é ÆÇÁ¤ ¹«½Ã
+    private float ignoreDurationAfterJump = 0.25f; // ì í”„ ì§í›„ ì ê¹ ì§€ë©´ íŒì • ë¬´ì‹œ
     private float fallTimer = 0f;
     [SerializeField] private float fallDebounce = 0.10f; // 100ms
 
-    public LayerMask groundLayer;                 // '¶¥' ·¹ÀÌ¾î¿¡ ´ê¾ÒÀ» ¶§¸¸ ÂøÁö
-    [Range(0f, 1f)] public float groundMinNormalY = 0.55f; // Çã¿ë °æ»ç(~56¢ª)
+    public LayerMask groundLayer;
+    [Range(0f, 1f)] public float groundMinNormalY = 0.55f;
 
-    // Á¡ÇÁ ¼ø°£ ¾Õº® Ã¼Å©(°£´Ü °íÁ¤ Èû)
+    // ì í”„ ìˆœê°„ ì•ë²½ ì²´í¬(ê°„ë‹¨ ê³ ì • í˜)
     public float frontCheckDistance = 0.35f;
-    public float wallPushStrength = 2.0f; // Á¡ÇÁ Á÷Àü ¹ÙÂ¦ ºÙ¾úÀ» ¶§¸¸ ¼öÆò ¹Ğ¾î³»±â
+    public float wallPushStrength = 2.0f;
 
-    // Alt ÀÌµ¿
+    // Alt ì´ë™
     private Vector3 savedForward, savedRight;
     private bool wasAltPressedLastFrame, justReleasedAlt;
 
-    // ¾É±â
+    // ì•‰ê¸°
     private bool isCrouching = false;
-    [SerializeField] private float crouchCooldown = 0.6f;       // ¾É±â ÄğÅ¸ÀÓ
+    [SerializeField] private float crouchCooldown = 0.6f;
     private float crouchCooldownTimer = 0f;
-    [SerializeField] float crouchHeight = 1.0f;                 // ¾ÉÀ» ¶§ Äİ¶óÀÌ´õ ³ôÀÌ
+    [SerializeField] float crouchHeight = 1.0f;
     [SerializeField] float colliderLerpTime = 0.10f;
     Vector3 boxSizeStand, boxCenterStand;
     Vector3 boxSizeCrouch, boxCenterCrouch;
     Coroutine crouchColRoutine;
 
-    // Tag ±â¹İ º® ±ÙÁ¢ Â÷´Ü(Keep-Out)
+    // Tag ê¸°ë°˜ ë²½ ê·¼ì ‘ ì°¨ë‹¨(Keep-Out)
     [Header("Wall Keep-Out (by Tag)")]
-    [SerializeField] private string wallTag = "Wall";           // ÅÂ±×¸í
-    [SerializeField] private float wallKeepOutRadius = 0.4f;    // º® ÃÖ¼Ò Á¢±Ù °Å¸®(XZ ±âÁØ)
-    [SerializeField] private int wallKeepOutIterations = 2;     // ¸ğ¼­¸®/´ÙÁßº® º¸Á¤ ¹İº¹
-    [SerializeField] private float wallKeepOutSkin = 0.01f;     // »ìÂ¦ ¿©À¯
-    [SerializeField] private float wallKeepOutUnderFootTolerance = 0.03f;   // ¹ß¹Ù´Úº¸´Ù ¾Æ·¡ Ç¥¸é ¹«½Ã Çã¿ëÄ¡
+    [SerializeField] private string wallTag = "Wall";
+    [SerializeField] private float wallKeepOutRadius = 0.4f;
+    [SerializeField] private int wallKeepOutIterations = 2;
+    [SerializeField] private float wallKeepOutSkin = 0.01f;
+    [SerializeField] private float wallKeepOutUnderFootTolerance = 0.03f;
 
     [Header("Door")]
-    [SerializeField] private float doorRotateDuration = 0.6f; // È¸Àü ½Ã°£(ÃÊ)
-    [SerializeField] private float doorOpenAngleY = -90f;     // ¿­¸± ¶§ Y ·ÎÅ×ÀÌ¼Ç(»ó´ë°¢)
+    [SerializeField] private float doorRotateDuration = 0.6f;
+    [SerializeField] private float doorOpenAngleY = -90f;
 
     private bool nearDoor = false;
-    private Transform nearDoorRoot;    // Æ®¸®°Å¿¡ °É¸° Door ·çÆ®
-    private Transform nearDoorLeaf;    // ½ÇÁ¦·Î È¸Àü½ÃÅ³ ÀÚ½Ä
-    private bool doorOpen = false;     // ÇöÀç ¿­¸° »óÅÂÀÎÁö
+    private Transform nearDoorRoot;
+    private Transform nearDoorLeaf;
+    private bool doorOpen = false;
     private bool isDoorRotating = false;
-    private Quaternion doorClosedRot;  // ´İÈû ±âÁØ È¸Àü°ª
-    private Quaternion doorOpenRot;    // ¿­¸² ¸ñÇ¥ È¸Àü°ª
+    private Quaternion doorClosedRot;
+    private Quaternion doorOpenRot;
     private Coroutine doorRoutine;
 
-    // ¹«±â ¹Ù²Ù±â °ü·Ã
+    // ë¬´ê¸° ë°”ê¾¸ê¸° ê´€ë ¨
     private bool canWeaponSwitch = false;
 
-    // ¹«±â ¼±ÅÃ
+    // ë¬´ê¸° ì„ íƒ
     private bool choiceWeapon;
     private bool canChoiceWeapon = false;
 
-    // RightHandGrip ¾Ö´Ï¸ŞÀÌ¼Ç ·¹ÀÌ¾î Á¦¾î
+    // RightHandGrip ì• ë‹ˆë©”ì´ì…˜ ë ˆì´ì–´ ì œì–´
     private int gripLayer;
     private int gripIdleHash;
     private int gripGunPoseHash;
-    // RightArm ¾Ö´Ï¸ŞÀÌ¼Ç ·¹ÀÌ¾î Á¦¾î
+    // RightArm ì• ë‹ˆë©”ì´ì…˜ ë ˆì´ì–´ ì œì–´
     private int rightArmLayer;
     private float rightArmMaxWeight = 0.61f;
 
@@ -222,7 +222,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimapPanel;
     public GameObject miniPos;
     public float miniPosYOffset = -30f;
-    public bool minimapStartsHidden = true;     // ½ÃÀÛ ½Ã ¼û±è ¿©ºÎ
+    public bool minimapStartsHidden = true;
 
     float _sceneInputGraceTimer = 0f;
 
@@ -231,7 +231,6 @@ public class PlayerMov : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
         EnemyMov.OnAnyEnemyKilled += HandleEnemyKilled;
     }
-
     void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -242,61 +241,39 @@ public class PlayerMov : MonoBehaviour
 
     void CloseAllPlayerUI()
     {
-        foreach (var p in Panels())
-            HidePausePanel(p);
-
+        foreach (var p in Panels()) HidePausePanel(p);
         if (nearNPC) nearNPC.SetActive(false);
-
-        // ¾À ÀüÈ¯ Á÷ÈÄ ³²¾ÆÀÖ´Â Å¬¸¯/Å°º¸µå ÀÜ»ó Á¦°Å
         Input.ResetInputAxes();
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // UI ·¹ÆÛ·±½º ´Ù½Ã ¹°±â
         RebindSceneUI();
 
-        // »óÅÂ/Æ®¸®°Å ¸®¼Â
-        donRunZoneCount = 0;
-        UpdateRunLock();
+        donRunZoneCount = 0; UpdateRunLock();
+        canAttack = false; killTarget = null; choiceWeapon = false; canTakeMission = false;
 
-        canAttack = false;
-        killTarget = null;
-        choiceWeapon = false;
-        canTakeMission = false;
+        nearDoor = false; nearDoorRoot = null; nearDoorLeaf = null;
 
-        nearDoor = false;
-        nearDoorRoot = null;
-        nearDoorLeaf = null;
+        canClimbZone = false; isHolding = false; isClimbing = false; blockInput = false;
 
-        canClimbZone = false;
-        isHolding = false;
-        isClimbing = false;
-        blockInput = false;
-
-        // ¸ğµç UI ´İ±â + ÀÔ·Â ÀÜ»ó Á¦°Å
         CloseAllPlayerUI();
 
-        // ÀÔ·Â ±×·¹ÀÌ½º
         _sceneInputGraceTimer = 0.2f;
 
-        // Ä¿¼­/Å¸ÀÓ½ºÄÉÀÏ
         bool isMenu = scene.name == "MainLobby";
         Cursor.visible = isMenu;
         Cursor.lockState = isMenu ? CursorLockMode.None : CursorLockMode.Locked;
         if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
 
-        // ¾À¸¶´Ù ´Ù½Ã ºÒ·¯¿Àµµ·Ï
         RebindMinimapAndEnemies();
     }
 
-    // Enemy°¡ Á×À» ¶§ Á¤¸®
     private void HandleEnemyKilled(Transform deadTr)
     {
         var dead = deadTr ? deadTr.GetComponent<EnemyMov>() : null;
         if (dead == null) return;
 
-        // ¾Ï»ì Áß ±× ÀûÀ» Á×¿´°Å³ª, ÇöÀç Å¸°ÙÀÌ ±× ÀûÀÌ¶ó¸é Á¤¸®
         if (pendingAssassination == dead)
         {
             pendingAssassination = null;
@@ -314,21 +291,12 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    bool IsPointerOverUI()
-    {
-        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-    }
+    bool IsPointerOverUI() => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-    void Awake()
-    {
-        RebindSceneUI();
-    }
-
+    void Awake() => RebindSceneUI();
     void RebindSceneUI()
     {
-        // ÇÃ·¹ÀÌ¾î ÀÚ½Ä Äµ¹ö½º ÂÊºÎÅÍ Ã£¾Æº¸°í, ¾øÀ¸¸é ¾À ÀüÃ¼¿¡¼­ ÅÂ±×/ÀÌ¸§À¸·Î Ã£±â
         var canvas = GetComponentInChildren<Canvas>(true);
-
         missionUI = missionUI && missionUI.scene.IsValid() ? missionUI : canvas?.transform.Find("MissionImg")?.gameObject ?? GameObject.FindWithTag("MissionUI");
         optionUI = optionUI && optionUI.scene.IsValid() ? optionUI : canvas?.transform.Find("OptionPop")?.gameObject ?? GameObject.Find("OptionPop");
         gameOverUI = gameOverUI && gameOverUI.scene.IsValid() ? gameOverUI : canvas?.transform.Find("GameOver")?.gameObject ?? GameObject.Find("GameOver");
@@ -345,25 +313,23 @@ public class PlayerMov : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
 
-        // ·¹ÀÌ¾î/»óÅÂ ¼¼ÆÃ
         gripLayer = animator.GetLayerIndex("RightHandGrip");
         gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
         gripGunPoseHash = Animator.StringToHash("RightHandGrip.GunPose");
         rightArmLayer = animator.GetLayerIndex("RightArm");
         RebindMinimapAndEnemies();
 
-        // º¸Á¶ ·¹ÀÌ¾î°¡ Ç×»ó ¿µÇâÀ» ÁÖµµ·Ï
         if (gripLayer >= 0) animator.SetLayerWeight(gripLayer, 1f);
         if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
         if (minimapPanel) minimapPanel.SetActive(!minimapStartsHidden);
 
         box = GetComponent<BoxCollider>();
 
-        // ¼­ÀÖ´Â °ª ÀúÀå
+        // ì„œìˆëŠ” ê°’ ì €ì¥
         boxSizeStand = box.size;
         boxCenterStand = box.center;
 
-        // ¾ÉÀº °ª °è»ê(¹Ù´Ú °íÁ¤: center.y¸¦ Àı¹İ¸¸Å­ ³»·ÁÁÜ)
+        // ì•‰ì€ ê°’ ê³„ì‚°(ë°”ë‹¥ ê³ ì •)
         float newH = crouchHeight;
         boxSizeCrouch = new Vector3(box.size.x, newH, box.size.z);
         float deltaH = box.size.y - newH;
@@ -371,7 +337,6 @@ public class PlayerMov : MonoBehaviour
 
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
 
-        // È¤½Ã ºñ¾îÀÖÀ¸¸é ÀÚµ¿ ¹ÙÀÎµù (¾À¸¶´Ù ¾ÈÀü)
         if (!cameraPivot)
         {
             var cam = FindObjectOfType<CameraMov>(true);
@@ -380,35 +345,25 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // ¿ÀºêÁ§Æ® Ã£¾Æ¿À±â
     void RebindMinimapAndEnemies()
     {
-        // ÀÌ¸§/ÅÂ±×´Â °¢ ¾À ÇÁ¸®ÆÕ°ú Á¤È®È÷ ÀÏÄ¡ÇØ¾ß ÇÔ
         minimap1fPicture = GameObject.Find("1FMapPicture");
-
-        // ÅÂ±×·Î ÀüºÎ ´Ù½Ã ¼öÁı
         enemies1f = GameObject.FindGameObjectsWithTag("Enemy1F");
     }
 
     void Update()
     {
-        if (_sceneInputGraceTimer > 0f)
-            _sceneInputGraceTimer -= Time.deltaTime;
+        if (_sceneInputGraceTimer > 0f) _sceneInputGraceTimer -= Time.deltaTime;
 
-        // ¹Ù´Ú °¨Áö
+        // ë°”ë‹¥ ê°ì§€
         isGrounded = CheckGrounded();
 
-        // °øÁßÀ¸·Î ¶°³­ ¼ø°£ Å¸ÀÌ¸Ó ¸®¼Â/´©Àû
-        if (wasGroundedLastFrame && !isGrounded)
-            timeSinceLeftGround = 0f;
-        if (!isGrounded)
-            timeSinceLeftGround += Time.deltaTime;
+        if (wasGroundedLastFrame && !isGrounded) timeSinceLeftGround = 0f;
+        if (!isGrounded) timeSinceLeftGround += Time.deltaTime;
 
-        // ¾É±â Å¸ÀÌ¸Ó °¨¼Ò
-        if (crouchCooldownTimer > 0f)
-            crouchCooldownTimer -= Time.deltaTime;
+        if (crouchCooldownTimer > 0f) crouchCooldownTimer -= Time.deltaTime;
 
-        // º® ºÙÀº »óÅÂ Ã³¸®(º¸°£ Áß)
+        // ë¶™ê¸° ë³´ê°„ ì¤‘ì´ë©´ Update ë¡œì§ ìŠ¤í‚µ
         if (isLerpingHoldOffset)
         {
             holdLerpTimer += Time.deltaTime;
@@ -418,25 +373,20 @@ public class PlayerMov : MonoBehaviour
             if (t >= 1f)
             {
                 isLerpingHoldOffset = false;
-
-                // ºÙ±â º¸°£ÀÌ ³¡³­ 'Áö±İ' Áß·Â/Å°³×¸¶Æ½ ÀüÈ¯
                 rb.useGravity = false;
                 rb.isKinematic = true;
             }
             return;
         }
 
-        // ¸Å´Ş¸° »óÅÂ
+        // ë§¤ë‹¬ë¦° ìƒíƒœ
         if (isHolding)
         {
             var st = animator.GetCurrentAnimatorStateInfo(0);
             bool isHoldingState = st.IsName("Holding") || st.IsTag("Holding");
             if (animator.IsInTransition(0)) isHoldingState = false;
 
-            bool canCancelNow = holdCancelAllowed
-                                && !isLerpingHoldOffset
-                                && canStartClimb
-                                && isHoldingState;
+            bool canCancelNow = holdCancelAllowed && !isLerpingHoldOffset && canStartClimb && isHoldingState;
 
             if (canCancelNow && !isCancellingHold && Input.GetKeyDown(KeyCode.S))
                 StartCoroutine(CancelHoldAndReturn());
@@ -450,7 +400,7 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
-        // ¿À¸£´Â Áß
+        // ì˜¤ë¥´ëŠ” ì¤‘
         if (isClimbing)
         {
             climbTimer += Time.deltaTime;
@@ -458,9 +408,7 @@ public class PlayerMov : MonoBehaviour
             transform.position = Vector3.Lerp(climbStartPos, climbTargetPos, t);
             transform.rotation = Quaternion.Slerp(climbStartRot, climbTargetRot, t);
 
-            // climb Áß ÀÔ·Â ¹«½Ã
             currentMoveInput = Vector3.zero;
-
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
             animator.SetFloat("Speed", 0f);
@@ -474,7 +422,7 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
-        // ÀÔ·Â
+        // ì…ë ¥
         isRunning = canRun && Input.GetKey(KeyCode.LeftShift) && !isCrouching;
         bool isAlt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
@@ -497,7 +445,7 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
-        // ½ÃÃ¼ ÇÈ¾÷ÇÒ¶© ¸ø¿òÁ÷ÀÓ
+        // ì‹œì²´ í”½ì—…í• ë• ëª»ì›€ì§ì„
         if (blockInput)
         {
             currentMoveInput = Vector3.zero;
@@ -506,8 +454,7 @@ public class PlayerMov : MonoBehaviour
             animator.SetFloat("Speed", 0f);
         }
 
-        // ½ÃÃ¼ ²ø¶© µÚ·Î°¡±â¸¸ Çã¿ë
-        // 1) ÀÏ¹İ ÀÔ·Â (µå·¡±×/ºí·Ï ¾Æ´Ò ¶§¸¸)
+        // 1) ì¼ë°˜ ì´ë™
         if (!blockInput && !isDraggingCorpse)
         {
             Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
@@ -522,14 +469,14 @@ public class PlayerMov : MonoBehaviour
             currentMoveInput = Vector3.zero;
         }
 
-        // 2) µå·¡±× Àü¿ë ÀÔ·Â: µÚ·Î°¡±â¸¸ Çã¿ë (SÅ°)
+        // 2) ë“œë˜ê·¸ ì „ìš© ì…ë ¥: ë’¤ë¡œë§Œ
         float back01 = 0f;
         if (isDraggingCorpse)
         {
-            back01 = Mathf.Max(0f, -Input.GetAxisRaw("Vertical")); // S¸¸ ¹İÀÀ (0~1)
-            currentMoveInput = -transform.forward * back01;        // µÚ·Î¸¸
+            back01 = Mathf.Max(0f, -Input.GetAxisRaw("Vertical")); // Së§Œ ë°˜ì‘
+            currentMoveInput = -transform.forward * back01;
 
-            // Ãë¼Ò(E)
+            // ì·¨ì†Œ(E) â€” í”½ì—… ì¤‘ì—ëŠ” ë¬´ì‹œë¨
             if (!isPickupInProgress && isDraggingCorpse && EPressed())
             {
                 OnDragStop();
@@ -538,14 +485,12 @@ public class PlayerMov : MonoBehaviour
                 return;
             }
         }
-        // ¾Ö´Ï¸ŞÀÌ¼Ç ÆÄ¶ó¹ÌÅÍ
+
+        // ì• ë‹ˆ íŒŒë¼ë¯¸í„°
         if (isDraggingCorpse)
         {
-            // Drag Àü¿ë ÆÄ¶ó¹ÌÅÍ¸¸ »ç¿ë
-            animator.SetBool("IsDragging", true);   // µå·¡±× »óÅÂ À¯Áö
-            animator.SetFloat("DragMove", back01);  // 0ÀÌ¸é Drag Idle, >0ÀÌ¸é Drag
-
-            // Locomotion ÆÄ¶ó¹ÌÅÍ´Â °íÁ¤(ºí·»µåÆ®¸®·Î ¸ø ºüÁö°Ô)
+            animator.SetBool("IsDragging", true);
+            animator.SetFloat("DragMove", back01);
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
             animator.SetFloat("Speed", 0f);
@@ -554,20 +499,18 @@ public class PlayerMov : MonoBehaviour
         {
             animator.SetBool("IsDragging", false);
 
-            // ±âÁ¸ Locomotion °è»ê ±×´ë·Î
             Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
             moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
             moveY = Mathf.SmoothDamp(moveY, localMove.z, ref velY, smoothTime);
             animator.SetFloat("MoveX", moveX);
             animator.SetFloat("MoveY", moveY);
 
-            float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f)
-                                ? (isRunning ? 1f : 0.5f) : 0f;
+            float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f) ? (isRunning ? 1f : 0.5f) : 0f;
             animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
             if (speedParam == 0f) { animator.SetFloat("MoveX", 0f); animator.SetFloat("MoveY", 0f); }
         }
 
-        // È¸Àü
+        // íšŒì „
         if (!isDraggingCorpse && currentMoveInput.sqrMagnitude > 0.001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(currentMoveInput);
@@ -577,11 +520,11 @@ public class PlayerMov : MonoBehaviour
         wasAltPressedLastFrame = isAlt;
         if (justReleasedAlt && !isAlt) justReleasedAlt = false;
 
-        // º® Àâ±â ½ÃÀÛ Á¶°Ç
+        // ë²½ ì¡ê¸° ì‹œì‘
         if (Input.GetKeyDown(KeyCode.Space) && canClimbZone && !isHolding && !isClimbing)
         {
             Vector3 dir = transform.forward;
-            Vector3 rayOrigin = transform.position + Vector3.up * 0.1f; // ¹ß¹Ø
+            Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
 
             if (Physics.Raycast(rayOrigin, dir, out RaycastHit wall, climbCheckDistance, climbableLayer))
             {
@@ -602,7 +545,7 @@ public class PlayerMov : MonoBehaviour
             }
         }
 
-        // Á¡ÇÁ
+        // ì í”„
         if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching && canRun)
         {
             ClearLandTriggers();
@@ -610,7 +553,6 @@ public class PlayerMov : MonoBehaviour
             jumpCooldownTimer = jumpCooldown;
             animator.SetBool("IsJumping", true);
 
-            // Á¡ÇÁ Á÷ÈÄ Grounded ¹«½Ã
             ignoreGroundedCheck = true;
             ignoreGroundedTimer = ignoreDurationAfterJump;
 
@@ -626,7 +568,6 @@ public class PlayerMov : MonoBehaviour
             velocity.z = jumpDir.z * jumpForwardSpeed;
             velocity.y = jumpForce;
 
-            // ¾Õ¿¡ º®ÀÌ ÀÖÀ¸¸é(ÅÂ±× wall) ¼öÆòÀ¸·Î¸¸ »ìÂ¦ ¹Ğ¾î³¿
             if (Physics.Raycast(transform.position + Vector3.up * 0.5f, transform.forward,
                                 out RaycastHit front, frontCheckDistance, ~0, QueryTriggerInteraction.Ignore))
             {
@@ -636,19 +577,17 @@ public class PlayerMov : MonoBehaviour
             rb.velocity = velocity;
         }
 
-        // Á¡ÇÁ Á÷ÈÄ Grounded ¹«½Ã Å¸ÀÌ¸Ó
+        // Grounded ë¬´ì‹œ íƒ€ì´ë¨¸
         if (ignoreGroundedCheck)
         {
             ignoreGroundedTimer -= Time.deltaTime;
-            if (ignoreGroundedTimer <= 0f)
-                ignoreGroundedCheck = false;
+            if (ignoreGroundedTimer <= 0f) ignoreGroundedCheck = false;
         }
 
-        // Á¡ÇÁ ÄğÅ¸ÀÓ
-        if (jumpCooldownTimer > 0f)
-            jumpCooldownTimer -= Time.deltaTime;
+        // ì í”„ ì¿¨íƒ€ì„
+        if (jumpCooldownTimer > 0f) jumpCooldownTimer -= Time.deltaTime;
 
-        // ³«ÇÏ °¨Áö
+        // ë‚™í•˜ ê°ì§€
         verticalVelocity = rb.velocity.y;
         bool wantFall = (verticalVelocity < -0.1f) && !isGrounded;
 
@@ -658,16 +597,16 @@ public class PlayerMov : MonoBehaviour
         bool isFallingAnim = fallTimer > fallDebounce;
         animator.SetBool("IsFalling", isFallingAnim);
 
-        // ÂøÁö Æ®¸®°Å(ÇÁ·¹ÀÓ ÀüÀÌ)
+        // ì°©ì§€ íŠ¸ë¦¬ê±°
         if (!wasGroundedLastFrame && isGrounded
-                && timeSinceLeftGround >= minAirTimeForLand
-                && verticalVelocity <= landMinDownVel
-                && !ignoreGroundedCheck)
+            && timeSinceLeftGround >= minAirTimeForLand
+            && verticalVelocity <= landMinDownVel
+            && !ignoreGroundedCheck)
         {
             animator.SetTrigger("Land");
             animator.SetBool("IsJumping", false);
             animator.SetBool("IsFalling", false);
-            fallTimer = 0f;             // ³«ÇÏ Å¸ÀÌ¸Ó ¸®¼Â
+            fallTimer = 0f;
             isJumping = false;
             isLanding = true;
             landingTimer = landingDelay;
@@ -681,119 +620,92 @@ public class PlayerMov : MonoBehaviour
 
         wasGroundedLastFrame = isGrounded;
 
-        // C ´­·¯ ¾É±â
+        // C ëˆŒëŸ¬ ì•‰ê¸°
         if (Input.GetKeyDown(KeyCode.C) && crouchCooldownTimer <= 0f)
         {
             bool wantCrouch = !isCrouching;
 
-            // ¾ÉÀº »óÅÂ¿¡¼­ ¼­·Á°í ÇÒ ¶§ ¸Ó¸® °ø°£ Ã¼Å©
-            if (!wantCrouch && !CanStandUp())
-            {
-                return;
-            }
+            if (!wantCrouch && !CanStandUp()) return;
 
             isCrouching = wantCrouch;
             animator.SetBool("IsCrouching", isCrouching);
-
-            // CÅ° ÄğÅ¸ÀÓ ½ÃÀÛ
             crouchCooldownTimer = crouchCooldown;
 
-            // È¿°úÀ½
             SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
-
-            // ¾É´Â Äİ¶óÀÌ´õ·Î ¹ø°æ
             ApplyCrouchCollider(isCrouching);
         }
 
-        // ¼Óµµ Á¶Á¤
-        float moveSpeed = isDraggingCorpse ? dragMoveSpeed : (isRunning ? speed * runSpeed : speed);        // µå·¡±× Áß¿£ ¹«Á¶°Ç ÀÌ °ª
-
+        // ì†ë„
+        float moveSpeed = isDraggingCorpse ? dragMoveSpeed : (isRunning ? speed * runSpeed : speed);
         if (!isDraggingCorpse && isCrouching) moveSpeed *= 0.6f;
-
         currentMoveSpeed = moveSpeed;
 
-        // ¿òÁ÷ÀÌ´Â ¼Ò¸® ¹üÀ§
+        // ì†Œë¦¬ ë²”ìœ„ ì•Œë¦¼
         CheckNearbyEnemies();
 
-        // Å¬¸®¾î
+        // í´ë¦¬ì–´
         if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && Input.GetMouseButtonDown(0))
             ShowPausePanel(gameClearUI);
 
-        // ¹Ì´Ï¸Ê
+        // ë¯¸ë‹ˆë§µ
         if (Input.GetKeyDown(KeyCode.Tab)) minimapPanel?.SetActive(true);
         if (Input.GetKeyUp(KeyCode.Tab)) minimapPanel?.SetActive(false);
 
-        // ¹Ì¼Ç ¹Ş±â
-        if (canTakeMission && EPressed())
-            ShowPausePanel(missionUI);
+        // ë¯¸ì…˜ ë°›ê¸°
+        if (canTakeMission && EPressed()) ShowPausePanel(missionUI);
 
-        // ESC·Î ¿É¼ÇÃ¢ Åä±Û
+        // ESC ì˜µì…˜ í† ê¸€
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            // 1) ¿­·Á ÀÖ´Â ´Ù¸¥ ÆĞ³ÎÀÌ ÀÖ´Ù¸é ±×°É ¸ÕÀú ´İ±â
             if (missionUI && missionUI.activeSelf) { HidePausePanel(missionUI); return; }
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
             if (optionUI && optionUI.activeSelf) { HidePausePanel(optionUI); return; }
-
-            // 2) ¾î´À °Íµµ ¾È ¿­·Á ÀÖÀ¸¸é ¿É¼ÇÃ¢ ¿­±â
             ShowPausePanel(optionUI);
         }
 
-        // ¾Ï»ì
+        // ì•”ì‚´
         if (canKill && Input.GetMouseButtonDown(0))
         {
-            if (killTarget != null)
-            {
-                StartAssassination(killTarget);
-            }
+            if (killTarget != null) StartAssassination(killTarget);
         }
 
-        // ¹®¿­±â
+        // ë¬¸ì—´ê¸°
         if (nearDoor && EPressed() && nearDoorLeaf != null && !isDoorRotating)
         {
-            // ¸ñÇ¥ È¸Àü ¼±ÅÃ
             Quaternion target = doorOpen ? doorClosedRot : doorOpenRot;
-
             if (doorRoutine != null) StopCoroutine(doorRoutine);
             doorRoutine = StartCoroutine(RotateLocalY_Smooth(nearDoorLeaf, nearDoorLeaf.localRotation, target, doorRotateDuration));
-
-            doorOpen = !doorOpen; // »óÅÂ Åä±Û
+            doorOpen = !doorOpen;
         }
 
-        // ¹«±â ¼±ÅÃÃ¢
+        // ë¬´ê¸° ì„ íƒì°½
         if (choiceWeapon && EPressed())
         {
             ButtonControl button = transform.GetChild(1).GetChild(0).GetChild(1).GetComponent<ButtonControl>();
             button.canNextStage = true;
 
             canChoiceWeapon = !canChoiceWeapon;
-
-            if (canChoiceWeapon)
-                ShowPausePanel(weaponChangePanel);
-            else
-                HidePausePanel(weaponChangePanel);
+            if (canChoiceWeapon) ShowPausePanel(weaponChangePanel);
+            else HidePausePanel(weaponChangePanel);
         }
 
-        // ¹«±â¸¦ µé¼öÀÖ´ÂÁö È®ÀÎ
+        // ë¬´ê¸° ìŠ¤ìœ„ì¹˜ ê°€ëŠ¥í•´ì§€ë©´ íŒ¨ë„ ë‹«ê¸°
         if (WeaponManager.i && WeaponManager.i.canSwitch && !canWeaponSwitch)
         {
             canWeaponSwitch = true;
-
-            // ¹«±âÃ¢ÀÌ ½ÇÁ¦·Î ¿­·Á ÀÖÀ» ¶§¸¸ ´İ±â
-            if (weaponChangePanel && weaponChangePanel.activeSelf)
-                HidePausePanel(weaponChangePanel);
+            if (weaponChangePanel && weaponChangePanel.activeSelf) HidePausePanel(weaponChangePanel);
         }
 
-        // ¹«±â ¹Ù²Ù±â
-        if (Input.GetKeyDown(KeyCode.Alpha1) && canWeaponSwitch)    // ¸Ç¼Õ
+        // ë¬´ê¸° ë°”ê¾¸ê¸°
+        if (Input.GetKeyDown(KeyCode.Alpha1) && canWeaponSwitch)    // ë§¨ì†
         {
             if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
             if (weapon) weapon.SetActive(false);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch)    // ¹«±â µé¾úÀ» ¶§
+        if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch)    // ë¬´ê¸°
         {
             if (gripLayer >= 0) animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
@@ -801,36 +713,30 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // °ø°İ (¾Ï»ì)
+    // ê³µê²© (ì•”ì‚´)
     private void StartAssassination(EnemyMov enemy)
     {
         if (enemy == null) return;
 
-        // Å¬¸¯ Áï½Ã Enemy ¿òÁ÷ÀÓ ¸ØÃã
         enemy.FreezeForAssassination(true);
 
         isAssassinating = true;
         pendingAssassination = enemy;
 
-        // Å¬¸¯°ú µ¿½Ã¿¡ ¾Ï»ì °¡´É »óÅÂ ÇØÁ¦
         canKill = false;
         killTarget = null;
 
-        // ÀÔ·Â/ÀÌµ¿ ¶ô
         blockInput = true;
         currentMoveInput = Vector3.zero;
         animator.SetFloat("MoveX", 0f);
         animator.SetFloat("MoveY", 0f);
         animator.SetFloat("Speed", 0f);
 
-        // ¹°¸® ¾ÈÁ¤È­
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
         rb.useGravity = false;
 
-        // Àûµµ ÁØºñ(Á¤Áö/°¨Áö ºñÈ°¼º µî)
         pendingAssassination.PrepareForAssassination(true);
-
         StartCoroutine(AssassinationApproachRoutine(enemy));
     }
 
@@ -839,22 +745,18 @@ public class PlayerMov : MonoBehaviour
         if (enemy == null) yield break;
         Transform et = enemy.transform;
 
-        // °ø°İÇÑ ±× ÀÚ¸®
         Vector3 startPos = transform.position;
-
         float t = 0f;
         float dur = Mathf.Max(0.01f, assassinateApproachDuration);
 
         while (t < 1f)
         {
-            if (enemy == null || !et) yield break; // µµÁß¿¡ ÀûÀÌ »ç¶óÁö¸é Áß´Ü
+            if (enemy == null || !et) yield break;
 
             t += Time.deltaTime / dur;
 
-            // À§Ä¡ °íÁ¤
             transform.position = startPos;
 
-            // ¸Å ÇÁ·¹ÀÓ ÀûÀ» ¹Ù¶óº¸°Ô
             Vector3 toEnemy = et.position - transform.position;
             toEnemy.y = 0f;
             if (toEnemy.sqrMagnitude > 1e-6f)
@@ -869,14 +771,12 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
 
-        // °ø°İ Á÷Àü Á¤È®È÷ ÀûÀ» ÇâÇØ ½º³À
         Vector3 finalDir = et.position - transform.position;
         finalDir.y = 0f;
         if (finalDir.sqrMagnitude > 1e-6f)
             transform.rotation = Quaternion.LookRotation(finalDir, Vector3.up);
 
-        // Å©·Î¿ì¹Ù °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç Æ®¸®°Å
-        animator.ResetTrigger("AttackGun");  // È¤½Ã ¸ğ¸¦ Ãæµ¹ Á¦°Å
+        animator.ResetTrigger("AttackGun");
         animator.SetTrigger("AttackCrowbar");
     }
 
@@ -885,9 +785,7 @@ public class PlayerMov : MonoBehaviour
         UpdateMiniPos();
 
         bool inTwoFloor = false;
-
-        if (Range2F.i != null)
-            inTwoFloor = Range2F.i.inTwoFloor;
+        if (Range2F.i != null) inTwoFloor = Range2F.i.inTwoFloor;
 
         if (inTwoFloor)
         {
@@ -905,7 +803,6 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // ÇÃ·¹ÀÌ¾î ¹Ì´Ï¸Ê Ç×»ó µû¶ó´Ù´Ï°Ô
     void UpdateMiniPos()
     {
         if (!miniPos) return;
@@ -913,7 +810,6 @@ public class PlayerMov : MonoBehaviour
         miniPos.transform.position = new Vector3(p.x, p.y + miniPosYOffset, p.z);
     }
 
-    // ºÎµå·´°Ô ¹®¿­±â
     private IEnumerator RotateLocalY_Smooth(Transform tr, Quaternion from, Quaternion to, float duration)
     {
         isDoorRotating = true;
@@ -924,11 +820,10 @@ public class PlayerMov : MonoBehaviour
             tr.localRotation = Quaternion.Slerp(from, to, t);
             yield return null;
         }
-        tr.localRotation = to; // Á¤¹Ğ º¸Á¤
+        tr.localRotation = to;
         isDoorRotating = false;
     }
 
-    // ¾ÉÀ» ¶§ Äİ¶óÀÌ´õ º¯°æ
     void ApplyCrouchCollider(bool crouch)
     {
         if (!box) return;
@@ -946,7 +841,6 @@ public class PlayerMov : MonoBehaviour
         Vector3 fromCenter = bc.center;
         float t = 0f;
 
-        // ¹°¸® ÇÁ·¹ÀÓ°ú ¸ÂÃß±â À§ÇØ FixedUpdate Å¸ÀÌ¹ÖÀ¸·Î º¸°£
         while (t < 1f)
         {
             t += Time.deltaTime / Mathf.Max(0.0001f, dur);
@@ -958,7 +852,6 @@ public class PlayerMov : MonoBehaviour
         bc.center = toCenter;
     }
 
-    // ¾É¾Ò´Ù ÀÏ¾î³¯ ¶§ ¸Ó¸® À§¿¡ º®ÀÖÀ¸¸é ¸øÀÏ¾î³²
     bool CanStandUp()
     {
         float standTop = boxCenterStand.y + boxSizeStand.y * 0.5f;
@@ -966,7 +859,6 @@ public class PlayerMov : MonoBehaviour
         float deltaTop = standTop - crouchTop;
         if (deltaTop <= 0.001f) return true;
 
-        // ¸Ó¸® ÂÊ Ãß°¡·Î Â÷ÁöÇÏ°Ô µÉ À­ºÎºĞ¸¸ °Ë»ç
         float sliceCenterLocalY = (standTop + crouchTop) * 0.5f;
         Vector3 localCenter = new Vector3(boxCenterStand.x, sliceCenterLocalY, boxCenterStand.z);
         Vector3 worldCenter = transform.TransformPoint(localCenter);
@@ -987,7 +879,6 @@ public class PlayerMov : MonoBehaviour
         return true;
     }
 
-    // º®Å¸±â Ãë¼Ò
     IEnumerator CancelHoldAndReturn()
     {
         if (isCancellingHold) yield break;
@@ -995,13 +886,11 @@ public class PlayerMov : MonoBehaviour
 
         holdCancelAllowed = false;
 
-        // ¿øÀ§Ä¡·Î ºÎµå·´°Ô º¹±Í
         float dur = 0.18f;
         float t = 0f;
         Vector3 fromPos = transform.position;
         Quaternion fromRot = transform.rotation;
 
-        // ÀÌµ¿/ÀÔ·Â Àá±ñ ¸·±â
         blockInput = true;
         animator.SetBool("Hold", false);
 
@@ -1013,7 +902,6 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
 
-        // »óÅÂ/¹°¸®/¾Ö´Ï¸ŞÀÌÅÍ º¹±¸
         isHolding = false;
         isLerpingHoldOffset = false;
         rb.isKinematic = false;
@@ -1024,18 +912,14 @@ public class PlayerMov : MonoBehaviour
         isCancellingHold = false;
     }
 
-    // Á¡ÇÁ Á÷Àü ¾Õº® ¹Ğ¾î³»±â(ÅÂ±× wall ´ë»ó)
     private void ApplyWallPush(ref Vector3 velocity, RaycastHit front)
     {
-        // ¹Ù´ÚÃ³·³ À§·Î ÇâÇÑ ¸éÀÌ¸é ¹«½Ã
         bool isGroundLike = ((1 << front.collider.gameObject.layer) & groundLayer) != 0
                             && front.normal.y >= groundMinNormalY;
         if (isGroundLike) return;
 
-        // ÅÂ±× °Ë»ç (wallTag¿¡¸¸ Àû¿ë)
         if (!front.collider.CompareTag(wallTag)) return;
 
-        // ¼öÆò ¼ººĞÀ¸·Î¸¸ ¹Ğ¾î³¿
         Vector3 horizNormal = new Vector3(front.normal.x, 0f, front.normal.z);
         if (horizNormal.sqrMagnitude > 0.0001f)
         {
@@ -1043,55 +927,38 @@ public class PlayerMov : MonoBehaviour
             velocity += horizNormal * wallPushStrength;
         }
 
-        // Àá±ñ Grounded ¹«½Ã ¡æ Land ¿ÀÀÎ ¹æÁö
         ignoreGroundedCheck = true;
         ignoreGroundedTimer = Mathf.Max(ignoreDurationAfterJump, minAirTimeForLand);
     }
 
-    // ¾Ö´Ï¸ŞÀÌÅÍ Æ®¸®°Å/»óÅÂ ÃÊ±âÈ­
-    private void ClearLandTriggers()
-    {
-        animator.ResetTrigger("Land");
-    }
+    private void ClearLandTriggers() => animator.ResetTrigger("Land");
 
-    // ¹Ù´Ú Ã¼Å©(ÄÚ¿äÅ× Å¸ÀÓ)
     private bool CheckGrounded()
     {
         if (ignoreGroundedCheck) return false;
 
         bool touching = BoxGroundProbeMulti();
-
-        // ÄÚ¿äÅ× Å¸ÀÓ: Àá±ñ ¶³¾îÁ®µµ À¯Áö
         groundedTimer = touching ? groundedCoyoteTime : groundedTimer - Time.deltaTime;
         return groundedTimer > 0f;
     }
 
-    // °íÁ¤ ¾÷µ¥ÀÌÆ®(ÀÌµ¿/±ÙÁ¢ Â÷´Ü)
     void FixedUpdate()
     {
         bool block = isClimbing || isHolding;
-        if (block)
-        {
-            return;
-        }
+        if (block) return;
 
-        // ÀÌµ¿ Ã³¸®
         airMultiplier = (isDraggingCorpse || isGrounded) ? 1f : 0.5f;
-
         Vector3 move = currentMoveInput * currentMoveSpeed * airMultiplier * Time.fixedDeltaTime;
 
-        // ÃÖÁ¾ ¸ñÇ¥ À§Ä¡
         Vector3 newPos = rb.position + move;
 
-        // ÅÂ±×°¡ wallÀÎ ¿ÀºêÁ§Æ®¿¡ wallKeepOutRadius ÀÌÇÏ·Î Á¢±Ù ±İÁö(¼öÆò)
         EnforceWallKeepOut(ref newPos);
 
         Vector3 pos = rb.position;
-        SlideCast(ref pos, newPos, /*radius*/0.3f, /*height*/box.size.y * transform.lossyScale.y, groundLayer);
+        SlideCast(ref pos, newPos, 0.3f, box.size.y * transform.lossyScale.y, groundLayer);
         rb.MovePosition(newPos);
     }
 
-    // º® ¶Õ±â º¸°­
     bool SlideCast(ref Vector3 from, Vector3 to, float radius, float height, LayerMask mask, float skin = 0.02f)
     {
         Vector3 dir = to - from;
@@ -1104,20 +971,17 @@ public class PlayerMov : MonoBehaviour
 
         if (Physics.CapsuleCast(p1, p2, radius, dir, out RaycastHit hit, dist, mask, QueryTriggerInteraction.Ignore))
         {
-            // º®¿¡ ºÙ¿©³õ°í Ç¥¸éÀ» µû¶ó ¹Ì²ô·¯Áö±â
             from = hit.point + hit.normal * skin;
             Vector3 remain = (to - from);
             Vector3 slide = Vector3.ProjectOnPlane(remain, hit.normal);
-            from += slide;            // Ç¥¸é µû¶ó ÀÌµ¿
+            from += slide;
             return true;
         }
         return false;
     }
 
-    // Tag=wall ±ÙÁ¢ Â÷´Ü(Keep-Out) º¸Á¤ (¼öÆò XZ¸¸)
     private void EnforceWallKeepOut(ref Vector3 pos)
     {
-        // ÇÃ·¹ÀÌ¾î ¹ß¹Ù´Ú ¿ùµå Y (BoxCollider ±âÁØ)
         float footY = box ? box.bounds.min.y : transform.position.y;
 
         for (int it = 0; it < wallKeepOutIterations; it++)
@@ -1139,16 +1003,14 @@ public class PlayerMov : MonoBehaviour
                 if (col.transform.IsChildOf(transform)) continue;
                 if (!col.CompareTag(wallTag)) continue;
 
-                // '¹ß¹Ù´Úº¸´Ù ¾Æ·¡'¿¡ ÀÖ´Â Ç¥¸éÀº ¹Ğ¾î³»±â Á¦¿Ü
                 Vector3 query = new Vector3(pos.x, footY, pos.z);
                 Vector3 cp = col.ClosestPoint(query);
                 if (cp.y <= footY - wallKeepOutUnderFootTolerance ||
                     col.bounds.max.y <= footY - wallKeepOutUnderFootTolerance)
                 {
-                    continue; // ÀÌ¹Ì ³»°¡ À§¿¡ ÀÖÀ¸¹Ç·Î ¹ĞÁö ¾ÊÀ½
+                    continue;
                 }
 
-                // ¼öÆò °Å¸® ±âÁØÀ¸·Î¸¸ ºĞ¸®
                 Vector3 delta = new Vector3(pos.x - cp.x, 0f, pos.z - cp.z);
                 float d = delta.magnitude;
                 if (d < wallKeepOutRadius)
@@ -1157,9 +1019,7 @@ public class PlayerMov : MonoBehaviour
                     if (d > 1e-4f) n = delta / d;
                     else
                     {
-                        Vector3 fallback = new Vector3(
-                            pos.x - col.bounds.center.x, 0f, pos.z - col.bounds.center.z
-                        );
+                        Vector3 fallback = new Vector3(pos.x - col.bounds.center.x, 0f, pos.z - col.bounds.center.z);
                         n = (fallback.sqrMagnitude > 1e-6f) ? fallback.normalized : transform.forward;
                     }
 
@@ -1173,30 +1033,25 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // ¹Ù´Ú °¨Áö(BoxCast ¸ÖÆ¼ ÇÁ·Îºê)
     private bool BoxGroundProbeMulti()
     {
         if (!box) return false;
 
-        // BoxCast ÆÄ¶ó¹ÌÅÍ °è»ê (¿ùµå ±âÁØ)
         Vector3 center = box.transform.TransformPoint(box.center);
         Vector3 lossy = box.transform.lossyScale;
 
-        // ¹Ú½º Àı¹İ Å©±â(¿ùµå)
         Vector3 half = new Vector3(
             Mathf.Abs(box.size.x * 0.5f * lossy.x),
             Mathf.Abs(box.size.y * 0.5f * lossy.y),
             Mathf.Abs(box.size.z * 0.5f * lossy.z)
         );
 
-        // »ìÂ¦ Ãà¼ÒÇØ ÀÚ±â ÀÚ½Å/Ãø¸é¿¡ ±ÜÈ÷´Â °Í ¹æÁö
         Vector3 halfShrink = new Vector3(
             Mathf.Max(half.x - 0.01f, 0.001f),
             Mathf.Max(half.y - 0.01f, 0.001f),
             Mathf.Max(half.z - 0.01f, 0.001f)
         );
 
-        // ½ÃÀÛÀ» ¾ÆÁÖ Á¶±İ À§·Î ¶ç¿ö¼­(°ãÄ§ ¹æÁö), ¾Æ·¡·Î Ä³½ºÆ®
         float skin = 0.02f;
         Vector3 start = center + Vector3.up * skin;
         float distance = half.y + boxGroundExtra + skin;
@@ -1205,14 +1060,10 @@ public class PlayerMov : MonoBehaviour
         bool Probe(Vector3 o)
         {
             if (Physics.BoxCast(o, halfShrink, Vector3.down, out RaycastHit hit, rot, distance, groundLayer, QueryTriggerInteraction.Ignore))
-            {
-                // °æ»ç Çã¿ëÄ¡ ÀÌ»ó¸¸ Áö¸éÀ¸·Î ÀÎÁ¤
                 return hit.normal.y >= groundMinNormalY;
-            }
             return false;
         }
 
-        // ¼¾ÅÍ + ¾Õ/µÚ/ÁÂ/¿ì 4¹æÇâ º¸Á¶ ÇÁ·Îºê
         if (Probe(start)) return true;
 
         Vector3 fwd = transform.forward; fwd.y = 0; fwd.Normalize();
@@ -1227,7 +1078,6 @@ public class PlayerMov : MonoBehaviour
         return false;
     }
 
-    // º® Àâ±â(Holding) ½ÃÀÛ
     void StartHolding(RaycastHit hit)
     {
         ClearLandTriggers();
@@ -1239,7 +1089,7 @@ public class PlayerMov : MonoBehaviour
         float wallHeight = Mathf.Max(0f, wallTop - footY);
 
         remainingWallHeight = wallHeight;
-        detectedWallHeight = wallHeight; // ¾ÈÀüÇÏ°Ô °»½Å
+        detectedWallHeight = wallHeight;
 
         if (wallHeight <= 1.0f)
         {
@@ -1247,9 +1097,8 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
-        // ¿©±â¼­´Â '´ë±â'¸¸: ½ÇÁ¦ ºÙ±â´Â ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®¿¡¼­
         blockInput = true;
-        isHolding = false;               // ¾ÆÁ÷ ¾È ºÙÀ½
+        isHolding = false;
         isLerpingHoldOffset = false;
 
         hasPendingWall = true;
@@ -1257,21 +1106,19 @@ public class PlayerMov : MonoBehaviour
         pendingWallNormal = hit.normal;
         pendingWallTopY = wallTop;
 
-        animator.SetTrigger("Hold");     // Á¦ÀÚ¸®¿¡¼­ ¼Õ »¸´Â ¸ğ¼Ç Àç»ı
+        animator.SetTrigger("Hold");
         holdCancelAllowed = false;
     }
 
-    // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®: ½ÇÁ¦·Î º®À¸·Î 'ºÙ±â' ½ÃÀÛ
     public void AE_AttachToWall()
     {
         if (!hasPendingWall) return;
         hasPendingWall = false;
 
-        // ºÙ´Â Áß¿£ isHoldingÀ» ÄÑµÎµÇ, ÃÖ¿ì¼±Àº º¸°£ ºí·Ï(isLerpingHoldOffset)ÀÌ¶ó Update°¡ ¾ÈÀüÇÏ°Ô return µÊ
         isHolding = true;
 
         Vector3 targetPos = pendingWallPoint + pendingWallNormal * attachHoldDistanceFromWall;
-        targetPos.y = transform.position.y;                 // ½ºÆäÀÌ½º ´©¸¥ '±× ÀÚ¸®' ³ôÀÌ À¯Áö (°øÁß ½ÃÀÛ X)
+        targetPos.y = transform.position.y;
         Quaternion targetRot = Quaternion.LookRotation(-pendingWallNormal);
 
         holdLerpStartPos = transform.position;
@@ -1283,10 +1130,9 @@ public class PlayerMov : MonoBehaviour
         isLerpingHoldOffset = true;
 
         holdingStartPos = targetPos;
-        holdCancelAllowed = false; // ÇÊ¿ä½Ã ÀÌÈÄ ÀÌº¥Æ®·Î ¿­¾îÁà
+        holdCancelAllowed = false;
     }
 
-    // º® ¿À¸£±â(Climb) ½ÃÀÛ
     public void StartClimbFromHold(float duration)
     {
         ClearLandTriggers();
@@ -1298,7 +1144,6 @@ public class PlayerMov : MonoBehaviour
         climbStartPos = transform.position;
         climbStartRot = transform.rotation;
 
-        // º® ³ôÀÌ¿¡ µû¶ó ¿Ã¶ó°¥ ³ôÀÌ °è»ê
         float climbHeight = Mathf.Clamp(detectedWallHeight + 0.15f, 1f, 3.5f);
 
         climbTargetPos = holdingStartPos + Vector3.up * climbHeight;
@@ -1311,20 +1156,11 @@ public class PlayerMov : MonoBehaviour
         rb.useGravity = false;
     }
 
-    // Æ®¸®°Å Ãæµ¹
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("DonRun"))
-        {
-            donRunZoneCount++;
-            UpdateRunLock();
-        }
-
-        if (other.CompareTag("ClimbZone"))
-            canClimbZone = true;
-
-        if (other.CompareTag("Boss"))
-            canAttack = true;
+        if (other.CompareTag("DonRun")) { donRunZoneCount++; UpdateRunLock(); }
+        if (other.CompareTag("ClimbZone")) canClimbZone = true;
+        if (other.CompareTag("Boss")) canAttack = true;
 
         if (other.CompareTag("NPC"))
         {
@@ -1332,75 +1168,47 @@ public class PlayerMov : MonoBehaviour
             canTakeMission = true;
         }
 
-        if (other.CompareTag("Discorver"))
-            ShowPausePanel(gameOverUI);
+        if (other.CompareTag("Discorver")) ShowPausePanel(gameOverUI);
 
         if (other.CompareTag("Attack"))
         {
-            var enemy = other.GetComponentInParent<EnemyMov>();
-            if (enemy == null) enemy = other.GetComponent<EnemyMov>();
-            if (enemy != null)
-            {
-                killTarget = enemy;
-                canKill = true;
-            }
+            var enemy = other.GetComponentInParent<EnemyMov>() ?? other.GetComponent<EnemyMov>();
+            if (enemy != null) { killTarget = enemy; canKill = true; }
         }
 
         if (other.CompareTag("Door"))
         {
             nearDoor = true;
 
-            // ¹® ·çÆ® & Ã¹ ¹øÂ° ÀÚ½Ä(¾øÀ¸¸é ·çÆ® ÀÚÃ¼)
             nearDoorRoot = other.transform.root;
             nearDoorLeaf = (nearDoorRoot.childCount > 0) ? nearDoorRoot.GetChild(0) : nearDoorRoot;
 
-            // 0µµ ´İÈû, -90µµ ¿­¸²
             doorClosedRot = Quaternion.Euler(0f, 0f, 0f);
             doorOpenRot = Quaternion.Euler(0f, doorOpenAngleY, 0f);
 
-            // ÇöÀç ¿­¸° »óÅÂÀÎÁö(0/-90 Áß ¾îµğ¿¡ ´õ °¡±î¿îÁö) ÃßÁ¤
             float yNow = nearDoorLeaf.localEulerAngles.y;
-            doorOpen = Mathf.Abs(Mathf.DeltaAngle(yNow, doorOpenAngleY)) < 5f; // -90¡Æ¿¡ ´õ °¡±î¿ì¸é ¿­¸° »óÅÂ·Î °£ÁÖ
+            doorOpen = Mathf.Abs(Mathf.DeltaAngle(yNow, doorOpenAngleY)) < 5f;
         }
 
-        if (other.CompareTag("WeaponBox"))
-        {
-            choiceWeapon = true;
-        }
+        if (other.CompareTag("WeaponBox")) choiceWeapon = true;
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("DonRun"))
-        {
-            donRunZoneCount = Mathf.Max(0, donRunZoneCount - 1);
-            UpdateRunLock();
-        }
+        if (other.CompareTag("DonRun")) { donRunZoneCount = Mathf.Max(0, donRunZoneCount - 1); UpdateRunLock(); }
+        if (other.CompareTag("ClimbZone")) canClimbZone = false;
+        if (other.CompareTag("Boss")) canAttack = false;
 
-        if (other.CompareTag("ClimbZone"))
-            canClimbZone = false;
+        if (other.CompareTag("NPC")) { nearNPC.SetActive(false); canTakeMission = false; }
 
-        if (other.CompareTag("Boss"))
-            canAttack = false;
-
-        if (other.CompareTag("NPC"))
-        {
-            nearNPC.SetActive(false);
-            canTakeMission = false;
-        }
         if (other.CompareTag("Attack"))
         {
-            var enemy = other.GetComponentInParent<EnemyMov>();
-            if (enemy == null) enemy = other.GetComponent<EnemyMov>();
-            if (enemy == killTarget)
-            {
-                killTarget = null;
-                canKill = false;
-            }
+            var enemy = other.GetComponentInParent<EnemyMov>() ?? other.GetComponent<EnemyMov>();
+            if (enemy == killTarget) { killTarget = null; canKill = false; }
         }
+
         if (other.CompareTag("Door"))
         {
-            // °°Àº ¹® ·çÆ®¿¡¼­ ³ª°¬À» ¶§¸¸ ÇØÁ¦ (°ãÄ¡´Â ¹®ÀÇ °£¼· ¹æÁö)
             if (nearDoorRoot == null || other.transform.root == nearDoorRoot)
             {
                 nearDoor = false;
@@ -1408,79 +1216,47 @@ public class PlayerMov : MonoBehaviour
                 nearDoorLeaf = null;
             }
         }
-        if (other.CompareTag("WeaponBox"))
-        {
-            choiceWeapon = false;
-        }
+
+        if (other.CompareTag("WeaponBox")) choiceWeapon = false;
     }
 
-    // ´Ş¸®±â Á¦ÇÑ
-    void UpdateRunLock()
-    {
-        // ½ÃÃ¼¸¦ ²ô´Â Áß¿£ °è¼Ó ¸ø ´Ş¸®°Ô À¯Áö
-        canRun = (donRunZoneCount == 0) && !isDraggingCorpse;
-    }
+    void UpdateRunLock() => canRun = (donRunZoneCount == 0) && !isDraggingCorpse;
 
-    // Áö¸é Á¢ÃË ÆÇ´Ü(ÂøÁö Ã³¸®¿¡¸¸ »ç¿ë)
     private bool IsGroundContact(Collision col)
     {
-        // groundLayer¿¡ Æ÷ÇÔµÈ ·¹ÀÌ¾îÀÎÁö È®ÀÎ
         if ((groundLayer.value & (1 << col.gameObject.layer)) == 0) return false;
-
-        // À§¸¦ ÇâÇÑ ¸é¸¸ Áö¸éÀ¸·Î ÀÎÁ¤
-        foreach (var c in col.contacts)
-            if (c.normal.y >= groundMinNormalY) return true;
-
+        foreach (var c in col.contacts) if (c.normal.y >= groundMinNormalY) return true;
         return false;
     }
 
     private void OnCollisionStay(Collision collision)
     {
-        // Á¡ÇÁ Á÷ÈÄ ¹«½Ã ½Ã°£¿¡´Â ¾î¶² Ãæµ¹µµ ÂøÁö·Î Ã³¸®ÇÏÁö ¾ÊÀ½
         if (ignoreGroundedCheck) return;
-
-        // Áö¸é°úÀÇ Á¢ÃËÀÌ ¾Æ´Ï¸é(=º®/Ãø¸é) ¹«½Ã
         if (!IsGroundContact(collision)) return;
 
-        // »óÅÂ º¸Á¤
         if (isJumping || animator.GetBool("IsJumping"))
-        {
-            isJumping = false;
-            animator.SetBool("IsJumping", false);
-        }
+        { isJumping = false; animator.SetBool("IsJumping", false); }
+
         if (animator.GetBool("IsFalling"))
             animator.SetBool("IsFalling", false);
     }
 
-    public void OnJumpingDownComplete()
-    {
-        isLanding = false;
-    }
+    public void OnJumpingDownComplete() => isLanding = false;
 
-    // ¸Å´Ş¸®±â Àü ´Ü°è ¸ğ¼Ç
-    public void MoveUpDuringHold(float height, float duration)
-    {
-        StartCoroutine(MoveUpDuringHold_Safe(height, duration));
-    }
+    public void MoveUpDuringHold(float height, float duration) => StartCoroutine(MoveUpDuringHold_Safe(height, duration));
 
     private IEnumerator MoveUpDuringHold_Safe(float height, float duration)
     {
-        // AE_AttachToWall È£Ãâ ÈÄ ºÙ±â º¸°£ÀÌ ³¡³¯ ¶§±îÁö ´ë±â
-        float wait = 0f, timeout = 1.0f; // ÇÊ¿ä½Ã Á¶Á¤
+        float wait = 0f, timeout = 1.0f;
         while ((isLerpingHoldOffset || !isHolding) && wait < timeout)
-        {
-            wait += Time.deltaTime;
-            yield return null;
-        }
-        if (!isHolding) yield break; // ºÙÁö ¸øÇßÀ¸¸é Ãë¼Ò
+        { wait += Time.deltaTime; yield return null; }
+        if (!isHolding) yield break;
 
-        // ÀÌÁ¦ º¸°£ Ãæµ¹ ¾øÀ½: »ìÂ¦ ³»·Á°¬´Ù°¡ À§·Î ¿Ã¸®±â
         yield return StartCoroutine(MoveHoldWithDip(height, duration));
     }
 
     private IEnumerator MoveHoldWithDip(float height, float duration)
     {
-        // 1) »ìÂ¦ ¾Æ·¡·Î
         Vector3 start = transform.position;
         Vector3 downPos = start + new Vector3(0f, -0.1f, 0f);
         float downDuration = 0.1f;
@@ -1493,7 +1269,6 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
 
-        // 2) À§·Î ¿Ã¸®±â
         Vector3 upTarget = start + new Vector3(0f, height, 0.01f);
         t = 0f;
 
@@ -1504,15 +1279,10 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
 
-        // Climb °¡´É
         canStartClimb = true;
     }
 
-    // º® ¾È¶Õ¸®°Ô ¾ÕÀ¸·Î ÀÌµ¿
-    public void MoveForwardAfterClimb(float distance, float duration)
-    {
-        StartCoroutine(ForwardLerpRoutine(distance, duration));
-    }
+    public void MoveForwardAfterClimb(float distance, float duration) => StartCoroutine(ForwardLerpRoutine(distance, duration));
 
     private IEnumerator ForwardLerpRoutine(float distance, float duration)
     {
@@ -1542,10 +1312,9 @@ public class PlayerMov : MonoBehaviour
         blockInput = false;
     }
 
-    // ¿òÁ÷ÀÓ ¼Ò¸® ¹üÀ§
     void CheckNearbyEnemies()
     {
-        if (isCrouching) return; // ¾É¾ÆÀÖÀ¸¸é ¼Ò¸® °¨Áö X
+        if (isCrouching) return;
         if (currentMoveInput.magnitude < 0.05f) return;
 
         float detectRange = isRunning ? runDetectRange : walkDetectRange;
@@ -1553,19 +1322,13 @@ public class PlayerMov : MonoBehaviour
 
         foreach (Collider col in hits)
         {
-            // Enemy
             var enemy = col.GetComponentInParent<EnemyMov>() ?? col.GetComponent<EnemyMov>();
-            if (enemy != null)
-                enemy.PlayerDetected(transform.position);
-
-            // Villain
+            if (enemy != null) enemy.PlayerDetected(transform.position);
             var villain = col.GetComponentInParent<Villain>() ?? col.GetComponent<Villain>();
-            if (villain != null)
-                villain.PlayerDetectedBySound(transform.position);
+            if (villain != null) villain.PlayerDetectedBySound(transform.position);
         }
     }
 
-    // ³·Àº º® BoxJump
     void StartBoxJump(Vector3 wallPoint, Vector3 wallNormal, float height)
     {
         ClearLandTriggers();
@@ -1623,7 +1386,7 @@ public class PlayerMov : MonoBehaviour
 
     public void MoveToBoxTop(float duration)
     {
-        float upOffset = 1f; // ±âº»°ª
+        float upOffset = 1f;
 
         Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
         if (Physics.Raycast(ray, out RaycastHit hit, climbCheckDistance, climbableLayer))
@@ -1654,7 +1417,6 @@ public class PlayerMov : MonoBehaviour
         blockInput = false;
     }
 
-    // ±âÁî¸ğ
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
@@ -1662,12 +1424,10 @@ public class PlayerMov : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, runDetectRange);
 
-        // Keep-Out ¹İ°æ ½Ã°¢È­(Âü°í¿ë)
         Gizmos.color = new Color(0.2f, 0.6f, 1f, 0.25f);
         Gizmos.DrawWireSphere(transform.position, wallKeepOutRadius);
     }
 
-    // UI Ç¥½Ã/¼û±è
     void ShowPausePanel(GameObject panel)
     {
         if (!panel) return;
@@ -1693,7 +1453,6 @@ public class PlayerMov : MonoBehaviour
         Time.timeScale = 0f;
     }
 
-    // ´Ù¸¥ ÆĞ³ÎÀÌ ¿­·ÁÀÖÀ¸¸é Àü¿ª ÇØÁ¦ÇÏÁö ¾Êµµ·Ï
     bool AnyPauseOpen()
     {
         return (missionUI && missionUI.activeSelf)
@@ -1725,19 +1484,22 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // µå·¡±× Áß ´Ş¸®±â ¹«½Ã
+    // === ë“œë˜ê·¸ I/F ===
     public void OnDragStart()
     {
         if (isDraggingCorpse || isPickupInProgress) return;
 
-        ArmELock();
-        Input.ResetInputAxes();  // ÀÔ·Â ÇÃ·¯½Ã
+        ArmELock(2f);
+        Input.ResetInputAxes();  // ì…ë ¥ í”ŒëŸ¬ì‹œ
 
         StartCoroutine(PickupThenStartDrag());
     }
+
     public void OnDragStop()
     {
-        // µå·¡±× Á¾·á(ÇØÁ¦)
+        // ë³´í˜¸ë§‰: í”½ì—… ì¤‘ì´ë©´ ì·¨ì†Œ ê¸ˆì§€ (ê³ ë¦½ ë°©ì§€)
+        if (isPickupInProgress) return;
+
         isDraggingCorpse = false;
         isPickupInProgress = false;
         blockInput = false;
@@ -1746,94 +1508,58 @@ public class PlayerMov : MonoBehaviour
         animator.SetBool("IsDragging", false);
         animator.ResetTrigger(pickupTrigger);
 
-        // ¾Ö´Ï ÆÄ¶ó¹ÌÅÍ ¸®¼Â
+        // ì•ˆì „ë§: ì¦‰ì‹œ ë¡œì½”ëª¨ì…˜ìœ¼ë¡œ í¬ë¡œìŠ¤í˜ì´ë“œ
+        animator.CrossFade("Locomotion", 0.05f, 0, 0f);
+
         animator.SetFloat("MoveX", 0f);
         animator.SetFloat("MoveY", 0f);
         animator.SetFloat("Speed", 0f);
     }
 
-    // ½ÃÃ¼ µå·¡±×
     private IEnumerator PickupThenStartDrag()
     {
+        ArmELock(2f);
         isPickupInProgress = true;
 
+        // ì¦‰ì‹œ ì…ë ¥/ì´ë™ ì°¨ë‹¨
         blockInput = true;
         currentMoveInput = Vector3.zero;
         rb.velocity = Vector3.zero;
 
+        // í”½ì—… ì• ë‹ˆë©”ì´ì…˜ë§Œ ì¬ìƒ
         animator.ResetTrigger(pickupTrigger);
         animator.SetTrigger(pickupTrigger);
 
-        int baseLayer = 0;
-        int tagHash = Animator.StringToHash(pickupTag);
+        // ì •í™•íˆ 2ì´ˆê°„ ëŒ€ê¸° (ì´ ë™ì•ˆ EëŠ” ArmELock ë•Œë¬¸ì— ë¬´ì‹œ)
+        yield return new WaitForSeconds(2f);
 
-        // 1) Pickup ÅÂ±×·Î ÁøÀÔÇÒ ¶§±îÁö ´ë±â (ÃÖ´ë 1.0s)
-        float t = 0f, maxWaitEnter = 1.0f;
-        yield return null; // ÇÑ ÇÁ·¹ÀÓ ¾çº¸
-        while (t < maxWaitEnter)
-        {
-            var st = animator.GetCurrentAnimatorStateInfo(baseLayer);
-            var next = animator.GetNextAnimatorStateInfo(baseLayer);
-            bool inOrNextPickup = (st.tagHash == tagHash) || (next.tagHash == tagHash);
-            if (inOrNextPickup) break;
-
-            if (allowCancelDuringPickup && EPressed()) goto CANCEL;
-
-            t += Time.deltaTime;
-            yield return null;
-        }
-
-        // 2) Pickup ÅÂ±×°¡ ³¡³ª±æ ´ë±â (ÃÖ´ë 3.0s, ÀÌº¥Æ®°¡ ¿À¸é ¹Ù·Î ³¡³²)
-        t = 0f; float maxWaitExit = 3.0f;
-        while (isPickupInProgress && t < maxWaitExit)
-        {
-            var st = animator.GetCurrentAnimatorStateInfo(baseLayer);
-            bool inPickup = st.tagHash == tagHash;
-
-            // ÇÈ¾÷ Áß¿¡´Â ¿ÏÀü Á¤Áö
-            animator.SetFloat("MoveX", 0f);
-            animator.SetFloat("MoveY", 0f);
-            animator.SetFloat("Speed", 0f);
-            currentMoveInput = Vector3.zero;
-
-            if (allowCancelDuringPickup && EPressed()) goto CANCEL;
-
-            // ÀÌº¥Æ®°¡ ¿À¸é isPickupInProgress=false°¡ µÇ¸ç ·çÇÁ Å»Ãâ
-            t += Time.deltaTime;
-            yield return null;
-        }
-
-        // 3) ¾ÈÀü¸Á: ÀÌº¥Æ®°¡ ¾È ¿Ô¾îµµ Å¸ÀÓ¾Æ¿ôÀÌ¸é °­Á¦ ÀüÈ¯
-        if (isPickupInProgress)
-        {
-            AE_PickupFinished(); // °­Á¦ ÀüÈ¯
-        }
-        yield break;
-
-    CANCEL:
+        // 2ì´ˆ í›„ ë“œë˜ê·¸ ìƒíƒœë¡œ ì „í™˜
         isPickupInProgress = false;
-        blockInput = false;
-        animator.ResetTrigger(pickupTrigger);
-        yield break;
+        isDraggingCorpse = true;
+        canRun = false;          // ë“œë˜ê·¸ ì¤‘ ë‹¬ë¦¬ê¸° ê¸ˆì§€
+        blockInput = false;      // ë“œë˜ê·¸ ì „ìš© ì…ë ¥ í—ˆìš©
+
+        animator.SetBool("IsDragging", true);
+        animator.SetFloat("DragMove", 0f);
+
+        // ë¡œì½”ëª¨ì…˜ íŒŒë¼ë¯¸í„° ì ê°€ì„œ ë¸”ë Œë“œ ë¹ ì§€ì§€ ì•Šê²Œ
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
     }
 
     public void BindCameraPivot(Transform pivot) { cameraPivot = pivot; }
 
-    // °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®
+    // ì•”ì‚´ ì• ë‹ˆ ì´ë²¤íŠ¸
     public void OnAssassinationHit()
     {
         if (!isAssassinating || pendingAssassination == null) return;
-
-        var toKill = pendingAssassination; // º¸°ü
-        pendingAssassination = null;       // ¸ÕÀú ºñ¿ö ÀçÁøÀÔ ¹æÁö
-
-        toKill.Kill();                     // º¸°üÇÑ ´ë»ó¿¡°Ô Kill()
+        var toKill = pendingAssassination;
+        pendingAssassination = null;
+        toKill.Kill();
     }
-
-    // °ø°İ ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ® ÇØÁ¦
     public void OnAssassinationEnd()
     {
-        // »óÅÂ/¹°¸® º¹±¸
         rb.isKinematic = false;
         rb.useGravity = true;
 
@@ -1844,30 +1570,27 @@ public class PlayerMov : MonoBehaviour
         isAssassinating = false;
         blockInput = false;
 
-        // ¾ÈÀüÇÏ°Ô ¾Ï»ì Æ®¸®°Å ÃÊ±âÈ­
         animator.ResetTrigger("AttackCrowbar");
     }
 
-    // ÇÈ¾÷ ½ÃÀÛ ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®
+    // í”½ì—… ì• ë‹ˆ ì´ë²¤íŠ¸
     public void AE_PickupFinished()
     {
         if (!isPickupInProgress) return;
 
         isPickupInProgress = false;
         isDraggingCorpse = true;
-        canRun = false;   // µå·¡±× Áß¿£ ´Ş¸®±â ±İÁö
-        blockInput = false;   // µå·¡±× ÀÔ·Â Çã¿ë
+        canRun = false;
+        blockInput = false;
 
-        // µå·¡±× Àü¿ë ÆÄ¶ó¹ÌÅÍ
         animator.SetBool("IsDragging", true);
         animator.SetFloat("DragMove", 0f);
 
-        // ·ÎÄÚ¸ğ¼Ç Àá±İ
         animator.SetFloat("MoveX", 0f);
         animator.SetFloat("MoveY", 0f);
         animator.SetFloat("Speed", 0f);
     }
-    public void AE_PickupLockOn()    // ÇÈ¾÷ Áß Àá±İ ½ÃÀÛ
+    public void AE_PickupLockOn()
     {
         blockInput = true;
         currentMoveInput = Vector3.zero;
@@ -1875,9 +1598,8 @@ public class PlayerMov : MonoBehaviour
         animator.SetFloat("MoveY", 0f);
         animator.SetFloat("Speed", 0f);
     }
-
-    public void AE_PickupLockOff()   // ÇÈ¾÷ Áß Àá±İ ÇØÁ¦
+    public void AE_PickupLockOff()
     {
-        blockInput = false; // ÀÌÁ¦ ÀÔ·Â Çã¿ë (¿©ÀüÈ÷ Pick »óÅÂÀÏ ¼ö ÀÖÀ½)
+        blockInput = false;
     }
 }

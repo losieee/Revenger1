@@ -28,15 +28,20 @@ public class PlayerCorpseDrag : MonoBehaviour
 
     void Update()
     {
-        // 토글키 입력
         if (Input.GetKeyDown(toggleKey))
         {
+            // === 가드: 픽업 중이거나 E락이면 무시 ===
+            if (playerMov != null)
+            {
+                if (playerMov.IsPickupInProgress) return;
+                if (playerMov.IsELocked) return;
+            }
+
             if (isDragging) ReleaseCorpse();
             else TryGrabNearestCorpse();
         }
     }
 
-    // 주변 시체 핸들 찾고 잡기 시도
     void TryGrabNearestCorpse()
     {
         Collider[] hits = Physics.OverlapSphere(transform.position, grabRange, corpseHandleMask);
@@ -49,11 +54,7 @@ public class PlayerCorpseDrag : MonoBehaviour
             if (corpse && corpse.IsDeadAndDraggable)
             {
                 float d = Vector3.Distance(transform.position, h.ClosestPoint(transform.position));
-                if (d < bestDist)
-                {
-                    best = corpse;
-                    bestDist = d;
-                }
+                if (d < bestDist) { best = corpse; bestDist = d; }
             }
         }
 
@@ -61,15 +62,14 @@ public class PlayerCorpseDrag : MonoBehaviour
         {
             grabbedCorpse = best;
             isDragging = true;
-            playerMov.OnDragStart();
+            playerMov?.OnDragStart();
         }
     }
 
-    // 시체 놓기
     void ReleaseCorpse()
     {
         if (grabbedCorpse) { grabbedCorpse.Release(); grabbedCorpse = null; }
         isDragging = false;
-        playerMov.OnDragStop();
+        playerMov?.OnDragStop();
     }
 }
