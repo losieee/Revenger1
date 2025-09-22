@@ -33,7 +33,20 @@ public class EnemyMov : MonoBehaviour
     public float verticalFovUp = 30f;               // 위쪽 수직 FOV(도)
     public float verticalFovDown = 45f;             // 아래쪽 수직 FOV(도)
 
+    [Header("경고/정찰 타이밍")]
+    public float watchPauseDuration = 0.5f;         // Watching 진입 직후 멈칫 시간
+    public float investigateDuration = 5f;          // 마지막 좌표로 이동해보는 시간
+    public float escalateToChaseDuration = 2f;      // 보이면 2초 후 Chasing
+
+    // 내부 타이머 / 좌표
+    private float watchPauseTimer = 0f;
+    private float investigateTimer = 0f;
+    private float escalateSightTimer = 0f;          // 보이는 시간 누적
+    private Vector3 lastKnownPosition;
+    private bool hasLastKnownPosition = false;
+
     [Header("추적 관련")]
+    public bool moveTowardPlayerWhileWatching = true;   // Watching일 때 플레이어 위치로 이동
     public float lostPlayerGraceTime = 2f;          // 플레이어를 놓친 뒤 몇 초까지 추적 유지할지
     public float lostAfterPlayer = 2f;              // 플레이어로 시작
     public float lostAfterCorpse = 6f;              // 시체로 시작
@@ -45,6 +58,8 @@ public class EnemyMov : MonoBehaviour
     [Header("시체 상태")]
     private bool isFrozen = false;
     public bool IsFrozen => isFrozen;
+    public static readonly int Hash_DieTrigger = Animator.StringToHash("DieTrigger");
+    public static readonly int Hash_Dead = Animator.StringToHash("Dead");
 
     [Header("시체 인지 설정")]
     public bool corpseRequiresLineOfSight = true;   // 시체도 가림막 체크할지
@@ -56,7 +71,6 @@ public class EnemyMov : MonoBehaviour
     private int currentIndex = 0;               // 현재 이동 중인 waypoint 인덱스
     private int direction = 1;                  // 방향: 1 = 순방향, -1 = 역방향
     private bool isWaiting = false;             // 경로 중 정지 중인지
-    private float playerStayTime = 0f;          // 시야 안에 플레이어가 있었던 누적 시간
     private float lostPlayerTimer = 0f;         // 플레이어를 놓친 후 경과 시간
     private float originalViewAngle;            // 원래 시야각
     private float destinationUpdateRate = 0.2f; // 추격 중 목표 위치 갱신 간격
@@ -70,12 +84,8 @@ public class EnemyMov : MonoBehaviour
 
     // 소리 감지 이동 관련
     private bool isSoundTriggered = false;      // 소리 감지가 발생했는지 여부
-    private float soundDetectTimer = 0.5f;      // 소리 감지 후 경과 시간
-    private float maxChaseBySoundTime = 3f;     // 소리 감지로 이동하는 최대 시간
-    private float soundChaseTimer = 0f;         // 소리 감지로 추적 중인 시간 누적
     private Vector3 firstHeardPosition;         // 처음 들린 소리의 위치
     private bool hasHeardPlayer = false;        // 소리 감지로 플레이어 최초 위치 기록 여부
-    private bool isSoundWaiting = false;        // 감지 직후 잠깐 멈춤 플래그
 
     // 볼륨, 사운드
     public float footstepVolume = 0.7f;
@@ -98,7 +108,7 @@ public class EnemyMov : MonoBehaviour
     private bool hasChaseVoice = false;
 
     // Enemy 상태 정의
-    private enum EnemyState { Patrol, Watching, Chasing, Dead }       // 순찰 중, 경고(?) - 플레이어 최초 발각 시, 추격(!) - 플레이어 추적
+    private enum EnemyState { Patrol, Watching, Investigating, Chasing, Dead }       // 순찰 중, 경고(?) - 플레이어 최초 발각 시, 경고 후 안보일 시 정찰, 추격(!) - 플레이어 추적, 죽음
     private EnemyState state = EnemyState.Patrol;
 
     public static event Action<Transform> OnAnyEnemyKilled;
@@ -236,95 +246,110 @@ public class EnemyMov : MonoBehaviour
 
                 if (playerInSight || corpseInSightNow)
                 {
-                    playerStayTime = 0f;    // 본 순간 타이머 리셋
                     sawCorpse = corpseInSightNow;       // 시체로 본 경우 플래그
 
                     // 시체를 본 경우 전역 어그로
                     if (corpseInSightNow)
                         TriggerGlobalAggro(player ? player.position : transform.position);
 
-                    state = EnemyState.Watching;
+                    BeginWatching(playerInSight && player ? player.position : (Vector3?)null);
                     audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
                     break;
                 }
                 break;
 
             case EnemyState.Watching:
-                viewAngle = 360f;        // 시야각 확장
-                catchBox.enabled = false;       // 잡는 범위 비활성화
+            
+                viewAngle = 360f;
+                catchBox.enabled = false;
                 attackBox.enabled = true;
-                animator.SetFloat("Speed", 0f); // 애니메이션 정지
-                miniQuestionMark.SetActive(true);   // 미니맵에 마크 표시
-                miniAnswerMark.SetActive(false);
 
+                // 보이면 마지막 좌표 갱신
+                if (playerInSight && player)
+                {
+                    lastKnownPosition = player.position;
+                    hasLastKnownPosition = true;
+                }
                 if (corpseInSightNow) sawCorpse = true;
 
-                bool escalateTrigger = playerInSight || sawCorpse;
+                // 보이는 시간 누적 / 리셋
+                if (playerInSight) escalateSightTimer += Time.deltaTime;
+                else escalateSightTimer = 0f;
 
-                if (escalateTrigger)
+                // 2초동안 보였으면 바로 Chasing
+                if (escalateSightTimer >= escalateToChaseDuration)
                 {
-                    agent.isStopped = true;
-                    playerStayTime += Time.deltaTime;
-                    if (playerStayTime >= 1.5f)       // 1.5초 이상 봤으면 추적 시작
-                    {
-                        agent.isStopped = false;
-                        chasingFromCorpse = sawCorpse;
-                        state = EnemyState.Chasing;
-                        sawCorpse = false;
-                        StartChaseLoopCapped();     // 추격 진입 시도
-                    }
+                    chasingFromCorpse = sawCorpse;
+                    sawCorpse = false;
+                    state = EnemyState.Chasing;
+                    StartChaseLoopCapped();
+                    break;
                 }
-                else if (isSoundTriggered)
+
+                // 0.5초 멈칫
+                watchPauseTimer -= Time.deltaTime;
+                if (watchPauseTimer > 0f)
                 {
-                    if (isSoundWaiting)
-                    {
-                        soundDetectTimer += Time.deltaTime;
-                        if (soundDetectTimer >= 0.5f)
-                        {
-                            isSoundWaiting = false;
-                            questionMark.SetActive(true);
-                            agent.isStopped = false;
-                            agent.SetDestination(firstHeardPosition);
-                        }
-                        else
-                        {
-                            agent.isStopped = true;
-                            animator.SetFloat("Speed", 0f);
-                        }
-                    }
-                    else
-                    {
-                        agent.isStopped = false;
-                        animator.SetFloat("Speed", agent.velocity.magnitude);
-                        soundChaseTimer += Time.deltaTime;
-
-                        if (soundChaseTimer >= maxChaseBySoundTime)
-                        {
-                            ResetSoundDetection();
-
-                            state = EnemyState.Patrol;
-                            agent.SetDestination(waypoints[currentIndex].position);
-                            agent.isStopped = false;
-
-                            StopChaseLoopCapped();
-                            audioSource.Stop();
-                        }
-                    }
+                    if (AgentReady()) { agent.isStopped = true; animator.SetFloat("Speed", 0f); }
                 }
                 else
                 {
-                    playerStayTime += Time.deltaTime;
-                    if (playerStayTime >= 1f)
+                    // Investigating으로 전환
+                    state = EnemyState.Investigating;
+                    if (AgentReady())
                     {
-                        audioSource.Stop();
-                        StopChaseLoopCapped();
-
-                        state = EnemyState.Patrol;
-                        agent.SetDestination(waypoints[currentIndex].position);
                         agent.isStopped = false;
+                        agent.speed = walkSpeed;
+                         agent.acceleration = 20f;
+                        if (hasLastKnownPosition) agent.SetDestination(lastKnownPosition);
+                    }
+                }
+                break;
 
-                        // 사운드 관련 초기화 추가
+            case EnemyState.Investigating:
+                viewAngle = 360f;
+                catchBox.enabled = false;
+                attackBox.enabled = true;
+
+                if (playerInSight) escalateSightTimer += Time.deltaTime;
+                else escalateSightTimer = 0f;
+
+                if (escalateSightTimer >= escalateToChaseDuration)
+                {
+                    chasingFromCorpse = sawCorpse;
+                    sawCorpse = false;
+                    state = EnemyState.Chasing;
+                    StartChaseLoopCapped();
+                    break;
+                }
+
+                if (AgentReady())
+                {
+                    animator.SetFloat("Speed", agent.velocity.magnitude);
+
+                    bool arrived = !agent.pathPending && agent.remainingDistance <= 0.3f;
+                    investigateTimer += Time.deltaTime;
+                    bool timeUp = (investigateTimer >= investigateDuration);
+
+                    if (timeUp || arrived)
+                    {
+                        // Patrol 복귀
+                        state = EnemyState.Patrol;
+
                         ResetSoundDetection();
+                        lostPlayerTimer = 0f;
+                        sawCorpse = false;
+                        chasingFromCorpse = false;
+                        escalateSightTimer = 0f;
+
+                        if (waypoints != null && waypoints.Length > 0)
+                        {
+                            agent.isStopped = false;
+                            agent.speed = walkSpeed;
+                            agent.SetDestination(waypoints[currentIndex].position);
+                        }
+                        miniQuestionMark?.SetActive(false);
+                        miniAnswerMark?.SetActive(false);
                     }
                 }
                 break;
@@ -368,7 +393,34 @@ public class EnemyMov : MonoBehaviour
 
         UpdateMark();
     }
-    
+
+    // Watching 진입
+    void BeginWatching(Vector3? triggerPos = null)
+    {
+        state = EnemyState.Watching;
+
+        if (triggerPos.HasValue) { lastKnownPosition = triggerPos.Value; hasLastKnownPosition = true; }
+        else if (player) { lastKnownPosition = player.position; hasLastKnownPosition = true; }
+        else if (isSoundTriggered && hasHeardPlayer)
+        { lastKnownPosition = firstHeardPosition; hasLastKnownPosition = true; }
+
+        watchPauseTimer = watchPauseDuration;
+        investigateTimer = 0f;
+
+        if (AgentReady())
+        {
+            agent.isStopped = true;     // 0.5초 멈칫
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();
+        }
+
+        animator.SetFloat("Speed", 0f);
+        miniQuestionMark?.SetActive(true);
+        miniAnswerMark?.SetActive(false);
+
+        PlayOneShotSafe(enemySounds, 2, QuestionVolume);
+    }
+
     // 추적 종료
     void EndChase()
     {
@@ -378,6 +430,7 @@ public class EnemyMov : MonoBehaviour
 
         chasingFromCorpse = false;
         lostPlayerTimer = 0f;
+        escalateSightTimer = 0f;
 
         state = EnemyState.Patrol;
 
@@ -554,12 +607,10 @@ public class EnemyMov : MonoBehaviour
         if (IsTargetVisible(corpse, viewDistance, viewAngle, corpseRequiresLineOfSight))
         {
             sawCorpse = true;                 // Watching에서 1.5초 후 Chasing을 트리거하게 하는 플래그
-            playerStayTime = 0f;
 
             // 플레이어를 처음 본 것과 동일한 반응
             PlayOneShotSafe(enemySounds, 2, QuestionVolume);
-            state = EnemyState.Watching;
-            agent.isStopped = true;
+            BeginWatching(corpse.position);
 
             miniQuestionMark?.SetActive(true);
             miniAnswerMark?.SetActive(false);
@@ -569,40 +620,36 @@ public class EnemyMov : MonoBehaviour
     // AI 머리위에 뜨는 마크 (?, !)
     void UpdateMark()
     {
-        // 모든 마크 비활성화
+        // 모두 기본 OFF
         if (questionMark) questionMark.SetActive(false);
         if (answerMarkexclamationMark) answerMarkexclamationMark.SetActive(false);
+        if (miniQuestionMark) miniQuestionMark.SetActive(false);
+        if (miniAnswerMark) miniAnswerMark.SetActive(false);
 
         if (isDead || state == EnemyState.Dead) return;
 
-        // 현재 상태에 따라 해당 마크 활성화
-        GameObject activeMark = null;
+        // 상태별 표시 규칙
+        bool showQuestion = (state == EnemyState.Watching || state == EnemyState.Investigating);
+        bool showExclamation = (state == EnemyState.Chasing);
 
-        switch (state)
+        if (questionMark) questionMark.SetActive(showQuestion);
+        if (miniQuestionMark) miniQuestionMark.SetActive(showQuestion);
+
+        if (answerMarkexclamationMark) answerMarkexclamationMark.SetActive(showExclamation);
+        if (miniAnswerMark) miniAnswerMark.SetActive(showExclamation);
+
+        // 카메라 바라보기(필요할 때만)
+        if (Camera.main != null)
         {
-            case EnemyState.Watching:
-                activeMark = questionMark;
-                break;
-            case EnemyState.Chasing:
-                activeMark = answerMarkexclamationMark;
-                break;
-        }
-
-        if (activeMark != null)
-        {
-            activeMark.SetActive(true);
-
-            // 마크가 항상 카메라를 바라보게
-            if (activeMark != null)
+            if (questionMark && questionMark.activeSelf)
             {
-                activeMark.SetActive(true);
-
-                // 마크가 항상 카메라를 바라보게
-                if (Camera.main != null)
-                {
-                    activeMark.transform.LookAt(Camera.main.transform);
-                    activeMark.transform.Rotate(0f, 180f, 0f);
-                }
+                questionMark.transform.LookAt(Camera.main.transform);
+                questionMark.transform.Rotate(0f, 180f, 0f);
+            }
+            if (answerMarkexclamationMark && answerMarkexclamationMark.activeSelf)
+            {
+                answerMarkexclamationMark.transform.LookAt(Camera.main.transform);
+                answerMarkexclamationMark.transform.Rotate(0f, 180f, 0f);
             }
         }
     }
@@ -617,17 +664,10 @@ public class EnemyMov : MonoBehaviour
         {
             firstHeardPosition = playerPos; // 인자로 받은 위치 사용!
             hasHeardPlayer = true;
-            isSoundWaiting = true;
-
             isSoundTriggered = true;
-            soundDetectTimer = 0f;
-            soundChaseTimer = 0f;
 
-            state = EnemyState.Watching;
+            BeginWatching(playerPos);
             PlayOneShotSafe(enemySounds, 2, QuestionVolume);
-
-            agent.isStopped = true;
-            animator.SetFloat("Speed", 0f);
         }
     }
 
@@ -635,9 +675,6 @@ public class EnemyMov : MonoBehaviour
     {
         isSoundTriggered = false;
         hasHeardPlayer = false;
-        isSoundWaiting = false;
-        soundDetectTimer = 0f;
-        soundChaseTimer = 0f;
     }
 
     // 애니메이션 이벤트에서 호출할 함수
@@ -815,7 +852,12 @@ public class EnemyMov : MonoBehaviour
         if (animator)
         {
             animator.SetFloat("Speed", 0f);
-            animator.SetTrigger("IsDead");
+            animator.ResetTrigger("Grab");
+            animator.ResetTrigger("Drop");
+            animator.SetBool("IsGrabbed", false);
+
+            animator.SetBool(Hash_Dead, true);          // 시체 상태 유지
+            animator.SetTrigger(Hash_DieTrigger);       // 딱 한 번 Die로 진입
         }
 
         var drag = GetComponent<DraggableCorpse>();
@@ -834,7 +876,7 @@ public class EnemyMov : MonoBehaviour
     public void OnDeathAnimationEnd()
     {
         // 애니메이터 끄기(루트모션/포즈 되감기 차단)
-        if (animator) animator.enabled = false;
+        //if (animator) animator.enabled = false;
 
         // 드래그 가능한 상태 최종 온
         GetComponent<DraggableCorpse>()?.OnDeath();

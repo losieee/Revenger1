@@ -7,7 +7,7 @@ using System;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
 {
-    // 컴포넌트
+    [Header("Component")]
     public Rigidbody rb;
     public GameObject gameClearUI;
     public GameObject gameOverUI;
@@ -20,7 +20,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimap1fPicture;
     public GameObject[] enemies1f;
 
-    // 이동 및 회전
+    [Header("Move and Rotate")]
     public float speed = 5f;
     private float currentMoveSpeed = 0f;
     public float rotSpeed = 5f;
@@ -28,7 +28,7 @@ public class PlayerMov : MonoBehaviour
     public Transform cameraPivot;
     int donRunZoneCount = 0;
 
-    // 공격 전용
+    [Header("Attack")]
     private bool isAssassinating = false;
     private EnemyMov pendingAssassination = null;
     [SerializeField] private float assassinateApproachDuration = 0.20f;  // 적 뒤로 붙는 시간
@@ -36,14 +36,14 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float assassinateSideClamp = 0.25f;         // 약간 좌우 보정 허용
     [SerializeField] private float assassinateRotLerp = 20f;             // 회전 보간속도
 
-    // 시체 처리 전용
+    [Header("After attack NPC ")]
     [SerializeField] private string pickupTrigger = "Pickup"; // 트리거 이름
     [SerializeField] private bool allowCancelDuringPickup = false; // (유지) 필요시 사용할 수 있음
     private bool isPickupInProgress = false;
     [HideInInspector] public bool isDraggingCorpse = false;
     public float dragMoveSpeed = 0.5f;
 
-    // E키 쿨다운
+    [Header("E Cooldown")]
     [SerializeField] private float eCooldownDuration = 0.6f;
     private bool eLocked = false;
     private Coroutine eLockCo;
@@ -94,12 +94,12 @@ public class PlayerMov : MonoBehaviour
     private float groundedCoyoteTime = 0.12f;  // 유예 시간
     private float groundedTimer = 0f;
 
-    // 착지 판정 보정
+    [Header("Floor detect")]
     [SerializeField] private float minAirTimeForLand = 0.12f; // 최소 공중시간
     [SerializeField] private float landMinDownVel = -0.4f;    // 하강속도 임계
     private float timeSinceLeftGround = 999f;                  // 떠난 뒤 경과시간
 
-    // 벽타기
+    [Header("Climb")]
     public float climbDuration = 3.25f;
     public float climbCheckDistance = 2.0f;
     public LayerMask climbableLayer;
@@ -108,12 +108,12 @@ public class PlayerMov : MonoBehaviour
     private bool blockInput = false;
     private float lastBoxWallRemainingHeight = 0f;
 
-    // 움직이는 소리 범위
+    [Header("Sound Range")]
     public float walkDetectRange = 6f;
     public float runDetectRange = 12f;
     public LayerMask aiLayerMask;
 
-    // 벽 매달리기
+    [Header("Climb Holding")]
     [HideInInspector] public float detectedWallHeight = 0f;
     [HideInInspector] public float remainingWallHeight = 0f;
     private bool isHolding = false;
@@ -136,7 +136,7 @@ public class PlayerMov : MonoBehaviour
     private Quaternion climbStartRot, climbTargetRot;
     private float climbTimer = 0f;
 
-    // 매달리기 취소용 저장값
+    [Header("Climb Cancle")]
     private bool isCancellingHold = false;
     [SerializeField] private bool holdCancelAllowed;
     public void SetHoldCancelAllowed(bool allowed) => holdCancelAllowed = allowed;
@@ -164,7 +164,7 @@ public class PlayerMov : MonoBehaviour
     public LayerMask groundLayer;
     [Range(0f, 1f)] public float groundMinNormalY = 0.55f;
 
-    // 점프 순간 앞벽 체크(간단 고정 힘)
+    [Header("Front wall check")]
     public float frontCheckDistance = 0.35f;
     public float wallPushStrength = 2.0f;
 
@@ -172,7 +172,7 @@ public class PlayerMov : MonoBehaviour
     private Vector3 savedForward, savedRight;
     private bool wasAltPressedLastFrame, justReleasedAlt;
 
-    // 앉기
+    [Header("Crouching")]
     private bool isCrouching = false;
     [SerializeField] private float crouchCooldown = 0.6f;
     private float crouchCooldownTimer = 0f;
