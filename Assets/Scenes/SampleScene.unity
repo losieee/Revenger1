@@ -358,17 +358,17 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 5a0cc7d20de483d48a22cb940ade4594,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.2559496
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a0cc7d20de483d48a22cb940ade4594,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.2559493
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a0cc7d20de483d48a22cb940ade4594,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 1.2559496
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5a0cc7d20de483d48a22cb940ade4594,
         type: 3}
@@ -419,6 +419,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 341.464
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 5a0cc7d20de483d48a22cb940ade4594,
+        type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: 5a0cc7d20de483d48a22cb940ade4594,
         type: 3}
@@ -704,10 +709,10 @@ MonoBehaviour:
   assassinateSideClamp: 0.25
   assassinateRotLerp: 20
   pickupTrigger: Pickup
-  pickupTag: Pickup
   allowCancelDuringPickup: 0
   isDraggingCorpse: 0
   dragMoveSpeed: 0.5
+  eCooldownDuration: 0.6
   currentMoveInput: {x: 0, y: 0, z: 0}
   minAirTimeForLand: 0.12
   landMinDownVel: -0.4
