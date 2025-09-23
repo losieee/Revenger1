@@ -59,7 +59,6 @@ public class EnemyMov : MonoBehaviour
     private bool isFrozen = false;
     public bool IsFrozen => isFrozen;
     public static readonly int Hash_DieTrigger = Animator.StringToHash("DieTrigger");
-    public static readonly int Hash_Dead = Animator.StringToHash("Dead");
 
     [Header("시체 인지 설정")]
     public bool corpseRequiresLineOfSight = true;   // 시체도 가림막 체크할지
@@ -856,7 +855,6 @@ public class EnemyMov : MonoBehaviour
             animator.ResetTrigger("Drop");
             animator.SetBool("IsGrabbed", false);
 
-            animator.SetBool(Hash_Dead, true);          // 시체 상태 유지
             animator.SetTrigger(Hash_DieTrigger);       // 딱 한 번 Die로 진입
         }
 

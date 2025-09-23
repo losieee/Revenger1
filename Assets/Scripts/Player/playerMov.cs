@@ -32,13 +32,10 @@ public class PlayerMov : MonoBehaviour
     private bool isAssassinating = false;
     private EnemyMov pendingAssassination = null;
     [SerializeField] private float assassinateApproachDuration = 0.20f;  // 적 뒤로 붙는 시간
-    [SerializeField] private float assassinateBackOffset = 0.65f;        // 적 등 뒤 거리
-    [SerializeField] private float assassinateSideClamp = 0.25f;         // 약간 좌우 보정 허용
     [SerializeField] private float assassinateRotLerp = 20f;             // 회전 보간속도
 
     [Header("After attack NPC ")]
     [SerializeField] private string pickupTrigger = "Pickup"; // 트리거 이름
-    [SerializeField] private bool allowCancelDuringPickup = false; // (유지) 필요시 사용할 수 있음
     private bool isPickupInProgress = false;
     [HideInInspector] public bool isDraggingCorpse = false;
     public float dragMoveSpeed = 0.5f;
@@ -144,16 +141,12 @@ public class PlayerMov : MonoBehaviour
     public void BlockHoldCancel() { holdCancelAllowed = false; }
 
     // 점프 / 낙하
-    private bool isJumping = false;
-    private float jumpForce = 5f;
     private float verticalVelocity = 0f;
     private bool isLanding = false;
     private float landingTimer = 0f;
     private float landingDelay = 0.6f;
     private bool isGrounded = true;
     private bool wasGroundedLastFrame = true;
-    private float jumpCooldown = 1.9f; // 점프 쿨타임
-    private float jumpCooldownTimer = 0f;
     private float airMultiplier;
     private bool ignoreGroundedCheck = false;
     private float ignoreGroundedTimer = 0f;
@@ -545,47 +538,12 @@ public class PlayerMov : MonoBehaviour
             }
         }
 
-        // 점프
-        if (Input.GetKeyDown(KeyCode.Space) && !canClimbZone && isGrounded && !isJumping && jumpCooldownTimer <= 0f && !isCrouching && canRun)
-        {
-            ClearLandTriggers();
-            isJumping = true;
-            jumpCooldownTimer = jumpCooldown;
-            animator.SetBool("IsJumping", true);
-
-            ignoreGroundedCheck = true;
-            ignoreGroundedTimer = ignoreDurationAfterJump;
-
-            rb.isKinematic = false;
-            rb.useGravity = true;
-
-            Vector3 velocity = rb.velocity;
-            Vector3 jumpDir = currentMoveInput.sqrMagnitude > 0.01f ? currentMoveInput.normalized : transform.forward;
-            float groundSpeed = isRunning ? speed * runSpeed : speed;
-            float jumpForwardSpeed = (currentMoveInput.magnitude > 0.1f) ? groundSpeed * 0.4f : groundSpeed * 0.2f;
-
-            velocity.x = jumpDir.x * jumpForwardSpeed;
-            velocity.z = jumpDir.z * jumpForwardSpeed;
-            velocity.y = jumpForce;
-
-            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, transform.forward,
-                                out RaycastHit front, frontCheckDistance, ~0, QueryTriggerInteraction.Ignore))
-            {
-                ApplyWallPush(ref velocity, front);
-            }
-
-            rb.velocity = velocity;
-        }
-
         // Grounded 무시 타이머
         if (ignoreGroundedCheck)
         {
             ignoreGroundedTimer -= Time.deltaTime;
             if (ignoreGroundedTimer <= 0f) ignoreGroundedCheck = false;
         }
-
-        // 점프 쿨타임
-        if (jumpCooldownTimer > 0f) jumpCooldownTimer -= Time.deltaTime;
 
         // 낙하 감지
         verticalVelocity = rb.velocity.y;
@@ -607,7 +565,6 @@ public class PlayerMov : MonoBehaviour
             animator.SetBool("IsJumping", false);
             animator.SetBool("IsFalling", false);
             fallTimer = 0f;
-            isJumping = false;
             isLanding = true;
             landingTimer = landingDelay;
         }
@@ -1233,9 +1190,6 @@ public class PlayerMov : MonoBehaviour
     {
         if (ignoreGroundedCheck) return;
         if (!IsGroundContact(collision)) return;
-
-        if (isJumping || animator.GetBool("IsJumping"))
-        { isJumping = false; animator.SetBool("IsJumping", false); }
 
         if (animator.GetBool("IsFalling"))
             animator.SetBool("IsFalling", false);

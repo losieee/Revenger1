@@ -3807,6 +3807,8 @@ MonoBehaviour:
   keepFacingOpposite: 1
   rotFollowSpeed: 12
   yawOffset: 0
+  anim: {fileID: 0}
+  moveThreshold: 0.1
 --- !u!114 &6072847499534726613
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3825,9 +3827,10 @@ MonoBehaviour:
   losPoint: {fileID: 0}
   occluderMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 65
   checkInterval: 0.1
   losSamples: 3
+  sameFloorHeightEpsilon: 0.6
 --- !u!1 &9042778843922821732
 GameObject:
   m_ObjectHideFlags: 0
