@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using System;
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -13,7 +14,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject gameOverUI;
     public GameObject missionUI;
     public GameObject optionUI;
-    public GameObject nearNPC;
+    public TMP_Text nearNPC;
     private Animator animator;
     public GameObject weapon;
     public GameObject weaponChangePanel;
@@ -65,7 +66,7 @@ public class PlayerMov : MonoBehaviour
     bool EPressed()
     {
         if (eLocked) return false;                 // 잠금 중이면 무시
-        if (Input.GetKeyDown(KeyCode.E))
+        if (KeyBindings.GetKeyDown(GameAction.Interaction))
         {
             ArmELock();                            // 누른 순간 코루틴 락 시작
             return true;
@@ -198,6 +199,10 @@ public class PlayerMov : MonoBehaviour
 
     // 무기 바꾸기 관련
     public bool canWeaponSwitch = false;
+    private GameObject boxObject;
+    float weaponPanelDelay = 0.4f;                  // 박스 연 후 패널 띄우기까지 지연
+    Coroutine _openWeaponPanelCo;
+    bool _weaponPickFlowActive = false;             // 중복 입력 방지
 
     // 무기 선택
     private bool choiceWeapon;
@@ -210,6 +215,8 @@ public class PlayerMov : MonoBehaviour
     // RightArm 애니메이션 레이어 제어
     private int rightArmLayer;
     private float rightArmMaxWeight = 0.61f;
+    private float rightArmDefaultWeight = 0.61f; // 기본 복구값
+    private Coroutine _rightArmLerpCo;
 
     [Header("Minimap UI")]
     public GameObject minimapPanel;
@@ -223,11 +230,13 @@ public class PlayerMov : MonoBehaviour
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
         EnemyMov.OnAnyEnemyKilled += HandleEnemyKilled;
+        KeyBindings.OnChanged += RefreshInteractionHint;
     }
     void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         EnemyMov.OnAnyEnemyKilled -= HandleEnemyKilled;
+        KeyBindings.OnChanged -= RefreshInteractionHint;
     }
 
     GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
@@ -235,7 +244,11 @@ public class PlayerMov : MonoBehaviour
     void CloseAllPlayerUI()
     {
         foreach (var p in Panels()) HidePausePanel(p);
-        if (nearNPC) nearNPC.SetActive(false);
+        if (nearNPC) 
+        {
+            RefreshInteractionHint();
+            nearNPC.gameObject.SetActive(false); 
+        }
         Input.ResetInputAxes();
     }
 
@@ -294,6 +307,13 @@ public class PlayerMov : MonoBehaviour
         optionUI = optionUI && optionUI.scene.IsValid() ? optionUI : canvas?.transform.Find("OptionPop")?.gameObject ?? GameObject.Find("OptionPop");
         gameOverUI = gameOverUI && gameOverUI.scene.IsValid() ? gameOverUI : canvas?.transform.Find("GameOver")?.gameObject ?? GameObject.Find("GameOver");
         weaponChangePanel = weaponChangePanel && weaponChangePanel.scene.IsValid() ? weaponChangePanel : canvas?.transform.Find("Weapon_Choice_Panel")?.gameObject ?? GameObject.Find("Weapon_Choice_Panel");
+        if (nearNPC == null || !nearNPC.gameObject.scene.IsValid())
+        {
+            nearNPC = canvas?.transform.Find("NearNPC")?.GetComponent<TMPro.TMP_Text>()
+                   ?? GameObject.Find("NearNPC")?.GetComponent<TMPro.TMP_Text>();
+            if (nearNPC) nearNPC.gameObject.SetActive(false);
+        }
+        RefreshInteractionHint();
     }
 
     void Start()
@@ -602,7 +622,7 @@ public class PlayerMov : MonoBehaviour
         CheckNearbyEnemies();
 
         // 클리어
-        if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && Input.GetMouseButtonDown(0))
+        if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack))
             ShowPausePanel(gameClearUI);
 
         // 미니맵
@@ -615,6 +635,12 @@ public class PlayerMov : MonoBehaviour
         // ESC 옵션 토글
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            if (RebindKeyButton.IsAnyListening)
+            {
+                RebindKeyButton.CancelAll();
+                return;
+            }
+
             if (missionUI && missionUI.activeSelf) { HidePausePanel(missionUI); return; }
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
@@ -624,7 +650,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 암살
-        if (canKill && Input.GetMouseButtonDown(0))
+        if (canKill && KeyBindings.GetKeyDown(GameAction.Attack))
         {
             if (killTarget != null) StartAssassination(killTarget);
         }
@@ -641,12 +667,29 @@ public class PlayerMov : MonoBehaviour
         // 무기 선택창
         if (choiceWeapon && EPressed())
         {
+            if (weaponChangePanel && weaponChangePanel.activeSelf)
+            {
+                HidePausePanel(weaponChangePanel);
+                canChoiceWeapon = false;
+                _weaponPickFlowActive = false;
+                if (_openWeaponPanelCo != null) { StopCoroutine(_openWeaponPanelCo); _openWeaponPanelCo = null; }
+                return;
+            }
+
+            if (_weaponPickFlowActive) return; // 진행 중이면 무시
+            _weaponPickFlowActive = true;
+
             ButtonControl button = transform.GetChild(1).GetChild(0).GetChild(1).GetComponent<ButtonControl>();
             button.canNextStage = true;
 
-            canChoiceWeapon = !canChoiceWeapon;
-            if (canChoiceWeapon) ShowPausePanel(weaponChangePanel);
-            else HidePausePanel(weaponChangePanel);
+            blockInput = true;
+            currentMoveInput = Vector3.zero;
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+
+            animator.ResetTrigger("WeaponPick");
+            animator.SetTrigger("WeaponPick");
         }
 
         // 무기 스위치 가능해지면 패널 닫기
@@ -669,6 +712,28 @@ public class PlayerMov : MonoBehaviour
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
             if (weapon) weapon.SetActive(true);
         }
+    }
+
+    public void AE_WeaponPick_Box()
+    {
+        // 박스 열기 (PlayBox)
+        if (boxObject) boxObject.GetComponentInChildren<BoxOpen>()?.PlayBox();
+
+        // 1초(weaponPanelDelay) 뒤 패널 오픈
+        if (_openWeaponPanelCo != null) StopCoroutine(_openWeaponPanelCo);
+        _openWeaponPanelCo = StartCoroutine(OpenWeaponPanelAfter(weaponPanelDelay));
+    }
+
+    IEnumerator OpenWeaponPanelAfter(float delay)
+    {
+        // 타임스케일 0 영향을 받지 않도록 Realtime로 대기
+        yield return new WaitForSecondsRealtime(delay);
+
+        canChoiceWeapon = true;
+
+        ShowPausePanel(weaponChangePanel);
+
+        _openWeaponPanelCo = null;
     }
 
     // 공격 (암살)
@@ -1122,7 +1187,7 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("NPC"))
         {
-            nearNPC.SetActive(true);
+            nearNPC.gameObject.SetActive(true);
             canTakeMission = true;
         }
 
@@ -1148,7 +1213,11 @@ public class PlayerMov : MonoBehaviour
             doorOpen = Mathf.Abs(Mathf.DeltaAngle(yNow, doorOpenAngleY)) < 5f;
         }
 
-        if (other.CompareTag("WeaponBox")) choiceWeapon = true;
+        if (other.CompareTag("WeaponBox")) 
+        { 
+            choiceWeapon = true;
+            boxObject = other.gameObject;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -1157,7 +1226,7 @@ public class PlayerMov : MonoBehaviour
         if (other.CompareTag("ClimbZone")) canClimbZone = false;
         if (other.CompareTag("Boss")) canAttack = false;
 
-        if (other.CompareTag("NPC")) { nearNPC.SetActive(false); canTakeMission = false; }
+        if (other.CompareTag("NPC")) { nearNPC.gameObject.SetActive(false); canTakeMission = false; }
 
         if (other.CompareTag("Attack"))
         {
@@ -1436,6 +1505,8 @@ public class PlayerMov : MonoBehaviour
             Time.timeScale = 1f;
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
+            blockInput = false;
+            _weaponPickFlowActive = false;
         }
     }
 
@@ -1511,6 +1582,8 @@ public class PlayerMov : MonoBehaviour
         if (!isAssassinating || pendingAssassination == null) return;
         var toKill = pendingAssassination;
         pendingAssassination = null;
+        rightArmMaxWeight = 0.01f;
+        FadeRightArmLayer(0f, 0.08f);
         toKill.Kill();
     }
     public void OnAssassinationEnd()
@@ -1525,7 +1598,22 @@ public class PlayerMov : MonoBehaviour
         isAssassinating = false;
         blockInput = false;
 
+        FadeRightArmLayer(0.61f, 0.08f);
         animator.ResetTrigger("AttackCrowbar");
+    }
+
+    // 공격 시작 시 (클립 첫 프레임 근처)
+    public void AE_AttackStart()
+    {
+        rightArmMaxWeight = 0.01f;
+        FadeRightArmLayer(0f, 0.08f);
+    }
+
+    // 공격 끝 시 (클립 마지막 프레임 근처)
+    public void AE_AttackEnd()
+    {
+        rightArmMaxWeight = rightArmDefaultWeight;
+        FadeRightArmLayer(rightArmDefaultWeight, 0.08f);
     }
 
     // 픽업 애니 이벤트
@@ -1556,5 +1644,32 @@ public class PlayerMov : MonoBehaviour
     public void AE_PickupLockOff()
     {
         blockInput = false;
+    }
+
+    void RefreshInteractionHint()
+    {
+        if (!nearNPC) return;
+        var keyName = KeyBindings.ToDisplay(KeyBindings.Get(GameAction.Interaction));
+        nearNPC.text = $"Press '{keyName}' to talk";
+    }
+
+    void FadeRightArmLayer(float targetWeight, float duration = 0.08f)
+    {
+        if (rightArmLayer < 0 || animator == null) return;
+        if (_rightArmLerpCo != null) StopCoroutine(_rightArmLerpCo);
+        _rightArmLerpCo = StartCoroutine(RightArmWeightLerp(targetWeight, duration));
+    }
+    IEnumerator RightArmWeightLerp(float target, float dur)
+    {
+        float start = animator.GetLayerWeight(rightArmLayer);
+        float t = 0f;
+        dur = Mathf.Max(0.0001f, dur);
+        while (t < 1f)
+        {
+            t += Time.deltaTime / dur;
+            animator.SetLayerWeight(rightArmLayer, Mathf.Lerp(start, target, t));
+            yield return null;
+        }
+        animator.SetLayerWeight(rightArmLayer, target);
     }
 }

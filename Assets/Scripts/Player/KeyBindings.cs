@@ -1,11 +1,11 @@
 using UnityEngine;
 using System;
 
-public enum GameAction { Forward, Back, Left, Right, Run, Crouch, Climb }
+public enum GameAction { Forward, Back, Left, Right, Run, Crouch, Climb, Interaction, Attack }
 
 public static class KeyBindings
 {
-    public static event Action OnChanged;
+    public static event System.Action OnChanged;
 
     // 기본값
     static readonly KeyCode DEF_FORWARD = KeyCode.W;
@@ -15,6 +15,8 @@ public static class KeyBindings
     static readonly KeyCode DEF_RUN = KeyCode.LeftShift;
     static readonly KeyCode DEF_CROUCH = KeyCode.C;
     static readonly KeyCode DEF_CLIMB = KeyCode.Space;
+    static readonly KeyCode DEF_Interaction= KeyCode.E;
+    static readonly KeyCode DEF_ATTACK = KeyCode.Mouse0;
 
     static KeyCode _forward = DEF_FORWARD;
     static KeyCode _back = DEF_BACK;
@@ -23,6 +25,8 @@ public static class KeyBindings
     static KeyCode _run = DEF_RUN;
     static KeyCode _crouch = DEF_CROUCH;
     static KeyCode _climb = DEF_CLIMB;
+    static KeyCode _interaction = DEF_Interaction;
+    static KeyCode _attack = DEF_ATTACK;
 
     const string PF_PREFIX = "KEYBIND_";
     static bool _loaded = false;
@@ -37,6 +41,8 @@ public static class KeyBindings
         _run = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Run), (int)DEF_RUN);
         _crouch = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Crouch), (int)DEF_CROUCH);
         _climb = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Climb), (int)DEF_CLIMB);
+        _interaction = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Interaction), (int)DEF_Interaction);
+        _attack = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Attack), (int)DEF_ATTACK);
         _loaded = true;
     }
 
@@ -52,14 +58,31 @@ public static class KeyBindings
             case GameAction.Run: return _run;
             case GameAction.Crouch: return _crouch;
             case GameAction.Climb: return _climb;
+            case GameAction.Interaction: return _interaction;
+            case GameAction.Attack: return _attack;
         }
         return KeyCode.None;
+    }
+
+    static bool TryGetMouseIndex(KeyCode kc, out int index)
+    {
+        if (kc == KeyCode.Mouse0) { index = 0; return true; }
+        if (kc == KeyCode.Mouse1) { index = 1; return true; }
+        index = -1; return false;
+    }
+    static bool IsAllowedKey(KeyCode code)
+    {
+        // 마우스 계열이면 Left/Right만 허용
+        if (code >= KeyCode.Mouse0 && code <= KeyCode.Mouse6)
+            return code == KeyCode.Mouse0 || code == KeyCode.Mouse1;
+        return code != KeyCode.None;
     }
 
     // 충돌 시 스왑(기본 true)
     public static bool TrySet(GameAction a, KeyCode code, bool swapIfUsed = true)
     {
         EnsureLoaded();
+        if (!IsAllowedKey(code)) return false;
         if (code == KeyCode.None) return false;
         if (Get(a) == code) return true;
 
@@ -93,6 +116,8 @@ public static class KeyBindings
             case GameAction.Run: _run = code; break;
             case GameAction.Crouch: _crouch = code; break;
             case GameAction.Climb: _climb = code; break;
+            case GameAction.Interaction: _interaction = code; break;
+            case GameAction.Attack: _attack = code; break;
         }
     }
 
@@ -105,6 +130,8 @@ public static class KeyBindings
         if (_run == code) { action = GameAction.Run; return true; }
         if (_crouch == code) { action = GameAction.Crouch; return true; }
         if (_climb == code) { action = GameAction.Climb; return true; }
+        if (_interaction == code) { action = GameAction.Interaction; return true; }
+        if (_attack == code) { action = GameAction.Attack; return true; }
         action = default;
         return false;
     }
@@ -118,6 +145,8 @@ public static class KeyBindings
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Run), (int)_run);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Crouch), (int)_crouch);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Climb), (int)_climb);
+        PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Interaction), (int)_interaction);
+        PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Attack), (int)_attack);
         PlayerPrefs.Save();
         OnChanged?.Invoke();
     }
@@ -127,11 +156,32 @@ public static class KeyBindings
         EnsureLoaded();
         _forward = DEF_FORWARD; _back = DEF_BACK; _left = DEF_LEFT; _right = DEF_RIGHT;
         _run = DEF_RUN; _crouch = DEF_CROUCH; _climb = DEF_CLIMB;
+        _interaction = DEF_Interaction;
+        _attack = DEF_ATTACK;
         SaveAll();
     }
 
-    public static bool GetKey(GameAction a) => Input.GetKey(Get(a));
-    public static bool GetKeyDown(GameAction a) => Input.GetKeyDown(Get(a));
+    public static bool GetKey(GameAction a)
+    {
+        EnsureLoaded();
+        var kc = Get(a);
+        if (TryGetMouseIndex(kc, out int mi)) return Input.GetMouseButton(mi);
+        return Input.GetKey(kc);
+    }
+    public static bool GetKeyDown(GameAction a)
+    {
+        EnsureLoaded();
+        var kc = Get(a);
+        if (TryGetMouseIndex(kc, out int mi)) return Input.GetMouseButtonDown(mi);
+        return Input.GetKeyDown(kc);
+    }
+    public static bool GetKeyUp(GameAction a)
+    {
+        EnsureLoaded();
+        var kc = Get(a);
+        if (TryGetMouseIndex(kc, out int mi)) return Input.GetMouseButtonUp(mi);
+        return Input.GetKeyUp(kc);
+    }
 
     public static float GetAxisHorizontal()
     {
@@ -160,6 +210,8 @@ public static class KeyBindings
             case KeyCode.RightShift: return "R-Shift";
             case KeyCode.LeftAlt: return "L-Alt";
             case KeyCode.RightAlt: return "R-Alt";
+            case KeyCode.Mouse0: return "L-Mouse";
+            case KeyCode.Mouse1: return "R-Mouse";
             default: return code.ToString();
         }
     }

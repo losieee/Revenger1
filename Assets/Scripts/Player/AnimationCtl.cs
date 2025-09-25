@@ -87,6 +87,18 @@ public class AnimationCtl : MonoBehaviour
             player.OnAssassinationEnd();
     }
 
+    public void Crowbar_AttackAnimArmStart()
+    {
+        if (player != null)
+            player.AE_AttackStart();
+    }
+
+    public void Crowbar_AttackAnimArmEnd()
+    {
+        if (player != null)
+            player.AE_AttackEnd();
+    }
+
     public void PickupFinished()
     {
         if (player != null)
@@ -101,5 +113,11 @@ public class AnimationCtl : MonoBehaviour
     {
         if (player != null)
             player.AE_PickupLockOff();
+    }
+
+    public void OpenBox()
+    {
+        if (player != null)
+            player.AE_WeaponPick_Box();
     }
 }

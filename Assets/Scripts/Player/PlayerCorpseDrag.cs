@@ -3,7 +3,6 @@ using UnityEngine;
 public class PlayerCorpseDrag : MonoBehaviour
 {
     [Header("설정")]
-    public KeyCode toggleKey = KeyCode.E;   // 토글 키
     public float grabRange = 2f;            // 시체 잡는 범위
     public LayerMask corpseHandleMask;      // 잡을 수 있는 Handle 전용 Layer
     public Transform dragAnchor;            // 플레이어 뒤쪽 앵커 (없으면 자동 생성)
@@ -28,7 +27,7 @@ public class PlayerCorpseDrag : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(toggleKey))
+        if (KeyBindings.GetKeyDown(GameAction.Interaction))
         {
             // === 가드: 픽업 중이거나 E락이면 무시 ===
             if (playerMov != null)
