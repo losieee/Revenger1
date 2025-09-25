@@ -27,6 +27,11 @@ public class ButtonControl : MonoBehaviour
 
     [HideInInspector] public bool canNextStage = false;
 
+    private void OnDisable()
+    {
+        transform.GetChild(1).gameObject.SetActive(false);
+    }
+
     void Start()
     {
         // 슬라이더 초기화
@@ -89,6 +94,11 @@ public class ButtonControl : MonoBehaviour
     public void LoadSceneSimple(string sceneName)
     {
         if (string.IsNullOrEmpty(sceneName)) return;
+        else if (transform.GetComponentInParent<PlayerMov>().canWeaponSwitch == false)
+        {
+            transform.GetChild(1).gameObject.SetActive(true);
+            return;
+        }
 
         // 혹시 일시정지/볼륨이 켜져 있던 상황 복구
         AudioListener.pause = false;

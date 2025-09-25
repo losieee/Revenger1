@@ -16,6 +16,10 @@ public class CameraMov : MonoBehaviour
     public float pitchMin = -40f;
     public float pitchMax = 80f;
 
+    // 민감도 범위 (옵션에서 조절 가능하게)
+    public float minSensitivity = 1f;
+    public float maxSensitivity = 6f;
+
     [Header("충돌 감지")]
     public float collisionRadius = 0.25f;       // 구(SphereCast) 반지름
     public float collisionOffset = 0.15f;       // 벽에서 살짝 띄우는 양
@@ -140,6 +144,16 @@ public class CameraMov : MonoBehaviour
 
         yaw = targetYaw;
         recenterCoroutine = null;
+    }
+
+    public void SetSensitivity01(float v)
+    {
+        mouseSensitivity = Mathf.Lerp(minSensitivity, maxSensitivity, v);
+    }
+
+    public float GetSensitivity01()
+    {
+        return Mathf.InverseLerp(minSensitivity, maxSensitivity, mouseSensitivity);
     }
 
     public void SetTarget(Transform t) => target = t;

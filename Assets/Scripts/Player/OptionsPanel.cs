@@ -8,12 +8,42 @@ public class OptionsPanel : MonoBehaviour
     [SerializeField] private Slider musicSlider;
     [SerializeField] private Slider effectSlider;
 
+    [SerializeField] private GameObject soundSettingImg;
+    [SerializeField] private GameObject keySettingImg;
+    [SerializeField] private Slider sensitivity;
+
     void OnEnable()
     {
+        soundSettingImg.SetActive(true);
+        keySettingImg.SetActive(false);
+
         // 창이 켜질 때 현재 값을 UI에 반영
-        if (SoundManager.i == null) return;
-        musicSlider.SetValueWithoutNotify(SoundManager.i.GetMusicVolume01());
-        effectSlider.SetValueWithoutNotify(SoundManager.i.GetEffectVolume01());
+        if (SoundManager.i != null)
+        {
+            musicSlider.SetValueWithoutNotify(SoundManager.i.GetMusicVolume01());
+            effectSlider.SetValueWithoutNotify(SoundManager.i.GetEffectVolume01());
+        }
+
+        if (CameraMov.i != null)
+            sensitivity.SetValueWithoutNotify(CameraMov.i.GetSensitivity01());
+    }
+
+    public void OnSoundSetting()
+    {
+        soundSettingImg.SetActive(true);
+        keySettingImg.SetActive(false);
+    }
+
+    public void OnKeySetting()
+    {
+        soundSettingImg.SetActive(false);
+        keySettingImg.SetActive(true);
+    }
+
+    public void OnSensitivityChanged(float v)
+    {
+        if (CameraMov.i != null)
+            CameraMov.i.SetSensitivity01(v);
     }
 
     // 슬라이더 OnValueChanged(float)에 연결

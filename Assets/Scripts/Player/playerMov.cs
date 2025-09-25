@@ -197,7 +197,7 @@ public class PlayerMov : MonoBehaviour
     private Coroutine doorRoutine;
 
     // 무기 바꾸기 관련
-    private bool canWeaponSwitch = false;
+    public bool canWeaponSwitch = false;
 
     // 무기 선택
     private bool choiceWeapon;
@@ -321,6 +321,7 @@ public class PlayerMov : MonoBehaviour
         // 서있는 값 저장
         boxSizeStand = box.size;
         boxCenterStand = box.center;
+        canTakeMission = false;
 
         // 앉은 값 계산(바닥 고정)
         float newH = crouchHeight;
@@ -381,14 +382,14 @@ public class PlayerMov : MonoBehaviour
 
             bool canCancelNow = holdCancelAllowed && !isLerpingHoldOffset && canStartClimb && isHoldingState;
 
-            if (canCancelNow && !isCancellingHold && Input.GetKeyDown(KeyCode.S))
+            if (canCancelNow && !isCancellingHold && KeyBindings.GetKeyDown(GameAction.Back))
                 StartCoroutine(CancelHoldAndReturn());
 
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
             animator.SetFloat("Speed", 0f);
 
-            if (Input.GetKeyDown(KeyCode.Space) && canStartClimb)
+            if (KeyBindings.GetKeyDown(GameAction.Climb) && canStartClimb)
                 StartClimbFromHold(0.52f);
             return;
         }
@@ -416,11 +417,11 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 입력
-        isRunning = canRun && Input.GetKey(KeyCode.LeftShift) && !isCrouching;
+        isRunning = canRun && KeyBindings.GetKey(GameAction.Run) && !isCrouching;
         bool isAlt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
 
-        float h = Input.GetAxis("Horizontal");
-        float v = Input.GetAxis("Vertical");
+        float h = KeyBindings.GetAxisHorizontal();
+        float v = KeyBindings.GetAxisVertical();
 
         Vector3 camForward = cameraPivot.forward;
         Vector3 camRight = cameraPivot.right;
@@ -466,7 +467,7 @@ public class PlayerMov : MonoBehaviour
         float back01 = 0f;
         if (isDraggingCorpse)
         {
-            back01 = Mathf.Max(0f, -Input.GetAxisRaw("Vertical")); // S만 반응
+            back01 = KeyBindings.GetKey(GameAction.Back) ? 1f : 0f;
             currentMoveInput = -transform.forward * back01;
 
             // 취소(E) — 픽업 중에는 무시됨
@@ -514,7 +515,7 @@ public class PlayerMov : MonoBehaviour
         if (justReleasedAlt && !isAlt) justReleasedAlt = false;
 
         // 벽 잡기 시작
-        if (Input.GetKeyDown(KeyCode.Space) && canClimbZone && !isHolding && !isClimbing)
+        if (KeyBindings.GetKeyDown(GameAction.Climb) && canClimbZone && !isHolding && !isClimbing)
         {
             Vector3 dir = transform.forward;
             Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
@@ -578,7 +579,7 @@ public class PlayerMov : MonoBehaviour
         wasGroundedLastFrame = isGrounded;
 
         // C 눌러 앉기
-        if (Input.GetKeyDown(KeyCode.C) && crouchCooldownTimer <= 0f)
+        if (KeyBindings.GetKeyDown(GameAction.Crouch) && crouchCooldownTimer <= 0f)
         {
             bool wantCrouch = !isCrouching;
 
@@ -1416,7 +1417,7 @@ public class PlayerMov : MonoBehaviour
             || (weaponChangePanel && weaponChangePanel.activeSelf);
     }
 
-    void HidePausePanel(GameObject panel)
+    public void HidePausePanel(GameObject panel)
     {
         if (!panel) return;
 
