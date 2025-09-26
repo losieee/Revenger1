@@ -200,7 +200,7 @@ public class PlayerMov : MonoBehaviour
     // 무기 바꾸기 관련
     public bool canWeaponSwitch = false;
     private GameObject boxObject;
-    float weaponPanelDelay = 0.4f;                  // 박스 연 후 패널 띄우기까지 지연
+    public float weaponPanelDelay = 0.7f;                  // 박스 연 후 패널 띄우기까지 지연
     Coroutine _openWeaponPanelCo;
     bool _weaponPickFlowActive = false;             // 중복 입력 방지
 

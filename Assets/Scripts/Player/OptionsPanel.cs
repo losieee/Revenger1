@@ -14,9 +14,6 @@ public class OptionsPanel : MonoBehaviour
 
     void OnEnable()
     {
-        soundSettingImg.SetActive(true);
-        keySettingImg.SetActive(false);
-
         // 창이 켜질 때 현재 값을 UI에 반영
         if (SoundManager.i != null)
         {
