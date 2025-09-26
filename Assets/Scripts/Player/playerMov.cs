@@ -200,9 +200,10 @@ public class PlayerMov : MonoBehaviour
     // 무기 바꾸기 관련
     public bool canWeaponSwitch = false;
     private GameObject boxObject;
-    public float weaponPanelDelay = 0.7f;                  // 박스 연 후 패널 띄우기까지 지연
+    public float weaponPanelDelay = 0.7f;           // 박스 연 후 패널 띄우기까지 지연
     Coroutine _openWeaponPanelCo;
     bool _weaponPickFlowActive = false;             // 중복 입력 방지
+    private int _selectedWeaponChildIndex = -1;     // 0=Gun, 1=Crowbar
 
     // 무기 선택
     private bool choiceWeapon;
@@ -211,6 +212,7 @@ public class PlayerMov : MonoBehaviour
     // RightHandGrip 애니메이션 레이어 제어
     private int gripLayer;
     private int gripIdleHash;
+    private int gripBatPoseHash;
     private int gripGunPoseHash;
     // RightArm 애니메이션 레이어 제어
     private int rightArmLayer;
@@ -231,12 +233,14 @@ public class PlayerMov : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
         EnemyMov.OnAnyEnemyKilled += HandleEnemyKilled;
         KeyBindings.OnChanged += RefreshInteractionHint;
+        WeaponManager.OnWeaponChosen += ApplyChosenWeaponImmediate;
     }
     void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         EnemyMov.OnAnyEnemyKilled -= HandleEnemyKilled;
         KeyBindings.OnChanged -= RefreshInteractionHint;
+        WeaponManager.OnWeaponChosen -= ApplyChosenWeaponImmediate;
     }
 
     GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
@@ -328,6 +332,7 @@ public class PlayerMov : MonoBehaviour
 
         gripLayer = animator.GetLayerIndex("RightHandGrip");
         gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
+        gripBatPoseHash = Animator.StringToHash("RightHandGrip.BatPose");
         gripGunPoseHash = Animator.StringToHash("RightHandGrip.GunPose");
         rightArmLayer = animator.GetLayerIndex("RightArm");
         RebindMinimapAndEnemies();
@@ -667,6 +672,9 @@ public class PlayerMov : MonoBehaviour
         // 무기 선택창
         if (choiceWeapon && EPressed())
         {
+            if (IsAnyWeaponActive())
+                ForceUnequipWeapon();
+
             if (weaponChangePanel && weaponChangePanel.activeSelf)
             {
                 HidePausePanel(weaponChangePanel);
@@ -693,7 +701,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 무기 스위치 가능해지면 패널 닫기
-        if (WeaponManager.i && WeaponManager.i.canSwitch && !canWeaponSwitch)
+        if (WeaponManager.i && WeaponManager.i.canCrowbarSwitch && !canWeaponSwitch)
         {
             canWeaponSwitch = true;
             if (weaponChangePanel && weaponChangePanel.activeSelf) HidePausePanel(weaponChangePanel);
@@ -704,13 +712,69 @@ public class PlayerMov : MonoBehaviour
         {
             if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
-            if (weapon) weapon.SetActive(false);
+
+            if (weapon)
+            {
+                weapon.SetActive(false);
+                for (int i = 0; i < weapon.transform.childCount; i++)
+                    weapon.transform.GetChild(i).gameObject.SetActive(false);
+            }
         }
         if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch)    // 무기
         {
-            if (gripLayer >= 0) animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
-            if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
-            if (weapon) weapon.SetActive(true);
+            if (WeaponManager.i == null) return;
+
+            // 선택이 없으면 동작 X
+            if (_selectedWeaponChildIndex < 0) return;
+
+            // 포즈 적용
+            switch (WeaponManager.i.SelectedWeapon)
+            {
+                case WeaponManager.WeaponType.Gun:
+                    if (gripLayer >= 0) animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
+                    if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
+                    break;
+
+                case WeaponManager.WeaponType.Crowbar:
+                    if (gripLayer >= 0) animator.CrossFade(gripBatPoseHash, 0.1f, gripLayer, 0f);
+                    if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
+                    break;
+            }
+
+            if (weapon)
+            {
+                weapon.SetActive(true);
+                for (int i = 0; i < weapon.transform.childCount; i++)
+                    weapon.transform.GetChild(i).gameObject.SetActive(i == _selectedWeaponChildIndex);
+            }
+        }
+    }
+
+    // 상자를 열기 전 무기를 들고있으면 비활성화
+    private bool IsAnyWeaponActive()
+    {
+        if (!weapon || !weapon.activeSelf) return false;
+        for (int i = 0; i < weapon.transform.childCount; i++)
+        {
+            if (weapon.transform.GetChild(i).gameObject.activeSelf) return true;
+        }
+        return false;
+    }
+
+    private void ForceUnequipWeapon()
+    {
+        // 애니: 맨손 포즈
+        if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
+        if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
+
+        // 실제 오브젝트 비활성화
+        if (weapon)
+        {
+            for (int i = 0; i < weapon.transform.childCount; i++)
+                weapon.transform.GetChild(i).gameObject.SetActive(false);
+
+            // 완전 숨기고 싶으면 false, 루트는 켜두고 싶으면 true 유지
+            weapon.SetActive(false);
         }
     }
 
@@ -1054,6 +1118,44 @@ public class PlayerMov : MonoBehaviour
 
             if (!adjusted) break;
         }
+    }
+
+    // 무기 선택 시 즉시 적용 함수
+    private void ApplyChosenWeaponImmediate(WeaponManager.WeaponType type)
+    {
+        if (!weapon || !animator) return;
+
+        // 선택된 무기 child index 정하기 (요구사항: 0=Gun, 1=Crowbar)
+        switch (type)
+        {
+            case WeaponManager.WeaponType.Gun:
+                _selectedWeaponChildIndex = 0;
+                // 포즈: 총
+                if (gripLayer >= 0) animator.CrossFade(gripGunPoseHash, 0.1f, gripLayer, 0f);
+                if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
+                break;
+
+            case WeaponManager.WeaponType.Crowbar:
+                _selectedWeaponChildIndex = 1;
+                // 포즈: 빠루(배트 포즈 재활용)
+                if (gripLayer >= 0) animator.CrossFade(gripBatPoseHash, 0.1f, gripLayer, 0f);
+                if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
+                break;
+
+            default:
+                _selectedWeaponChildIndex = -1;
+                if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
+                if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
+                break;
+        }
+
+        // 무기 루트는 켜고, 선택한 것만 켜기
+        weapon.SetActive(true);
+        for (int i = 0; i < weapon.transform.childCount; i++)
+            weapon.transform.GetChild(i).gameObject.SetActive(i == _selectedWeaponChildIndex);
+
+        // 스위치 가능 플래그도 열어주기 (버튼 누르면 패널 닫히는 기존 흐름 유지)
+        canWeaponSwitch = true;
     }
 
     private bool BoxGroundProbeMulti()

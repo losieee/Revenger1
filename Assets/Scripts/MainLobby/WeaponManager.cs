@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,7 +7,13 @@ public class WeaponManager : MonoBehaviour
 {
     public static WeaponManager i;
 
-    [HideInInspector] public bool canSwitch = false;
+    [HideInInspector] public bool canCrowbarSwitch = false;
+    [HideInInspector] public bool canGunSwitch = false;
+
+    public enum WeaponType { None, Crowbar, Gun }
+    public WeaponType SelectedWeapon { get; private set; } = WeaponType.None;
+
+    public static event Action<WeaponType> OnWeaponChosen;
 
     void Awake()
     {
@@ -17,6 +24,15 @@ public class WeaponManager : MonoBehaviour
 
     public void OnClickCrowbar()
     {
-        canSwitch = true;
+        canCrowbarSwitch = true;
+        SelectedWeapon = WeaponType.Crowbar;
+        OnWeaponChosen?.Invoke(SelectedWeapon);
+    }
+
+    public void OnClickGun()
+    {
+        canGunSwitch = true;
+        SelectedWeapon = WeaponType.Gun;
+        OnWeaponChosen?.Invoke(SelectedWeapon);
     }
 }
