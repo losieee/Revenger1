@@ -35,19 +35,12 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float assassinateApproachDuration = 0.20f;  // 적 뒤로 붙는 시간
     [SerializeField] private float assassinateRotLerp = 20f;             // 회전 보간속도
 
-    [Header("After attack NPC ")]
-    [SerializeField] private string pickupTrigger = "Pickup"; // 트리거 이름
-    private bool isPickupInProgress = false;
-    [HideInInspector] public bool isDraggingCorpse = false;
-    public float dragMoveSpeed = 0.5f;
-
     [Header("E Cooldown")]
     [SerializeField] private float eCooldownDuration = 0.6f;
     private bool eLocked = false;
     private Coroutine eLockCo;
 
     // 외부에서 읽을 수 있도록 공개(추가)
-    public bool IsPickupInProgress => isPickupInProgress;
     public bool IsELocked => eLocked;
 
     private IEnumerator ELock(float sec)
@@ -474,7 +467,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 1) 일반 이동
-        if (!blockInput && !isDraggingCorpse)
+        if (!blockInput)
         {
             Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
             float lerpSpeed = (isGrounded && !isLanding) ? 15f : 5f;
@@ -488,49 +481,25 @@ public class PlayerMov : MonoBehaviour
             currentMoveInput = Vector3.zero;
         }
 
-        // 2) 드래그 전용 입력: 뒤로만
-        float back01 = 0f;
-        if (isDraggingCorpse)
-        {
-            back01 = KeyBindings.GetKey(GameAction.Back) ? 1f : 0f;
-            currentMoveInput = -transform.forward * back01;
-
-            // 취소(E) — 픽업 중에는 무시됨
-            if (!isPickupInProgress && isDraggingCorpse && EPressed())
-            {
-                OnDragStop();
-                animator.SetBool("IsDragging", false);
-                animator.CrossFade("Locomotion", 0.1f, 0, 0f);
-                return;
-            }
-        }
-
         // 애니 파라미터
-        if (isDraggingCorpse)
+        Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
+        moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
+        moveY = Mathf.SmoothDamp(moveY, localMove.z, ref velY, smoothTime);
+        animator.SetFloat("MoveX", moveX);
+        animator.SetFloat("MoveY", moveY);
+
+        float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f)
+            ? (isRunning ? 1f : 0.5f)
+            : 0f;
+        animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
+        if (speedParam == 0f)
         {
-            animator.SetBool("IsDragging", true);
-            animator.SetFloat("DragMove", back01);
             animator.SetFloat("MoveX", 0f);
             animator.SetFloat("MoveY", 0f);
-            animator.SetFloat("Speed", 0f);
-        }
-        else
-        {
-            animator.SetBool("IsDragging", false);
-
-            Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
-            moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
-            moveY = Mathf.SmoothDamp(moveY, localMove.z, ref velY, smoothTime);
-            animator.SetFloat("MoveX", moveX);
-            animator.SetFloat("MoveY", moveY);
-
-            float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f) ? (isRunning ? 1f : 0.5f) : 0f;
-            animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
-            if (speedParam == 0f) { animator.SetFloat("MoveX", 0f); animator.SetFloat("MoveY", 0f); }
         }
 
         // 회전
-        if (!isDraggingCorpse && currentMoveInput.sqrMagnitude > 0.001f)
+        if (currentMoveInput.sqrMagnitude > 0.001f)
         {
             Quaternion targetRot = Quaternion.LookRotation(currentMoveInput);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * 100f * Time.deltaTime);
@@ -619,8 +588,8 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 속도
-        float moveSpeed = isDraggingCorpse ? dragMoveSpeed : (isRunning ? speed * runSpeed : speed);
-        if (!isDraggingCorpse && isCrouching) moveSpeed *= 0.6f;
+        float moveSpeed = isRunning ? speed * runSpeed : speed;
+        if (isCrouching) moveSpeed *= 0.6f;
         currentMoveSpeed = moveSpeed;
 
         // 소리 범위 알림
@@ -655,9 +624,16 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 암살
-        if (canKill && KeyBindings.GetKeyDown(GameAction.Attack))
+        if (_sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && canKill)
         {
-            if (killTarget != null) StartAssassination(killTarget);
+            if (canKill && killTarget != null)
+            {
+                StartAssassination(killTarget);
+            }
+            else if (!AnyPauseOpen()) // 클리어/옵션 UI 떠 있으면 무시
+            {
+                PlayAttackByWeapon();
+            }
         }
 
         // 문열기
@@ -736,6 +712,11 @@ public class PlayerMov : MonoBehaviour
                     break;
 
                 case WeaponManager.WeaponType.Crowbar:
+                    if (gripLayer >= 0) animator.CrossFade(gripBatPoseHash, 0.1f, gripLayer, 0f);
+                    if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
+                    break;
+
+                case WeaponManager.WeaponType.Bat:
                     if (gripLayer >= 0) animator.CrossFade(gripBatPoseHash, 0.1f, gripLayer, 0f);
                     if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
                     break;
@@ -863,8 +844,7 @@ public class PlayerMov : MonoBehaviour
         if (finalDir.sqrMagnitude > 1e-6f)
             transform.rotation = Quaternion.LookRotation(finalDir, Vector3.up);
 
-        animator.ResetTrigger("AttackGun");
-        animator.SetTrigger("AttackCrowbar");
+        TriggerAttackByCurrentWeapon();
     }
 
     void LateUpdate()
@@ -1034,7 +1014,7 @@ public class PlayerMov : MonoBehaviour
         bool block = isClimbing || isHolding;
         if (block) return;
 
-        airMultiplier = (isDraggingCorpse || isGrounded) ? 1f : 0.5f;
+        airMultiplier = isGrounded ? 1f : 0.5f;
         Vector3 move = currentMoveInput * currentMoveSpeed * airMultiplier * Time.fixedDeltaTime;
 
         Vector3 newPos = rb.position + move;
@@ -1137,8 +1117,18 @@ public class PlayerMov : MonoBehaviour
 
             case WeaponManager.WeaponType.Crowbar:
                 _selectedWeaponChildIndex = 1;
-                // 포즈: 빠루(배트 포즈 재활용)
+                // 포즈: 빠루
                 if (gripLayer >= 0) animator.CrossFade(gripBatPoseHash, 0.1f, gripLayer, 0f);
+                if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
+                break;
+
+            case WeaponManager.WeaponType.Bat:
+                _selectedWeaponChildIndex = 2;
+                // 포즈: Bat
+                if (gripLayer >= 0) animator.CrossFade(gripBatPoseHash, 0.1f, gripLayer, 0f);
+                rightArmDefaultWeight = 0.85f;
+                rightArmMaxWeight = rightArmDefaultWeight;
+
                 if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, rightArmMaxWeight);
                 break;
 
@@ -1156,6 +1146,11 @@ public class PlayerMov : MonoBehaviour
 
         // 스위치 가능 플래그도 열어주기 (버튼 누르면 패널 닫히는 기존 흐름 유지)
         canWeaponSwitch = true;
+
+        if (weaponChangePanel && weaponChangePanel.activeSelf)
+            HidePausePanel(weaponChangePanel);
+
+        _weaponPickFlowActive = false;
     }
 
     private bool BoxGroundProbeMulti()
@@ -1349,7 +1344,7 @@ public class PlayerMov : MonoBehaviour
         if (other.CompareTag("WeaponBox")) choiceWeapon = false;
     }
 
-    void UpdateRunLock() => canRun = (donRunZoneCount == 0) && !isDraggingCorpse;
+    void UpdateRunLock() => canRun = (donRunZoneCount == 0);
 
     private bool IsGroundContact(Collision col)
     {
@@ -1612,68 +1607,58 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // === 드래그 I/F ===
-    public void OnDragStart()
+    // 무기별 공격 모션
+    void PlayAttackByWeapon()
     {
-        if (isDraggingCorpse || isPickupInProgress) return;
+        // 진행 중엔 무시
+        if (blockInput || isAssassinating || isHolding || isClimbing) return;
+        if (WeaponManager.i == null) return;
 
-        ArmELock(2f);
-        Input.ResetInputAxes();  // 입력 플러시
+        string trig = null;
+        switch (WeaponManager.i.SelectedWeapon)
+        {
+            case WeaponManager.WeaponType.Gun:
+                trig = "AttackGun"; break;
+            case WeaponManager.WeaponType.Crowbar:
+                trig = "AttackCrowbar"; break;
+            case WeaponManager.WeaponType.Bat:
+                trig = "AttackBat"; break;
+            default:
+                return; // 맨손이면 아무 것도 하지 않음 (원하면 여기서 펀치 트리거)
+        }
 
-        StartCoroutine(PickupThenStartDrag());
+        // 트리거 충돌 방지
+        animator.ResetTrigger("AttackGun");
+        animator.ResetTrigger("AttackCrowbar");
+        animator.ResetTrigger("AttackBat");
+
+        // AE_AttackStart/End가 팔 레이어 블렌드는 이미 처리함
+        animator.SetTrigger(trig);
     }
 
-    public void OnDragStop()
+    void TriggerAttackByCurrentWeapon()
     {
-        // 보호막: 픽업 중이면 취소 금지 (고립 방지)
-        if (isPickupInProgress) return;
+        var wm = WeaponManager.i;
+        var type = wm ? wm.SelectedWeapon : WeaponManager.WeaponType.Crowbar;
 
-        isDraggingCorpse = false;
-        isPickupInProgress = false;
-        blockInput = false;
-        canRun = true;
+        // 혹시 남아있는 다른 트리거가 충돌하지 않게 리셋
+        animator.ResetTrigger("AttackGun");
+        animator.ResetTrigger("AttackCrowbar");
+        animator.ResetTrigger("AttackBat");
 
-        animator.SetBool("IsDragging", false);
-        animator.ResetTrigger(pickupTrigger);
-
-        // 안전망: 즉시 로코모션으로 크로스페이드
-        animator.CrossFade("Locomotion", 0.05f, 0, 0f);
-
-        animator.SetFloat("MoveX", 0f);
-        animator.SetFloat("MoveY", 0f);
-        animator.SetFloat("Speed", 0f);
-    }
-
-    private IEnumerator PickupThenStartDrag()
-    {
-        ArmELock(2f);
-        isPickupInProgress = true;
-
-        // 즉시 입력/이동 차단
-        blockInput = true;
-        currentMoveInput = Vector3.zero;
-        rb.velocity = Vector3.zero;
-
-        // 픽업 애니메이션만 재생
-        animator.ResetTrigger(pickupTrigger);
-        animator.SetTrigger(pickupTrigger);
-
-        // 정확히 2초간 대기 (이 동안 E는 ArmELock 때문에 무시)
-        yield return new WaitForSeconds(2f);
-
-        // 2초 후 드래그 상태로 전환
-        isPickupInProgress = false;
-        isDraggingCorpse = true;
-        canRun = false;          // 드래그 중 달리기 금지
-        blockInput = false;      // 드래그 전용 입력 허용
-
-        animator.SetBool("IsDragging", true);
-        animator.SetFloat("DragMove", 0f);
-
-        // 로코모션 파라미터 잠가서 블렌드 빠지지 않게
-        animator.SetFloat("MoveX", 0f);
-        animator.SetFloat("MoveY", 0f);
-        animator.SetFloat("Speed", 0f);
+        switch (type)
+        {
+            case WeaponManager.WeaponType.Gun:
+                animator.SetTrigger("AttackGun");
+                break;
+            case WeaponManager.WeaponType.Bat:
+                animator.SetTrigger("AttackBat");
+                break;
+            case WeaponManager.WeaponType.Crowbar:
+            default:
+                animator.SetTrigger("AttackCrowbar");
+                break;
+        }
     }
 
     public void BindCameraPivot(Transform pivot) { cameraPivot = pivot; }
@@ -1716,36 +1701,6 @@ public class PlayerMov : MonoBehaviour
     {
         rightArmMaxWeight = rightArmDefaultWeight;
         FadeRightArmLayer(rightArmDefaultWeight, 0.08f);
-    }
-
-    // 픽업 애니 이벤트
-    public void AE_PickupFinished()
-    {
-        if (!isPickupInProgress) return;
-
-        isPickupInProgress = false;
-        isDraggingCorpse = true;
-        canRun = false;
-        blockInput = false;
-
-        animator.SetBool("IsDragging", true);
-        animator.SetFloat("DragMove", 0f);
-
-        animator.SetFloat("MoveX", 0f);
-        animator.SetFloat("MoveY", 0f);
-        animator.SetFloat("Speed", 0f);
-    }
-    public void AE_PickupLockOn()
-    {
-        blockInput = true;
-        currentMoveInput = Vector3.zero;
-        animator.SetFloat("MoveX", 0f);
-        animator.SetFloat("MoveY", 0f);
-        animator.SetFloat("Speed", 0f);
-    }
-    public void AE_PickupLockOff()
-    {
-        blockInput = false;
     }
 
     void RefreshInteractionHint()

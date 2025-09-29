@@ -99,22 +99,6 @@ public class AnimationCtl : MonoBehaviour
             player.AE_AttackEnd();
     }
 
-    public void PickupFinished()
-    {
-        if (player != null)
-            player.AE_PickupFinished();
-    }
-    public void PickupLockOn()
-    {
-        if (player != null)
-            player.AE_PickupLockOn();
-    }
-    public void PickupLockOff()
-    {
-        if (player != null)
-            player.AE_PickupLockOff();
-    }
-
     public void OpenBox()
     {
         if (player != null)

@@ -9,8 +9,9 @@ public class WeaponManager : MonoBehaviour
 
     [HideInInspector] public bool canCrowbarSwitch = false;
     [HideInInspector] public bool canGunSwitch = false;
+    [HideInInspector] public bool canBatSwitch = false;
 
-    public enum WeaponType { None, Crowbar, Gun }
+    public enum WeaponType { None, Crowbar, Gun, Bat }
     public WeaponType SelectedWeapon { get; private set; } = WeaponType.None;
 
     public static event Action<WeaponType> OnWeaponChosen;
@@ -27,12 +28,20 @@ public class WeaponManager : MonoBehaviour
         canCrowbarSwitch = true;
         SelectedWeapon = WeaponType.Crowbar;
         OnWeaponChosen?.Invoke(SelectedWeapon);
+        
     }
 
     public void OnClickGun()
     {
         canGunSwitch = true;
         SelectedWeapon = WeaponType.Gun;
+        OnWeaponChosen?.Invoke(SelectedWeapon);
+    }
+
+    public void OnClickBat()
+    {
+        canBatSwitch = true;
+        SelectedWeapon = WeaponType.Bat;
         OnWeaponChosen?.Invoke(SelectedWeapon);
     }
 }

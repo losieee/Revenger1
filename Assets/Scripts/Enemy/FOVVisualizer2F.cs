@@ -75,7 +75,7 @@ public class FOVVisualizer2F : MonoBehaviour
         Vector3[] vertices = new Vector3[segments + 2];
         int[] triangles = new int[segments * 3];
 
-        vertices[0] = Vector3.zero + Vector3.down * 65f;
+        vertices[0] = Vector3.zero + Vector3.down * 48f;
 
         for (int i = 0; i <= segments; i++)
         {
@@ -90,7 +90,7 @@ public class FOVVisualizer2F : MonoBehaviour
                 distance = hit.distance;
 
             Vector3 localPos = transform.InverseTransformPoint(rayOrigin + worldDir * distance);
-            localPos += Vector3.down * 65f;
+            localPos += Vector3.down * 48f;
             vertices[i + 1] = localPos;
         }
 
