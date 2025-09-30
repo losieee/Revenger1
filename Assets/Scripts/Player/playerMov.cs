@@ -200,7 +200,6 @@ public class PlayerMov : MonoBehaviour
 
     // 무기 선택
     private bool choiceWeapon;
-    private bool canChoiceWeapon = false;
 
     // RightHandGrip 애니메이션 레이어 제어
     private int gripLayer;
@@ -654,7 +653,6 @@ public class PlayerMov : MonoBehaviour
             if (weaponChangePanel && weaponChangePanel.activeSelf)
             {
                 HidePausePanel(weaponChangePanel);
-                canChoiceWeapon = false;
                 _weaponPickFlowActive = false;
                 if (_openWeaponPanelCo != null) { StopCoroutine(_openWeaponPanelCo); _openWeaponPanelCo = null; }
                 return;
@@ -773,8 +771,6 @@ public class PlayerMov : MonoBehaviour
     {
         // 타임스케일 0 영향을 받지 않도록 Realtime로 대기
         yield return new WaitForSecondsRealtime(delay);
-
-        canChoiceWeapon = true;
 
         ShowPausePanel(weaponChangePanel);
 

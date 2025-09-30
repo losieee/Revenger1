@@ -11,7 +11,6 @@ public class RebindKeyButton : MonoBehaviour
     [SerializeField] TMP_Text label;
     [SerializeField] Button button;
     [Header("Behavior")]
-    [SerializeField] bool swapOnConflict = true;
     [SerializeField] string waitingText = "Press any key..\n(ESC to cancel)";
     [SerializeField] string conflictText = "Already in use!";
 
