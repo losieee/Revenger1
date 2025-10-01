@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using System;
 using TMPro;
+using UnityEngine.Animations.Rigging;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -220,6 +221,27 @@ public class PlayerMov : MonoBehaviour
 
     float _sceneInputGraceTimer = 0f;
 
+    [Header("세탁실 미션")]
+    private bool hasLaundryMission = false;
+    public Transform laundryCamTarget;          // 세탁실 미션 카메라 위치
+    public float laundryCamBlend = 1.0f;        // 카메라 이동(변환) 시간
+    private bool inLaundryRange = false;
+    private bool isCamBlending = false;
+    private CameraMov cmov;
+    private bool isLaundryView = false;         // 전용 뷰에 들어와 있는지
+    public float restoreCamBlend = 0.4f;        // 복귀시 리센터 시간
+    private Vector3 _preViewCamPos;
+    private Quaternion _preViewCamRot;
+    private float _preViewCamFov;
+    private Coroutine _camBlendRoutine;
+
+
+    [Header("미션 간 보이는 Mask")]
+    public string[] laundryViewLayers = new[] { "Default", "Ground" };
+
+    private int _savedCamMask;
+    private bool _hasSavedCamMask = false;
+
     void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -233,6 +255,8 @@ public class PlayerMov : MonoBehaviour
         EnemyMov.OnAnyEnemyKilled -= HandleEnemyKilled;
         KeyBindings.OnChanged -= RefreshInteractionHint;
         WeaponManager.OnWeaponChosen -= ApplyChosenWeaponImmediate;
+        var cam = Camera.main;
+        if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
     }
 
     GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
@@ -269,6 +293,9 @@ public class PlayerMov : MonoBehaviour
         if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
 
         RebindMinimapAndEnemies();
+
+        var cam = Camera.main;
+        if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
     }
 
     private void HandleEnemyKilled(Transform deadTr)
@@ -321,6 +348,7 @@ public class PlayerMov : MonoBehaviour
 
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
+        cmov = cameraPivot ? cameraPivot.GetComponent<CameraMov>() : null;
 
         gripLayer = animator.GetLayerIndex("RightHandGrip");
         gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
@@ -387,6 +415,26 @@ public class PlayerMov : MonoBehaviour
                 rb.useGravity = false;
                 rb.isKinematic = true;
             }
+            return;
+        }
+
+        // 전용 뷰 상태일 때 (세탁실 미션뷰)
+        if (isLaundryView)
+        {
+            // 매 프레임 안전하게 멈춤 유지
+            currentMoveInput = Vector3.zero;
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+            blockInput = true;
+
+            // E 또는 ESC로 빠져나오기
+            if (EPressed() || Input.GetKeyDown(KeyCode.Escape))
+            {
+                ExitLaundryView();
+            }
+
+            // 전용 뷰 동안은 아래 일반 Update 로직 막음
             return;
         }
 
@@ -727,6 +775,157 @@ public class PlayerMov : MonoBehaviour
                     weapon.transform.GetChild(i).gameObject.SetActive(i == _selectedWeaponChildIndex);
             }
         }
+
+        // 세탁실 미션 카메라 시점 이동
+        if (inLaundryRange && hasLaundryMission && EPressed() && !isCamBlending && laundryCamTarget)
+        {
+            EnterLaundryView();
+            StartCoroutine(BlendMainCameraTo(laundryCamTarget, laundryCamBlend));
+        }
+    }
+
+    // 세탁실 미션 시점 변경 시 플레이어 고정
+    void EnterLaundryView()
+    {
+        // 조작 잠금
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+        rb.velocity = Vector3.zero;
+
+        // 현재 메인 카메라 포즈 저장
+        var cam = Camera.main;
+        if (cam)
+        {
+            _preViewCamPos = cam.transform.position;
+            _preViewCamRot = cam.transform.rotation;
+            _preViewCamFov = cam.fieldOfView;
+        }
+
+        // 카메라 추적 비활성화
+        if (cmov) cmov.enabled = false;
+
+        // Culling Mask 설정
+        if (cam)
+        {
+            if (!_hasSavedCamMask) { _savedCamMask = cam.cullingMask; _hasSavedCamMask = true; }
+            cam.cullingMask = LayerMask.GetMask(laundryViewLayers); // "Default","Ground"만 보이게
+        }
+
+        isLaundryView = true;
+    }
+
+    void ExitLaundryView()
+    {
+        // 진행 중인 블렌드가 있으면 중단
+        if (_camBlendRoutine != null) { StopCoroutine(_camBlendRoutine); _camBlendRoutine = null; }
+
+        // Culling Mask 먼저 원복 (복귀 중에도 월드를 다시 보이게)
+        var cam = Camera.main;
+        if (cam && _hasSavedCamMask)
+        {
+            cam.cullingMask = _savedCamMask;
+            _hasSavedCamMask = false;
+        }
+
+        // 저장해둔 포즈로 부드럽게 되돌아간 뒤 CameraMov를 켠다
+        _camBlendRoutine = StartCoroutine(BlendBackThenEnableFollow(restoreCamBlend));
+    }
+
+    private IEnumerator BlendBackThenEnableFollow(float duration)
+    {
+        var cam = Camera.main;
+        if (!cam) { FinishExitLaundryView(); yield break; }
+
+        Transform tr = cam.transform;
+        Vector3 sPos = tr.position;
+        Quaternion sRot = tr.rotation;
+        float sFov = cam.fieldOfView;
+
+        duration = Mathf.Max(0.01f, duration);
+        float t = 0f;
+        while (t < 1f)
+        {
+            t += Time.unscaledDeltaTime / duration;
+            float k = Mathf.SmoothStep(0f, 1f, t);
+
+            tr.position = Vector3.Lerp(sPos, _preViewCamPos, k);
+            tr.rotation = Quaternion.Slerp(sRot, _preViewCamRot, k);
+            cam.fieldOfView = Mathf.Lerp(sFov, _preViewCamFov, k);
+            yield return null;
+        }
+
+        // 최종 스냅
+        tr.position = _preViewCamPos;
+        tr.rotation = _preViewCamRot;
+        cam.fieldOfView = _preViewCamFov;
+
+        // 이제 추적 재개 (여기서는 리센터 호출 X : 스냅 방지)
+        if (cmov) cmov.enabled = true;
+
+        FinishExitLaundryView();
+    }
+
+    void FinishExitLaundryView()
+    {
+        blockInput = false;
+        isLaundryView = false;
+        isCamBlending = false;
+        _camBlendRoutine = null;
+    }
+
+    // 세탁실 미션 카메라 이동
+    private IEnumerator BlendMainCameraTo(Transform target, float duration)
+    {
+        isCamBlending = true;
+
+        // 따라다니는 카메라 스크립트가 있으면 잠깐 꺼두기
+        if (cmov) cmov.enabled = false;
+
+        var cam = Camera.main;
+        if (!cam) { isCamBlending = false; yield break; }
+
+        Transform camTr = cam.transform;
+
+        Vector3 startPos = camTr.position;
+        Quaternion startRot = camTr.rotation;
+        float startFov = cam.fieldOfView;
+
+        // 목표 카메라의 FOV가 있으면 맞춰줌
+        float targetFov = startFov;
+        var targetCam = target.GetComponent<Camera>();
+        if (targetCam) targetFov = targetCam.fieldOfView;
+
+        Vector3 endPos = target.position;
+        Quaternion endRot = target.rotation;
+
+        float t = 0f;
+        duration = Mathf.Max(0.01f, duration);
+
+        // 타임스케일 영향을 안 받게 Unscaled로 진행 (UI가 잠깐 열려도 부드럽게)
+        while (t < 1f)
+        {
+            t += Time.unscaledDeltaTime / duration;
+            float k = Mathf.SmoothStep(0f, 1f, t); // 더 부드러운 가속/감속 곡선
+
+            camTr.position = Vector3.Lerp(startPos, endPos, k);
+            camTr.rotation = Quaternion.Slerp(startRot, endRot, k);
+            cam.fieldOfView = Mathf.Lerp(startFov, targetFov, k);
+
+            yield return null;
+        }
+
+        // 최종 스냅
+        camTr.position = endPos;
+        camTr.rotation = endRot;
+        cam.fieldOfView = targetFov;
+
+        isCamBlending = false;
+
+        // 필요하면 다시 카메라 추적 켜기 (여기서는 계속 그 자리에 머무르게 그대로 둠)
+        // if (cmov) cmov.enabled = true;
     }
 
     // 상자를 열기 전 무기를 들고있으면 비활성화
@@ -1311,6 +1510,12 @@ public class PlayerMov : MonoBehaviour
             choiceWeapon = true;
             boxObject = other.gameObject;
         }
+
+        if (other.CompareTag("laundryRange"))
+        {
+            hasLaundryMission = true;
+            inLaundryRange = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -1338,6 +1543,11 @@ public class PlayerMov : MonoBehaviour
         }
 
         if (other.CompareTag("WeaponBox")) choiceWeapon = false;
+
+        if (other.CompareTag("laundryRange"))
+        {
+            inLaundryRange = false;
+        }
     }
 
     void UpdateRunLock() => canRun = (donRunZoneCount == 0);
