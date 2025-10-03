@@ -23,6 +23,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimap1fPicture;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;
+    public GameObject foyerPuzzle;
 
     [Header("Move and Rotate")]
     public float speed = 5f;
@@ -237,6 +238,10 @@ public class PlayerMov : MonoBehaviour
     private float _preViewCamFov;
     private Coroutine _camBlendRoutine;
 
+    [Header("휴게실 미션")]
+    private bool hasFoyerMission = false;
+    private bool inFoyerRange = false;
+
 
     [Header("미션 간 보이는 Mask")]
     public string[] laundryViewLayers = new[] { "Default", "Ground" };
@@ -261,7 +266,7 @@ public class PlayerMov : MonoBehaviour
         if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
     }
 
-    GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
+    GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel, foyerPuzzle };
 
     void CloseAllPlayerUI()
     {
@@ -668,6 +673,7 @@ public class PlayerMov : MonoBehaviour
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
+            if (foyerPuzzle && foyerPuzzle.activeSelf) { HidePausePanel(foyerPuzzle); return; }
             if (optionUI && optionUI.activeSelf) { HidePausePanel(optionUI); return; }
             ShowPausePanel(optionUI);
         }
@@ -783,6 +789,21 @@ public class PlayerMov : MonoBehaviour
         {
             EnterLaundryView();
             StartCoroutine(BlendMainCameraTo(laundryCamTarget, laundryCamBlend));
+        }
+
+        // 휴게실 미션
+        if(inFoyerRange && hasFoyerMission && EPressed())
+        {
+            if (foyerPuzzle && foyerPuzzle.activeSelf)
+            {
+                HidePausePanel(foyerPuzzle);
+                if (cmov) cmov.enabled = true;
+            }
+            else
+            {
+                ShowOverlayPanel_NoPause(foyerPuzzle);
+                if (cmov) cmov.enabled = false;
+            }
         }
     }
 
@@ -1526,6 +1547,12 @@ public class PlayerMov : MonoBehaviour
             hasLaundryMission = true;
             inLaundryRange = true;
         }
+
+        if (other.CompareTag("foyerRange"))
+        {
+            hasFoyerMission = true;
+            inFoyerRange = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -1556,7 +1583,14 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("laundryRange"))
         {
+            hasLaundryMission = false;
             inLaundryRange = false;
+        }
+
+        if (other.CompareTag("foyerRange"))
+        {
+            hasFoyerMission = false;
+            inFoyerRange = false;
         }
     }
 
@@ -1790,13 +1824,37 @@ public class PlayerMov : MonoBehaviour
         Time.timeScale = 0f;
     }
 
+    void ShowOverlayPanel_NoPause(GameObject panel)
+    {
+        if (!panel) return;
+
+        panel.SetActive(true);
+
+        var cg = panel.GetComponent<CanvasGroup>();
+        if (!cg) cg = panel.AddComponent<CanvasGroup>();
+        cg.alpha = 1f;
+        cg.interactable = true;
+        cg.blocksRaycasts = true;
+
+        // 퍼즐 조작을 위해 커서 노출 + 잠금 해제
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // EventSystem이 없으면 생성
+        if (!EventSystem.current)
+            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+
+        blockInput = true;
+    }
+
     bool AnyPauseOpen()
     {
         return (missionUI && missionUI.activeSelf)
             || (gameClearUI && gameClearUI.activeSelf)
             || (gameOverUI && gameOverUI.activeSelf)
             || (optionUI && optionUI.activeSelf)
-            || (weaponChangePanel && weaponChangePanel.activeSelf);
+            || (weaponChangePanel && weaponChangePanel.activeSelf)
+            || (foyerPuzzle && foyerPuzzle.activeSelf);
     }
 
     public void HidePausePanel(GameObject panel)
