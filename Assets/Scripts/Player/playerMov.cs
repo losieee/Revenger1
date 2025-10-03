@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 using System;
 using TMPro;
 using UnityEngine.Animations.Rigging;
+using UnityEngine.Rendering;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -21,6 +22,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject weaponChangePanel;
     public GameObject minimap1fPicture;
     public GameObject[] enemies1f;
+    public GameObject laundryPuzzle;
 
     [Header("Move and Rotate")]
     public float speed = 5f;
@@ -815,6 +817,11 @@ public class PlayerMov : MonoBehaviour
         }
 
         isLaundryView = true;
+        laundryPuzzle.SetActive(true);
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        if (!EventSystem.current)
+            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
     }
 
     void ExitLaundryView()
@@ -832,6 +839,9 @@ public class PlayerMov : MonoBehaviour
 
         // 저장해둔 포즈로 부드럽게 되돌아간 뒤 CameraMov를 켠다
         _camBlendRoutine = StartCoroutine(BlendBackThenEnableFollow(restoreCamBlend));
+
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     private IEnumerator BlendBackThenEnableFollow(float duration)

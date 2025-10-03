@@ -347,7 +347,6 @@ MonoBehaviour:
   action: 8
   label: {fileID: 1254276178483065062}
   button: {fileID: 6090889760090019100}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &131753730070617878
@@ -959,7 +958,6 @@ MonoBehaviour:
   action: 1
   label: {fileID: 5137929537678387334}
   button: {fileID: 7878939533177904453}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &534388187282467482
@@ -2670,7 +2668,6 @@ MonoBehaviour:
   action: 3
   label: {fileID: 7663867256642776264}
   button: {fileID: 5750330671078963727}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &1985316299827643315
@@ -5510,7 +5507,6 @@ MonoBehaviour:
   action: 5
   label: {fileID: 3395739779565392447}
   button: {fileID: 4521216339076934312}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &4098075282525238758
@@ -5759,7 +5755,6 @@ MonoBehaviour:
   action: 7
   label: {fileID: 9108772137884414044}
   button: {fileID: 716361942015619469}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &4392036280797742689
@@ -8630,7 +8625,6 @@ GameObject:
   - component: {fileID: 3280543259842500694}
   - component: {fileID: 2147674351330821031}
   - component: {fileID: 1113188437890521900}
-  - component: {fileID: 7870476677471432045}
   m_Layer: 12
   m_Name: Player
   m_TagString: Player
@@ -8685,9 +8679,6 @@ MonoBehaviour:
   cameraPivot: {fileID: 0}
   assassinateApproachDuration: 0.3
   assassinateRotLerp: 20
-  pickupTrigger: Pickup
-  isDraggingCorpse: 0
-  dragMoveSpeed: 1
   eCooldownDuration: 2
   currentMoveInput: {x: 0, y: 0, z: 0}
   minAirTimeForLand: 0.12
@@ -8730,6 +8721,12 @@ MonoBehaviour:
   miniPos: {fileID: 5954157133679301905}
   miniPosYOffset: -30
   minimapStartsHidden: 1
+  laundryCamTarget: {fileID: 0}
+  laundryCamBlend: 1
+  restoreCamBlend: 0.4
+  laundryViewLayers:
+  - Default
+  - Ground
 --- !u!54 &3280543259842500694
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -8875,23 +8872,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &7870476677471432045
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5897442068557519355}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 242a4ffc7fb5b7d4883ea97ff0c6cb62, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  grabRange: 0.3
-  corpseHandleMask:
-    serializedVersion: 2
-    m_Bits: 2048
-  dragAnchor: {fileID: 8178223696143111761}
 --- !u!1 &5918081544828453727
 GameObject:
   m_ObjectHideFlags: 0
@@ -10147,7 +10127,6 @@ MonoBehaviour:
   action: 2
   label: {fileID: 5902152340931469928}
   button: {fileID: 7726274376512369664}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &6819233151571668925
@@ -10287,7 +10266,6 @@ MonoBehaviour:
   action: 0
   label: {fileID: 5697465071859547714}
   button: {fileID: 4171704495077822255}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &6851431931803558388
@@ -12630,7 +12608,6 @@ MonoBehaviour:
   action: 4
   label: {fileID: 2303946858774970590}
   button: {fileID: 6174840696322601649}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &8422758714938547256
@@ -13962,7 +13939,6 @@ MonoBehaviour:
   action: 6
   label: {fileID: 1160957298825777157}
   button: {fileID: 3834138380431728577}
-  swapOnConflict: 1
   waitingText: Press any key
   conflictText: Already in use!
 --- !u!1 &9221054884008038351
