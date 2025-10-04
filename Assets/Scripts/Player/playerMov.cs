@@ -23,7 +23,6 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimap1fPicture;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;
-    public GameObject foyerPuzzle;
 
     [Header("Move and Rotate")]
     public float speed = 5f;
@@ -241,10 +240,13 @@ public class PlayerMov : MonoBehaviour
     [Header("휴게실 미션")]
     private bool hasFoyerMission = false;
     private bool inFoyerRange = false;
+    public Transform foyerCamTarget;
+    private float foyerCamBlend = 1.0f;
+    private bool isFoyerView = false;         // 전용 뷰에 들어와 있는지
 
 
     [Header("미션 간 보이는 Mask")]
-    public string[] laundryViewLayers = new[] { "Default", "Ground" };
+    public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle"};
 
     private int _savedCamMask;
     private bool _hasSavedCamMask = false;
@@ -266,7 +268,7 @@ public class PlayerMov : MonoBehaviour
         if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
     }
 
-    GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel, foyerPuzzle };
+    GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
 
     void CloseAllPlayerUI()
     {
@@ -426,7 +428,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 전용 뷰 상태일 때 (세탁실 미션뷰)
-        if (isLaundryView)
+        if (isLaundryView || isFoyerView)
         {
             // 매 프레임 안전하게 멈춤 유지
             currentMoveInput = Vector3.zero;
@@ -673,7 +675,6 @@ public class PlayerMov : MonoBehaviour
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
-            if (foyerPuzzle && foyerPuzzle.activeSelf) { HidePausePanel(foyerPuzzle); return; }
             if (optionUI && optionUI.activeSelf) { HidePausePanel(optionUI); return; }
             ShowPausePanel(optionUI);
         }
@@ -792,18 +793,10 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 휴게실 미션
-        if(inFoyerRange && hasFoyerMission && EPressed())
+        if(inFoyerRange && hasFoyerMission && EPressed() && !isCamBlending && foyerCamTarget)
         {
-            if (foyerPuzzle && foyerPuzzle.activeSelf)
-            {
-                HidePausePanel(foyerPuzzle);
-                if (cmov) cmov.enabled = true;
-            }
-            else
-            {
-                ShowOverlayPanel_NoPause(foyerPuzzle);
-                if (cmov) cmov.enabled = false;
-            }
+            EnterFoyerView();
+            StartCoroutine(BlendMainCameraTo(foyerCamTarget, foyerCamBlend));
         }
     }
 
@@ -845,7 +838,44 @@ public class PlayerMov : MonoBehaviour
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
     }
 
-    void ExitLaundryView()
+    // 휴게실 시점
+    void EnterFoyerView()
+    {
+        // 조작 잠금
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+        rb.velocity = Vector3.zero;
+
+        // 현재 메인 카메라 포즈 저장
+        var cam = Camera.main;
+        if (cam)
+        {
+            _preViewCamPos = cam.transform.position;
+            _preViewCamRot = cam.transform.rotation;
+            _preViewCamFov = cam.fieldOfView;
+        }
+
+        // 카메라 추적 비활성화
+        if (cmov) cmov.enabled = false;
+
+        // Culling Mask 설정
+        if (cam)
+        {
+            if (!_hasSavedCamMask) { _savedCamMask = cam.cullingMask; _hasSavedCamMask = true; }
+            cam.cullingMask = LayerMask.GetMask(laundryViewLayers); // "Default","Ground"만 보이게
+        }
+
+        isFoyerView = true;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        if (!EventSystem.current)
+            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+    }
+
+    public void ExitLaundryView()
     {
         // 진행 중인 블렌드가 있으면 중단
         if (_camBlendRoutine != null) { StopCoroutine(_camBlendRoutine); _camBlendRoutine = null; }
@@ -857,6 +887,9 @@ public class PlayerMov : MonoBehaviour
             cam.cullingMask = _savedCamMask;
             _hasSavedCamMask = false;
         }
+
+        // 어떤 미션이든 열려있던 퍼즐 UI 닫기
+        if (laundryPuzzle && laundryPuzzle.activeSelf) HidePausePanel(laundryPuzzle);
 
         // 저장해둔 포즈로 부드럽게 되돌아간 뒤 CameraMov를 켠다
         _camBlendRoutine = StartCoroutine(BlendBackThenEnableFollow(restoreCamBlend));
@@ -903,6 +936,7 @@ public class PlayerMov : MonoBehaviour
     {
         blockInput = false;
         isLaundryView = false;
+        isFoyerView = false;
         isCamBlending = false;
         _camBlendRoutine = null;
     }
@@ -1853,8 +1887,7 @@ public class PlayerMov : MonoBehaviour
             || (gameClearUI && gameClearUI.activeSelf)
             || (gameOverUI && gameOverUI.activeSelf)
             || (optionUI && optionUI.activeSelf)
-            || (weaponChangePanel && weaponChangePanel.activeSelf)
-            || (foyerPuzzle && foyerPuzzle.activeSelf);
+            || (weaponChangePanel && weaponChangePanel.activeSelf);
     }
 
     public void HidePausePanel(GameObject panel)
