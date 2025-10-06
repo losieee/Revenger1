@@ -15,6 +15,7 @@ public class FoyerPuzzleController : MonoBehaviour
 
     DragPiece3D grabbed;
     Plane plane;
+    public PuzzleGroup group;
 
     void Awake()
     {
@@ -79,7 +80,7 @@ public class FoyerPuzzleController : MonoBehaviour
         SnapSocket3D best = null;
         float bestDist = float.MaxValue;
 
-        foreach (var s in SnapSocket3D.All)
+        foreach (var s in group.sockets)
         {
             if (!s.IsEmpty) continue;
 
@@ -97,7 +98,7 @@ public class FoyerPuzzleController : MonoBehaviour
             return;
         }
 
-        grabbed = null; // 실패 시 그 자리에 남김
+        grabbed = null; // 실패 시 그대로 둠
     }
 
     // 영역 클램프 로직

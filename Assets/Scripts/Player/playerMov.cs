@@ -244,9 +244,13 @@ public class PlayerMov : MonoBehaviour
     private float foyerCamBlend = 1.0f;
     private bool isFoyerView = false;         // 전용 뷰에 들어와 있는지
 
+    [Header("식당 미션")]
+    public float interactRange = 2f;
+    public LayerMask interactMask;   // Pickup/SlotPlate가 있는 레이어 포함
+
 
     [Header("미션 간 보이는 Mask")]
-    public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle"};
+    public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle" };
 
     private int _savedCamMask;
     private bool _hasSavedCamMask = false;
@@ -513,7 +517,7 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
-        // 시체 픽업할땐 못움직임
+        // 못움직임
         if (blockInput)
         {
             currentMoveInput = Vector3.zero;
@@ -659,6 +663,10 @@ public class PlayerMov : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Tab)) minimapPanel?.SetActive(true);
         if (Input.GetKeyUp(KeyCode.Tab)) minimapPanel?.SetActive(false);
 
+        // 식당 미션
+        if (EPressed())            // 여기서만 입력 읽음(쿨타임 포함)
+            TryInteract();
+
         // 미션 받기
         if (canTakeMission && EPressed()) ShowPausePanel(missionUI);
 
@@ -798,6 +806,36 @@ public class PlayerMov : MonoBehaviour
             EnterFoyerView();
             StartCoroutine(BlendMainCameraTo(foyerCamTarget, foyerCamBlend));
         }
+    }
+
+    // 식당 미션
+    bool TryInteract()
+    {
+        var query = QueryTriggerInteraction.Collide;
+
+        // 정면 우선
+        Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactMask, query))
+        {
+            var slot = hit.collider.GetComponent<SlotPlate>();
+            if (slot != null && slot.TryPlace()) return true;
+
+            var pickup = hit.collider.GetComponent<PickupItem>();
+            if (pickup != null && pickup.TryPickup(this)) return true;
+        }
+
+        // 주변 보정
+        Collider[] cols = Physics.OverlapSphere(transform.position, 1f, interactMask, query);
+        foreach (var col in cols)
+        {
+            var slot = col.GetComponent<SlotPlate>();
+            if (slot != null && slot.TryPlace()) return true;
+
+            var pickup = col.GetComponent<PickupItem>();
+            if (pickup != null && pickup.TryPickup(this)) return true;
+        }
+
+        return false;
     }
 
     // 세탁실 미션 시점 변경 시 플레이어 고정
