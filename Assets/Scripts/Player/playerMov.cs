@@ -99,7 +99,7 @@ public class PlayerMov : MonoBehaviour
     public LayerMask climbableLayer;
     private bool canClimbZone = false;
     private bool isClimbing = false;
-    private bool blockInput = false;
+    public static bool blockInput = false;
     private float lastBoxWallRemainingHeight = 0f;
 
     [Header("Sound Range")]
@@ -663,10 +663,6 @@ public class PlayerMov : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Tab)) minimapPanel?.SetActive(true);
         if (Input.GetKeyUp(KeyCode.Tab)) minimapPanel?.SetActive(false);
 
-        // 식당 미션
-        if (EPressed())            // 여기서만 입력 읽음(쿨타임 포함)
-            TryInteract();
-
         // 미션 받기
         if (canTakeMission && EPressed()) ShowPausePanel(missionUI);
 
@@ -806,36 +802,13 @@ public class PlayerMov : MonoBehaviour
             EnterFoyerView();
             StartCoroutine(BlendMainCameraTo(foyerCamTarget, foyerCamBlend));
         }
-    }
 
-    // 식당 미션
-    bool TryInteract()
-    {
-        var query = QueryTriggerInteraction.Collide;
-
-        // 정면 우선
-        Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
-        if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactMask, query))
+        // 식당 미션
+        if (EPressed())
         {
-            var slot = hit.collider.GetComponent<SlotPlate>();
-            if (slot != null && slot.TryPlace()) return true;
-
-            var pickup = hit.collider.GetComponent<PickupItem>();
-            if (pickup != null && pickup.TryPickup(this)) return true;
+            if (TryInteract())   // 먹기 or 슬롯 배치 성공 시
+                return;
         }
-
-        // 주변 보정
-        Collider[] cols = Physics.OverlapSphere(transform.position, 1f, interactMask, query);
-        foreach (var col in cols)
-        {
-            var slot = col.GetComponent<SlotPlate>();
-            if (slot != null && slot.TryPlace()) return true;
-
-            var pickup = col.GetComponent<PickupItem>();
-            if (pickup != null && pickup.TryPickup(this)) return true;
-        }
-
-        return false;
     }
 
     // 세탁실 미션 시점 변경 시 플레이어 고정
@@ -1029,6 +1002,36 @@ public class PlayerMov : MonoBehaviour
 
         // 필요하면 다시 카메라 추적 켜기 (여기서는 계속 그 자리에 머무르게 그대로 둠)
         // if (cmov) cmov.enabled = true;
+    }
+
+    // 식당 미션
+    bool TryInteract()
+    {
+        var query = QueryTriggerInteraction.Collide;
+
+        // 1) 정면 레이
+        Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactMask, query))
+        {
+            var slot = hit.collider.GetComponent<SlotPlate>();
+            if (slot != null && slot.TryOpenUI()) return true;
+
+            var pickup = hit.collider.GetComponent<PickupItem>();
+            if (pickup != null && pickup.TryPickup(this)) return true;
+        }
+
+        // 2) 주변 보정(반경)
+        Collider[] cols = Physics.OverlapSphere(transform.position, 1f, interactMask, query);
+        foreach (var col in cols)
+        {
+            var slot = col.GetComponent<SlotPlate>();
+            if (slot != null && slot.TryOpenUI()) return true;
+
+            var pickup = col.GetComponent<PickupItem>();
+            if (pickup != null && pickup.TryPickup(this)) return true;
+        }
+
+        return false;
     }
 
     // 상자를 열기 전 무기를 들고있으면 비활성화
@@ -1909,14 +1912,11 @@ public class PlayerMov : MonoBehaviour
         cg.blocksRaycasts = true;
 
         // 퍼즐 조작을 위해 커서 노출 + 잠금 해제
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
+        PlayerMov.LockControls(showCursor: true);
 
         // EventSystem이 없으면 생성
         if (!EventSystem.current)
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-
-        blockInput = true;
     }
 
     bool AnyPauseOpen()
@@ -1945,9 +1945,7 @@ public class PlayerMov : MonoBehaviour
         {
             AudioListener.pause = false;
             Time.timeScale = 1f;
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
-            blockInput = false;
+            PlayerMov.UnlockControls(hideCursor: true);
             _weaponPickFlowActive = false;
         }
     }
@@ -2073,5 +2071,29 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
         animator.SetLayerWeight(rightArmLayer, target);
+    }
+
+    // 퍼즐 전용 입력 잠금 (플레이어 & 카메라)
+    public static void LockControls(bool showCursor = true)
+    {
+        blockInput = true;
+
+        // 현재 씬의 PlayerMov 찾아서 CameraMov 비활성화
+        var pm = FindObjectOfType<PlayerMov>();
+        if (pm && pm.cmov) pm.cmov.enabled = false;
+
+        Cursor.visible = showCursor;
+        Cursor.lockState = showCursor ? CursorLockMode.None : CursorLockMode.Locked;
+    }
+
+    public static void UnlockControls(bool hideCursor = true)
+    {
+        blockInput = false;
+        
+        var pm = FindObjectOfType<PlayerMov>();
+        if (pm && pm.cmov) pm.cmov.enabled = true;
+
+        Cursor.visible = !hideCursor ? true : false;
+        Cursor.lockState = hideCursor ? CursorLockMode.Locked : CursorLockMode.None;
     }
 }

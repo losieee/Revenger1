@@ -14,26 +14,45 @@ public class SlotPlate : MonoBehaviour
 
     private ItemInfo placed;
 
-    void Reset() => GetComponent<Collider>().isTrigger = true;
+    public bool IsLocked { get; private set; }
+    public ItemInfo CurrentPlaced => placed;
 
-    // PlayerMov에서 호출
-    public bool TryPlace()
+    public bool HasPlaced => placed != null;
+
+    void Reset()
     {
-        if (placed) return false;
-        if (PlayerInventory.Instance != null &&
-            PlayerInventory.Instance.TryTakeById(requiredId, out var item))
-        {
-            Place(item);
-            return true;
-        }
-        Debug.Log($"[Slot] {requiredId} 필요!");
-        return false;
+        var col = GetComponent<Collider>();
+        col.isTrigger = true;
     }
 
-    void Place(ItemInfo item)
+    // 잠금
+    public void SetLocked(bool locked)
     {
+        IsLocked = locked;
+        // 잠그면 콜라이더도 꺼서 상호작용 자체가 안 열리게
+        var col = GetComponent<Collider>();
+        if (col) col.enabled = !locked;
+    }
+
+    // 이미 채워져 있으면 열지 않음
+    public bool TryOpenUI()
+    {
+        if (IsLocked) return false;
+        // 항상 UI 열기 (이미 들어있어도 UI는 열 수 있음)
+        PlacementUI.i?.Open(this, requiredId);
+        return true;
+    }
+
+    // 실제 아이템을 슬롯에 배치
+    public void Place(ItemInfo item)
+    {
+        if (IsLocked) return;
+
+        if (HasPlaced) return;
+
         placed = item;
         var a = anchor ? anchor : transform;
+
         item.transform.SetPositionAndRotation(a.position, a.rotation);
 
         var rb = item.GetComponent<Rigidbody>();
@@ -44,16 +63,35 @@ public class SlotPlate : MonoBehaviour
             rb.isKinematic = true;
             rb.useGravity = false;
         }
+
         var col = item.GetComponent<Collider>();
         if (col) col.isTrigger = true;
 
         item.gameObject.SetActive(true);
+        Debug.Log($"[SlotPlate] 배치 완료: {item.displayName} → {name}");
+
         GetComponentInParent<DiningPuzzleGroup>()?.NotifyChanged();
     }
 
+    // 이미 올려둔 아이템을 인벤토리로 되돌림
+    public void TakeBack()
+    {
+        if (IsLocked) return;
+        if (!placed) return;
+
+        PlayerInventory.Instance?.Return(placed);
+        placed = null;
+
+        Debug.Log($"[SlotPlate] '{name}'에서 아이템을 되돌림");
+        GetComponentInParent<DiningPuzzleGroup>()?.NotifyChanged();
+    }
+
+    // 슬롯을 완전히 비움 (퍼즐 리셋용)
     public void Clear()
     {
+        if (IsLocked) return;
         if (!placed) return;
+
         PlayerInventory.Instance?.Return(placed);
         placed = null;
     }

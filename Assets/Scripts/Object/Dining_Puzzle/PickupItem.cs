@@ -12,11 +12,14 @@ public class PickupItem : MonoBehaviour
         col.isTrigger = true;
     }
 
-    // PlayerMov에서 호출
-    public bool TryPickup(PlayerMov who)
+    public bool TryPickup(PlayerMov player)
     {
-        if (!PlayerInventory.Instance || !info) return false;
-        PlayerInventory.Instance.Add(info);
-        return true;
+        if (!player || !info) return false;
+        var inv = PlayerInventory.Instance;
+        if (!inv) return false;
+
+        // 잠금 상태면 false 반환 (먹기 실패)
+        bool ok = inv.TryAdd(info);
+        return ok;
     }
 }
