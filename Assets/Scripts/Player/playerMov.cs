@@ -839,7 +839,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 무기 바꾸기
-        if (Input.GetKeyDown(KeyCode.Alpha1) && canWeaponSwitch)    // 맨손
+        if (Input.GetKeyDown(KeyCode.Alpha1) && canWeaponSwitch && !isCrawling)    // 맨손
         {
             if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
             if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
@@ -851,7 +851,7 @@ public class PlayerMov : MonoBehaviour
                     weapon.transform.GetChild(i).gameObject.SetActive(false);
             }
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch)    // 무기
+        if (Input.GetKeyDown(KeyCode.Alpha2) && canWeaponSwitch && !isCrawling)    // 무기
         {
             if (WeaponManager.i == null) return;
 
@@ -954,6 +954,8 @@ public class PlayerMov : MonoBehaviour
 
             // 콜라이더 즉시/빠르게 낮추기
             ApplyColliderPose(boxSizeCrawl, boxCenterCrawl, 0.10f);
+
+            ForceUnequipWeapon();
 
             (cmov ?? CameraMov.i)?.SetCrawl(true, crawlCamDown);
             SetCrawlCamByState(true);
