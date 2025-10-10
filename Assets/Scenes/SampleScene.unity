@@ -478,6 +478,7 @@ MonoBehaviour:
   weaponChangePanel: {fileID: 0}
   minimap1fPicture: {fileID: 0}
   enemies1f: []
+  laundryPuzzle: {fileID: 0}
   speed: 1.5
   rotSpeed: 5
   runSpeed: 3
@@ -526,6 +527,18 @@ MonoBehaviour:
   miniPos: {fileID: 0}
   miniPosYOffset: -30
   minimapStartsHidden: 1
+  laundryCamTarget: {fileID: 0}
+  laundryCamBlend: 1
+  restoreCamBlend: 0.4
+  foyerCamTarget: {fileID: 0}
+  interactRange: 2
+  interactMask:
+    serializedVersion: 2
+    m_Bits: 0
+  laundryViewLayers:
+  - Default
+  - Ground
+  - FoyerPuzzle
 --- !u!65 &62681436
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1869,13 +1882,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5296857, y: 0.21380016, z: 0.7552738, w: 0.3213783}
+  m_LocalRotation: {x: 0.35782066, y: -0.062667415, z: 0.5000866, w: 0.78609836}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 1.003, y: 69.666, z: 134.597}
+  m_LocalEulerAnglesHint: {x: 38.7, y: 19.41, z: 71.8}
 --- !u!114 &410087042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7842,7 +7855,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 401238de09fe6c949ab193f1ce629be6, type: 2}
+      objectReference: {fileID: 9100000, guid: 2d84e01c058f2a946aebcc8488415509, type: 2}
     - target: {fileID: 5866666021909216657, guid: 0fc7627f91279114b8c3c949029cfdb9,
         type: 3}
       propertyPath: m_ApplyRootMotion
