@@ -104,4 +104,14 @@ public class AnimationCtl : MonoBehaviour
         if (player != null)
             player.AE_WeaponPick_Box();
     }
+
+    public void OnCrawUpEnd()
+    {
+        if (player != null)
+            player.AE_OnCrawlUpEnd();
+    }
+
+
+    public void AE_AnimLockOn() => player.BeginAnimLock();
+    public void AE_AnimLockOff() => player.EndAnimLock();
 }

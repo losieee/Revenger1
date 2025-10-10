@@ -29,6 +29,12 @@ public class CameraMov : MonoBehaviour
     public float pullInSmoothTime = 0.05f;      // 벽에 부딪혀 당길 때 스무딩(빠르게)
     public float relaxOutSmoothTime = 0.15f;    // 벽이 사라져 멀어질 때 스무딩(천천히)
 
+    [Header("엎드렸을때 뷰")]
+    public float crawlDown = 0.35f;   // 엎드릴 때 월드 Y로 내릴 양
+    public float crawlLerp = 0.12f;   // 보간 시간
+    private float _crawlYTarget = 0f; // 목표 오프셋
+    private float _crawlY = 0f;       // 현재 오프셋
+
     private float yaw = 0f;
     private float pitch = 15f;
 
@@ -73,7 +79,11 @@ public class CameraMov : MonoBehaviour
         Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
 
         // 2) 타겟 기준점
-        Vector3 targetPos = target.position + Vector3.up * heightOffset;
+        if (crawlLerp <= 0f) crawlLerp = 0.01f;
+        float _k = Mathf.Clamp01(Time.deltaTime / crawlLerp);
+        _crawlY = Mathf.Lerp(_crawlY, _crawlYTarget, _k);   // _crawlY: 0 → crawlDown 으로 보간
+        float effectiveHeightOffset = heightOffset - _crawlY;
+        Vector3 targetPos = target.position + Vector3.up * effectiveHeightOffset;
 
         // 3) 충돌 감지: SphereCast로 목표 거리 내 장애물 확인
         float targetDistance = distance; // 기본은 최대 거리
@@ -157,4 +167,10 @@ public class CameraMov : MonoBehaviour
     }
 
     public void SetTarget(Transform t) => target = t;
+
+    public void SetCrawl(bool on, float amount = -1f)
+    {
+        if (amount > 0f) crawlDown = amount;
+        _crawlYTarget = on ? Mathf.Abs(crawlDown) : 0f;
+    }
 }

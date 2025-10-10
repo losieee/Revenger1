@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-public enum GameAction { Forward, Back, Left, Right, Run, Crouch, Climb, Interaction, Attack }
+public enum GameAction { Forward, Back, Left, Right, Run, MiniMap, Crouch, Climb, Interaction, Crawl, Attack }
 
 public static class KeyBindings
 {
@@ -13,9 +13,11 @@ public static class KeyBindings
     static readonly KeyCode DEF_LEFT = KeyCode.A;
     static readonly KeyCode DEF_RIGHT = KeyCode.D;
     static readonly KeyCode DEF_RUN = KeyCode.LeftShift;
+    static readonly KeyCode DEF_MINIMAP = KeyCode.Tab;
     static readonly KeyCode DEF_CROUCH = KeyCode.C;
     static readonly KeyCode DEF_CLIMB = KeyCode.Space;
     static readonly KeyCode DEF_Interaction= KeyCode.E;
+    static readonly KeyCode DEF_Crawl = KeyCode.Z;
     static readonly KeyCode DEF_ATTACK = KeyCode.Mouse0;
 
     static KeyCode _forward = DEF_FORWARD;
@@ -23,9 +25,11 @@ public static class KeyBindings
     static KeyCode _left = DEF_LEFT;
     static KeyCode _right = DEF_RIGHT;
     static KeyCode _run = DEF_RUN;
+    static KeyCode _MiniMap = DEF_MINIMAP;
     static KeyCode _crouch = DEF_CROUCH;
     static KeyCode _climb = DEF_CLIMB;
     static KeyCode _interaction = DEF_Interaction;
+    static KeyCode _crawl = DEF_Crawl;
     static KeyCode _attack = DEF_ATTACK;
 
     const string PF_PREFIX = "KEYBIND_";
@@ -39,9 +43,11 @@ public static class KeyBindings
         _left = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Left), (int)DEF_LEFT);
         _right = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Right), (int)DEF_RIGHT);
         _run = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Run), (int)DEF_RUN);
+        _MiniMap = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.MiniMap), (int)DEF_MINIMAP);
         _crouch = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Crouch), (int)DEF_CROUCH);
         _climb = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Climb), (int)DEF_CLIMB);
         _interaction = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Interaction), (int)DEF_Interaction);
+        _crawl = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Crawl), (int)DEF_Crawl);
         _attack = (KeyCode)PlayerPrefs.GetInt(PF_PREFIX + nameof(GameAction.Attack), (int)DEF_ATTACK);
         _loaded = true;
     }
@@ -56,9 +62,11 @@ public static class KeyBindings
             case GameAction.Left: return _left;
             case GameAction.Right: return _right;
             case GameAction.Run: return _run;
+            case GameAction.MiniMap: return _MiniMap;
             case GameAction.Crouch: return _crouch;
             case GameAction.Climb: return _climb;
             case GameAction.Interaction: return _interaction;
+            case GameAction.Crawl: return _crawl;
             case GameAction.Attack: return _attack;
         }
         return KeyCode.None;
@@ -114,9 +122,11 @@ public static class KeyBindings
             case GameAction.Left: _left = code; break;
             case GameAction.Right: _right = code; break;
             case GameAction.Run: _run = code; break;
+            case GameAction.MiniMap: _MiniMap = code; break;
             case GameAction.Crouch: _crouch = code; break;
             case GameAction.Climb: _climb = code; break;
             case GameAction.Interaction: _interaction = code; break;
+            case GameAction.Crawl: _crawl = code; break;
             case GameAction.Attack: _attack = code; break;
         }
     }
@@ -128,9 +138,11 @@ public static class KeyBindings
         if (_left == code) { action = GameAction.Left; return true; }
         if (_right == code) { action = GameAction.Right; return true; }
         if (_run == code) { action = GameAction.Run; return true; }
+        if (_MiniMap == code) { action = GameAction.MiniMap; return true; }
         if (_crouch == code) { action = GameAction.Crouch; return true; }
         if (_climb == code) { action = GameAction.Climb; return true; }
         if (_interaction == code) { action = GameAction.Interaction; return true; }
+        if (_crawl == code) { action = GameAction.Crawl; return true; }
         if (_attack == code) { action = GameAction.Attack; return true; }
         action = default;
         return false;
@@ -143,9 +155,11 @@ public static class KeyBindings
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Left), (int)_left);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Right), (int)_right);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Run), (int)_run);
+        PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.MiniMap), (int)_MiniMap);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Crouch), (int)_crouch);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Climb), (int)_climb);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Interaction), (int)_interaction);
+        PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Crawl), (int)_crawl);
         PlayerPrefs.SetInt(PF_PREFIX + nameof(GameAction.Attack), (int)_attack);
         PlayerPrefs.Save();
         OnChanged?.Invoke();
@@ -155,8 +169,8 @@ public static class KeyBindings
     {
         EnsureLoaded();
         _forward = DEF_FORWARD; _back = DEF_BACK; _left = DEF_LEFT; _right = DEF_RIGHT;
-        _run = DEF_RUN; _crouch = DEF_CROUCH; _climb = DEF_CLIMB;
-        _interaction = DEF_Interaction;
+        _run = DEF_RUN; _crouch = DEF_CROUCH; _climb = DEF_CLIMB; _MiniMap = DEF_MINIMAP;
+        _interaction = DEF_Interaction; _crawl = DEF_Crawl;
         _attack = DEF_ATTACK;
         SaveAll();
     }

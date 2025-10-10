@@ -79,6 +79,7 @@ public class PlayerMov : MonoBehaviour
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
+    int _animLockDepth = 0;
 
     // 바닥 감지 (BoxCollider 기반 + 코요테 타임)
     private BoxCollider box;
@@ -171,6 +172,25 @@ public class PlayerMov : MonoBehaviour
     Vector3 boxSizeStand, boxCenterStand;
     Vector3 boxSizeCrouch, boxCenterCrouch;
     Coroutine crouchColRoutine;
+
+    [Header("Crawl")]
+    private bool isCrawling = false;
+    [SerializeField] private float crawlHeight = 0.3f;     // 엎드릴 때 콜라이더 높이
+    [SerializeField] private float crawlSpeedMul = 0.35f;   // 엎드린 이동 속도 비율
+    [SerializeField] private float crawlScaleZ = 1.25f;
+    [SerializeField, Range(0f, 1f)]
+    private float crawlKeepFrontFace = 1f;
+    Vector3 boxSizeCrawl, boxCenterCrawl;
+    private bool isCrawlAnimating = false;
+
+    [Header("Crawl Cam")]
+    public float crawlCamDown = 0.35f;   // 얼마나 내릴지
+    public float crawlCamLerp = 0.12f;   // 보간 시간
+    private bool _crawlCamOn = false;
+
+    private Transform camT;
+    private Vector3 camLocalStart;
+    private Coroutine camYCo;
 
     // Tag 기반 벽 근접 차단(Keep-Out)
     [Header("Wall Keep-Out (by Tag)")]
@@ -387,6 +407,19 @@ public class PlayerMov : MonoBehaviour
         float deltaH = box.size.y - newH;
         boxCenterCrouch = new Vector3(box.center.x, box.center.y - deltaH * 0.5f, box.center.z);
 
+        // 엎드린 값 계산
+        float crawlH = crawlHeight;
+        float z0 = box.size.z;
+        float z1 = z0 * crawlScaleZ;
+        boxSizeCrawl = new Vector3(box.size.x, crawlH, z1);
+        float deltaHc = box.size.y - crawlH;
+        float centerY = box.center.y - deltaHc * 0.5f;
+
+        float deltaZ = z1 - z0;
+        float offsetZ = 0f;
+
+        boxCenterCrawl = new Vector3(box.center.x, centerY, box.center.z + offsetZ);
+
         groundLayer = LayerMask.GetMask("Ground", "Climbable");
 
         if (!cameraPivot)
@@ -394,6 +427,12 @@ public class PlayerMov : MonoBehaviour
             var cam = FindObjectOfType<CameraMov>(true);
             if (cam) cameraPivot = cam.transform;
             else if (Camera.main) cameraPivot = Camera.main.transform;
+        }
+
+        if (cameraPivot)
+        {
+            camT = cameraPivot;
+            camLocalStart = camT.localPosition;
         }
     }
 
@@ -542,7 +581,21 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 애니 파라미터
-        Vector3 localMove = transform.InverseTransformDirection(currentMoveInput);
+        Vector3 localMove;
+
+        if (isCrawling)
+        {
+            // 카메라 기준으로 투영: X=카메라 Right, Z=카메라 Forward
+            float lx = Vector3.Dot(currentMoveInput, moveRight);
+            float lz = Vector3.Dot(currentMoveInput, moveForward);
+            localMove = new Vector3(lx, 0f, lz);
+        }
+        else
+        {
+            // 기존 방식(캐릭터 기준)
+            localMove = transform.InverseTransformDirection(currentMoveInput);
+        }
+
         moveX = Mathf.SmoothDamp(moveX, localMove.x, ref velX, smoothTime);
         moveY = Mathf.SmoothDamp(moveY, localMove.z, ref velY, smoothTime);
         animator.SetFloat("MoveX", moveX);
@@ -559,10 +612,23 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 회전
-        if (currentMoveInput.sqrMagnitude > 0.001f)
+        if (isCrawling)
         {
+            // 엎드릴 땐 카메라가 보는 쪽으로만 바라보게
+            Vector3 face = moveForward;         // 카메라 전방
+            if (face.sqrMagnitude > 0.0001f)
+            {
+                Quaternion faceRot = Quaternion.LookRotation(face, Vector3.up);
+                transform.rotation = Quaternion.RotateTowards(
+                    transform.rotation, faceRot, rotSpeed * 100f * Time.deltaTime);
+            }
+        }
+        else if (currentMoveInput.sqrMagnitude > 0.001f)
+        {
+            // 기존: 이동 방향을 바라보게
             Quaternion targetRot = Quaternion.LookRotation(currentMoveInput);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, rotSpeed * 100f * Time.deltaTime);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation, targetRot, rotSpeed * 100f * Time.deltaTime);
         }
 
         wasAltPressedLastFrame = isAlt;
@@ -635,8 +701,22 @@ public class PlayerMov : MonoBehaviour
         // C 눌러 앉기
         if (KeyBindings.GetKeyDown(GameAction.Crouch) && crouchCooldownTimer <= 0f)
         {
+            // 엎드리는 애니메이션 중 앉기 무시
+            if (isCrawlAnimating) return;
+
+            if (isCrawling)
+            {
+                // 엎드림 → 즉시 앉기 전환
+                SwitchCrawlToCrouch();
+                crouchCooldownTimer = crouchCooldown;
+                SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
+                return;
+            }
+
+            // 일반 토글(서기↔앉기)
             bool wantCrouch = !isCrouching;
 
+            // 서기로 갈 때만 천장 체크
             if (!wantCrouch && !CanStandUp()) return;
 
             isCrouching = wantCrouch;
@@ -647,9 +727,25 @@ public class PlayerMov : MonoBehaviour
             ApplyCrouchCollider(isCrouching);
         }
 
+        // 엎드리기
+        if (KeyBindings.GetKeyDown(GameAction.Crawl) && crouchCooldownTimer <= 0f)
+        {
+            ToggleCrawl();
+            // 크로스 토글 간 충돌 방지 쿨다운 (원하는 값으로)
+            crouchCooldownTimer = 0.25f;
+        }
+
+        // 엎드린 동안엔 달리기/점프/등반 이동 잠금
+        if (isCrawling)
+        {
+            isRunning = false;                 // 달리기 금지
+            animator.SetBool("IsCrouching", false); // 앉기와 상태 충돌 방지
+        }
+
         // 속도
         float moveSpeed = isRunning ? speed * runSpeed : speed;
-        if (isCrouching) moveSpeed *= 0.6f;
+        if (isCrouching) moveSpeed *= 0.55f;
+        if (isCrawling) moveSpeed *= crawlSpeedMul;
         currentMoveSpeed = moveSpeed;
 
         // 소리 범위 알림
@@ -660,11 +756,11 @@ public class PlayerMov : MonoBehaviour
             ShowPausePanel(gameClearUI);
 
         // 미니맵
-        if (Input.GetKeyDown(KeyCode.Tab)) minimapPanel?.SetActive(true);
-        if (Input.GetKeyUp(KeyCode.Tab)) minimapPanel?.SetActive(false);
+        if (KeyBindings.GetKeyDown(GameAction.MiniMap)) minimapPanel?.SetActive(true);
+        if (KeyBindings.GetKeyUp(GameAction.MiniMap)) minimapPanel?.SetActive(false);
 
         // 미션 받기
-        if (canTakeMission && EPressed()) ShowPausePanel(missionUI);
+        if (canTakeMission && EPressed() && !isCrawling) ShowPausePanel(missionUI);
 
         // ESC 옵션 토글
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -684,7 +780,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 암살
-        if (_sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && canKill)
+        if (_sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && canKill && !isCrawling)
         {
             if (canKill && killTarget != null)
             {
@@ -697,7 +793,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 문열기
-        if (nearDoor && EPressed() && nearDoorLeaf != null && !isDoorRotating)
+        if (nearDoor && EPressed() && nearDoorLeaf != null && !isDoorRotating && !isCrawling)
         {
             Quaternion target = doorOpen ? doorClosedRot : doorOpenRot;
             if (doorRoutine != null) StopCoroutine(doorRoutine);
@@ -706,7 +802,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 무기 선택창
-        if (choiceWeapon && EPressed())
+        if (choiceWeapon && EPressed() && !isCrawling)
         {
             if (IsAnyWeaponActive())
                 ForceUnequipWeapon();
@@ -808,6 +904,78 @@ public class PlayerMov : MonoBehaviour
         {
             if (TryInteract())   // 먹기 or 슬롯 배치 성공 시
                 return;
+        }
+    }
+
+    // 엎드려있는 상태에서 앉기
+    void SwitchCrawlToCrouch()
+    {
+        // 1) 상태 플래그
+        isCrawling = false;                 // 크롤 종료
+        isCrouching = true;                 // 앉기 시작
+
+        // 2) 애니메이터 파라미터
+        animator.ResetTrigger("CrawlDown");
+        animator.ResetTrigger("CrawlUp");
+        animator.SetBool("IsCrawling", false);
+        animator.SetBool("IsCrouching", true);
+
+        // 전용 트리거를 만들었다면 같이 쏴주기
+        animator.SetTrigger("CrawlToCrouch");
+
+        // 3) 콜라이더: 크롤 → 앉기 사이즈로 부드럽게 보간
+        ApplyColliderPose(boxSizeCrouch, boxCenterCrouch, 0.08f);
+
+        (cmov ?? CameraMov.i)?.SetCrawl(false);
+
+        // 4) 이동/속도 등 보정
+        isRunning = false;
+
+        SetCrawlCamByState(false);
+    }
+
+    // 엎드리기
+    void ToggleCrawl()
+    {
+        // 이미 다른 컷신/등반/홀드 중이면 무시
+        if (blockInput || isHolding || isClimbing) return;
+
+        if (!isCrawling)
+        {
+            // 서거나 앉은 상태 → 엎드리기
+            isCrawlAnimating = true;
+            isCrawling = true;
+            isCrouching = false;                       // crouch와 동시 해제
+            animator.SetBool("IsCrouching", false);
+
+            animator.ResetTrigger("CrawlUp");
+            animator.SetTrigger("CrawlDown");
+            animator.SetBool("IsCrawling", true);
+
+            // 콜라이더 즉시/빠르게 낮추기
+            ApplyColliderPose(boxSizeCrawl, boxCenterCrawl, 0.10f);
+
+            (cmov ?? CameraMov.i)?.SetCrawl(true, crawlCamDown);
+            SetCrawlCamByState(true);
+        }
+        else
+        {
+            // 엎드림 → 해제(서기)
+            if (!CanStandUp()) return; // 머리 위에 막히면 해제 금지
+
+            isCrawlAnimating = false;
+            isCrawling = false;
+
+            animator.ResetTrigger("CrawlDown");
+            animator.SetTrigger("CrawlUp");
+            animator.SetBool("IsCrawling", false);
+
+            // 콜라이더 되돌리기 (Up 애니 시작과 동시에)
+            ApplyColliderPose(boxSizeStand, boxCenterStand, 0.10f);
+
+            (cmov ?? CameraMov.i)?.SetCrawl(false);
+
+            SetCrawlCamByState(false);
         }
     }
 
@@ -1169,6 +1337,17 @@ public class PlayerMov : MonoBehaviour
                 foreach (var enemy in enemies1f)
                     if (enemy) enemy.SetActive(true);
         }
+
+        if (_crawlCamOn && camT)
+        {
+            // camLocalStart의 월드 위치
+            Vector3 baseWorld = camT.parent ? camT.parent.TransformPoint(camLocalStart) : camLocalStart;
+            Vector3 targetWorld = baseWorld + Vector3.down * Mathf.Abs(crawlCamDown);
+
+            // 부드럽게 월드 포지션 보정
+            float k = Mathf.Clamp01(Time.deltaTime / Mathf.Max(0.01f, crawlCamLerp));
+            camT.position = Vector3.Lerp(camT.position, targetWorld, k);
+        }
     }
 
     void UpdateMiniPos()
@@ -1312,6 +1491,12 @@ public class PlayerMov : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (blockInput || isClimbing || isHolding)
+        {
+            rb.velocity = Vector3.zero;
+            return;
+        }
+
         bool block = isClimbing || isHolding;
         if (block) return;
 
@@ -1874,6 +2059,45 @@ public class PlayerMov : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, wallKeepOutRadius);
     }
 
+    // 월드 좌표로 변환
+    Vector3 WorldDownToLocal(float dist)
+    {
+        Vector3 wDelta = Vector3.down * Mathf.Abs(dist); // 월드 기준 아래로
+        if (camT && camT.parent)
+            return camT.parent.InverseTransformVector(wDelta); // 부모 로컬축으로 변환
+        return wDelta; // 부모 없으면 로컬==월드
+    }
+
+    // 엎드릴때 캠 변화 상태 스위처(중복 호출 방지)
+    void SetCrawlCamByState(bool on)
+    {
+        if (!camT) return;
+        if (_crawlCamOn == on) return;
+        _crawlCamOn = on;
+
+        if (camYCo != null) StopCoroutine(camYCo);
+
+        Vector3 targetLocal = on
+            ? camLocalStart + WorldDownToLocal(crawlCamDown)
+            : camLocalStart;
+
+        camYCo = StartCoroutine(LerpCamLocalPos(targetLocal));
+    }
+
+    IEnumerator LerpCamLocalPos(Vector3 to)
+    {
+        Vector3 from = camT.localPosition;
+        float t = 0f, d = Mathf.Max(0.01f, crawlCamLerp);
+        while (t < 1f)
+        {
+            t += Time.deltaTime / d;
+            camT.localPosition = Vector3.Lerp(from, to, t);
+            yield return null;
+        }
+        camT.localPosition = to;
+        camYCo = null;
+    }
+
     void ShowPausePanel(GameObject panel)
     {
         if (!panel) return;
@@ -2004,7 +2228,15 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    public void BindCameraPivot(Transform pivot) { cameraPivot = pivot; }
+    public void BindCameraPivot(Transform pivot)
+    {
+        cameraPivot = pivot;
+        if (cameraPivot)
+        {
+            camT = cameraPivot;
+            camLocalStart = camT.localPosition;
+        }
+    }
 
     // 암살 애니 이벤트
     public void OnAssassinationHit()
@@ -2095,5 +2327,51 @@ public class PlayerMov : MonoBehaviour
 
         Cursor.visible = !hideCursor ? true : false;
         Cursor.lockState = hideCursor ? CursorLockMode.Locked : CursorLockMode.None;
+    }
+
+    // 공용 콜라이더 보간(기존 LerpCollider 활용)
+    void ApplyColliderPose(Vector3 toSize, Vector3 toCenter, float dur)
+    {
+        if (!box) return;
+        if (crouchColRoutine != null) StopCoroutine(crouchColRoutine);
+        crouchColRoutine = StartCoroutine(LerpCollider(box, toSize, toCenter, dur));
+    }
+
+    // 엎드리기 끝 애니메이션
+    public void AE_OnCrawlUpEnd()
+    {
+        // 애니메이션 이벤트로 호출하려면 클립 마지막 프레임에 붙여줘
+        if (!CanStandUp()) return;
+        ApplyColliderPose(boxSizeStand, boxCenterStand, 0.05f);
+        isCrawlAnimating = false;
+    }
+
+    public void BeginAnimLock()
+    {
+        _animLockDepth++;
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        if (rb)
+        {
+            rb.velocity = Vector3.zero;
+            // rb.isKinematic = true;   // 필요하면 켜기 (밀림 방지)
+            // rb.useGravity = true;    // 띄우지 않으면 그대로 두기
+        }
+        animator?.SetFloat("MoveX", 0f);
+        animator?.SetFloat("MoveY", 0f);
+        animator?.SetFloat("Speed", 0f);
+    }
+
+    public void EndAnimLock()
+    {
+        _animLockDepth = Mathf.Max(0, _animLockDepth - 1);
+        if (_animLockDepth == 0)
+        {
+            blockInput = false;
+            if (rb)
+            {
+                // rb.isKinematic = false; // 위에서 켰다면 다시 끄기
+            }
+        }
     }
 }
