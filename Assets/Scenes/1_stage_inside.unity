@@ -17997,45 +17997,13 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 2850726565589396646}
-    - targetCorrespondingSourceObject: {fileID: 5825437265943253586, guid: f84abf26c50afea4889ef4bca688d4bf,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2850726565589396645}
   m_SourcePrefab: {fileID: 100100000, guid: f84abf26c50afea4889ef4bca688d4bf, type: 3}
---- !u!1 &2850726565589396643 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5825437265943253586, guid: f84abf26c50afea4889ef4bca688d4bf,
-    type: 3}
-  m_PrefabInstance: {fileID: 2850726565589396642}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2850726565589396644 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6096677839528004531, guid: f84abf26c50afea4889ef4bca688d4bf,
     type: 3}
   m_PrefabInstance: {fileID: 2850726565589396642}
   m_PrefabAsset: {fileID: 0}
---- !u!64 &2850726565589396645
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2850726565589396643}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -7221436164365234340, guid: 77a057b06c788b543b9434cfbfca25dd, type: 3}
 --- !u!64 &2850726565589396646
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -20432,7 +20400,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5397004034450139371, guid: becf18a279dfbb2408590f6ee17ee7c5, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1220188878358916326, guid: becf18a279dfbb2408590f6ee17ee7c5,
