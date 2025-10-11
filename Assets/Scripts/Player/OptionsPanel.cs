@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class OptionsPanel : MonoBehaviour
@@ -46,4 +47,17 @@ public class OptionsPanel : MonoBehaviour
     // 슬라이더 OnValueChanged(float)에 연결
     public void OnMusicChanged(float v) => SoundManager.i?.SetMusicVolume(v);
     public void OnEffectChanged(float v) => SoundManager.i?.SetEffectVolume(v);
+
+    public void GameExit()
+    {
+        if (GameBootstrap.i)
+        {
+            if (GameBootstrap.i.player) Destroy(GameBootstrap.i.player.gameObject);
+            if (GameBootstrap.i.cameraRig) Destroy(GameBootstrap.i.cameraRig.gameObject);
+            Destroy(GameBootstrap.i.gameObject); // 싱글턴 자체 제거
+        }
+
+        Time.timeScale = 1;
+        SceneManager.LoadScene("MainLobby");
+    }
 }

@@ -29,7 +29,11 @@ public class ButtonControl : MonoBehaviour
 
     private void OnDisable()
     {
-        transform.GetChild(1).gameObject.SetActive(false);
+        if (transform.childCount > 0 && transform.GetChild(0) != null)
+        {
+            var child = transform.GetChild(0);
+            if (child != null) child.gameObject.SetActive(false);
+        }
     }
 
     void Start()
