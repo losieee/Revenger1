@@ -50,14 +50,22 @@ public class OptionsPanel : MonoBehaviour
 
     public void GameExit()
     {
+        SceneManager.sceneLoaded += OnMainLobbyLoaded;
+        SceneManager.LoadScene("MainLobby");
+    }
+
+    private void OnMainLobbyLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != "MainLobby") return;
+        SceneManager.sceneLoaded -= OnMainLobbyLoaded;
+
         if (GameBootstrap.i)
         {
             if (GameBootstrap.i.player) Destroy(GameBootstrap.i.player.gameObject);
             if (GameBootstrap.i.cameraRig) Destroy(GameBootstrap.i.cameraRig.gameObject);
-            Destroy(GameBootstrap.i.gameObject); // 싱글턴 자체 제거
+            Destroy(GameBootstrap.i.gameObject);
         }
 
         Time.timeScale = 1;
-        SceneManager.LoadScene("MainLobby");
     }
 }
