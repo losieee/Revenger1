@@ -114,4 +114,7 @@ public class AnimationCtl : MonoBehaviour
 
     public void AE_AnimLockOn() => player.BeginAnimLock();
     public void AE_AnimLockOff() => player.EndAnimLock();
+    public void StartWeaponAnim() => player.AE_OnEquipStart();
+    public void TakeWeapon() => player.AE_OnEquipWeapon();
+    public void TakeOffWeapon() => player.AE_OnEquipHide();
 }
