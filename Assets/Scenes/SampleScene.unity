@@ -514,6 +514,13 @@ MonoBehaviour:
   crouchCooldown: 0.6
   crouchHeight: 1
   colliderLerpTime: 0.1
+  crawlHeight: 0.3
+  crawlSpeedMul: 0.35
+  crawlScaleZ: 1.25
+  boxSizeCrawl: {x: 0, y: 0, z: 0}
+  boxCenterCrawl: {x: 0, y: 0, z: 0}
+  crawlCamDown: 0.35
+  crawlCamLerp: 0.12
   wallTag: Wall
   wallKeepOutRadius: 0.4
   wallKeepOutIterations: 2
@@ -3282,6 +3289,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Villain_A
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: cce18a4a0ac948f48a27b46cc928d8b6,
+        type: 3}
+      propertyPath: m_Avatar
+      value: 
+      objectReference: {fileID: 9000000, guid: e2d4259ba55861d449aef794660dcae6, type: 3}
     - target: {fileID: 5866666021909216657, guid: cce18a4a0ac948f48a27b46cc928d8b6,
         type: 3}
       propertyPath: m_Controller
@@ -8945,6 +8957,8 @@ MonoBehaviour:
     m_Bits: 4294967295
   pullInSmoothTime: 0.05
   relaxOutSmoothTime: 0.15
+  crawlDown: 0.35
+  crawlLerp: 0.12
 --- !u!4 &1816884328
 Transform:
   m_ObjectHideFlags: 0
