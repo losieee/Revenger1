@@ -6,6 +6,7 @@ using System;
 using TMPro;
 using UnityEngine.Animations.Rigging;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerMov : MonoBehaviour
@@ -42,6 +43,10 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float eCooldownDuration = 0.6f;
     private bool eLocked = false;
     private Coroutine eLockCo;
+
+    [Header("Game Clear (attack anim timing)")]
+    [SerializeField] private bool _gameClearArmed = false;
+    [SerializeField] private bool _gameClearShown = false;
 
     // 외부에서 읽을 수 있도록 공개(추가)
     public bool IsELocked => eLocked;
@@ -201,7 +206,17 @@ public class PlayerMov : MonoBehaviour
 
     [Header("Door")]
     [SerializeField] private float doorRotateDuration = 0.6f;
-    [SerializeField] private float doorOpenAngleY = -90f;
+    [SerializeField] private float doorZDelta = 90f;
+    private int doorSign = +1;
+
+    struct DoorData
+    {
+        public Quaternion closed;
+        public Quaternion open;
+        public bool isOpen;
+        public int sign;
+    }
+    private readonly Dictionary<Transform, DoorData> doors = new();
 
     private bool nearDoor = false;
     private Transform nearDoorRoot;
@@ -808,7 +823,11 @@ public class PlayerMov : MonoBehaviour
 
         // 클리어
         if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack))
-            ShowPausePanel(gameClearUI);
+        {
+            _gameClearArmed = true;
+            TriggerAttackByCurrentWeapon();
+        }
+        //ShowPausePanel(gameClearUI);
 
         // 미니맵
         if (KeyBindings.GetKeyDown(GameAction.MiniMap)) minimapPanel?.SetActive(true);
@@ -848,12 +867,18 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 문열기
-        if (nearDoor && EPressed() && nearDoorLeaf != null && !isDoorRotating && !isCrawling)
+        if (nearDoorLeaf && KeyBindings.GetKeyDown(GameAction.Interaction) && !isDoorRotating && !isCrawling)
         {
-            Quaternion target = doorOpen ? doorClosedRot : doorOpenRot;
+            if (!doors.TryGetValue(nearDoorLeaf, out var data)) return;
+
+            Quaternion from = nearDoorLeaf.localRotation;
+            Quaternion to = data.isOpen ? data.closed : data.open;
+
             if (doorRoutine != null) StopCoroutine(doorRoutine);
-            doorRoutine = StartCoroutine(RotateLocalY_Smooth(nearDoorLeaf, nearDoorLeaf.localRotation, target, doorRotateDuration));
-            doorOpen = !doorOpen;
+            doorRoutine = StartCoroutine(RotateLocal_Smooth(nearDoorLeaf, from, to, doorRotateDuration));
+
+            data.isOpen = !data.isOpen;
+            doors[nearDoorLeaf] = data;
         }
 
         // 무기 선택창
@@ -975,6 +1000,12 @@ public class PlayerMov : MonoBehaviour
             if (TryInteract())   // 먹기 or 슬롯 배치 성공 시
                 return;
         }
+
+        // 치트
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            transform.position = new Vector3(-0.956f, 5.022f, 19.404f);
+        }
     }
 
     // 엎드려있는 상태에서 앉기
@@ -1027,7 +1058,7 @@ public class PlayerMov : MonoBehaviour
 
             ForceUnequipWeapon();
 
-            (cmov ?? CameraMov.i)?.SetCrawl(true, crawlCamDown);
+            CameraMov.i?.SetCrawl(true, crawlCamDown);
             SetCrawlCamByState(true);
         }
         else
@@ -1072,7 +1103,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 카메라 추적 비활성화
-        if (cmov) cmov.enabled = false;
+        if (CameraMov.i) CameraMov.i.enabled = false;
 
         // Culling Mask 설정
         if (cam)
@@ -1110,7 +1141,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 카메라 추적 비활성화
-        if (cmov) cmov.enabled = false;
+        if (CameraMov.i) CameraMov.i.enabled = false;
 
         // Culling Mask 설정
         if (cam)
@@ -1142,11 +1173,15 @@ public class PlayerMov : MonoBehaviour
         // 어떤 미션이든 열려있던 퍼즐 UI 닫기
         if (laundryPuzzle && laundryPuzzle.activeSelf) HidePausePanel(laundryPuzzle);
 
-        // 저장해둔 포즈로 부드럽게 되돌아간 뒤 CameraMov를 켠다
-        _camBlendRoutine = StartCoroutine(BlendBackThenEnableFollow(restoreCamBlend));
+        FinishExitLaundryView();
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
+
+        if (CameraMov.i)
+        {
+            CameraMov.i.enabled = true;
+        }
     }
 
     private IEnumerator BlendBackThenEnableFollow(float duration)
@@ -1173,14 +1208,22 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 최종 스냅
-        tr.position = _preViewCamPos;
-        tr.rotation = _preViewCamRot;
+        tr.SetPositionAndRotation(_preViewCamPos, _preViewCamRot);
         cam.fieldOfView = _preViewCamFov;
 
-        // 이제 추적 재개 (여기서는 리센터 호출 X : 스냅 방지)
-        if (cmov) cmov.enabled = true;
-
+        // 퍼즐뷰 플래그/입력 잠금 해제
         FinishExitLaundryView();
+
+        // 바로 카메라 조작 가능하게: 켜고 활성화 블렌드만
+        if (CameraMov.i)
+        {
+            CameraMov.i.transform.SetPositionAndRotation(tr.position, tr.rotation);
+            CameraMov.i.enabled = true;
+            CameraMov.i.BeginBlendIn(restoreCamBlend);
+
+            // 입력이 잠깐(예: 0.35초) 없으면 그때만 부드럽게 리센터
+            CameraMov.i.RecenterIfNoMouseFor(0.35f, restoreCamBlend);
+        }
     }
 
     void FinishExitLaundryView()
@@ -1198,7 +1241,7 @@ public class PlayerMov : MonoBehaviour
         isCamBlending = true;
 
         // 따라다니는 카메라 스크립트가 있으면 잠깐 꺼두기
-        if (cmov) cmov.enabled = false;
+        if (CameraMov.i) CameraMov.i.enabled = false;
 
         var cam = Camera.main;
         if (!cam) { isCamBlending = false; yield break; }
@@ -1822,7 +1865,12 @@ public class PlayerMov : MonoBehaviour
     {
         if (other.CompareTag("DonRun")) { donRunZoneCount++; UpdateRunLock(); }
         if (other.CompareTag("ClimbZone")) canClimbZone = true;
-        if (other.CompareTag("Boss")) canAttack = true;
+        if (other.CompareTag("Boss"))
+        {
+            canAttack = true;
+            _gameClearArmed = false;
+            _gameClearShown = false;
+        }
 
         if (other.CompareTag("NPC"))
         {
@@ -1838,19 +1886,8 @@ public class PlayerMov : MonoBehaviour
             if (enemy != null) { killTarget = enemy; canKill = true; }
         }
 
-        if (other.CompareTag("Door"))
-        {
-            nearDoor = true;
-
-            nearDoorRoot = other.transform.root;
-            nearDoorLeaf = (nearDoorRoot.childCount > 0) ? nearDoorRoot.GetChild(0) : nearDoorRoot;
-
-            doorClosedRot = Quaternion.Euler(0f, 0f, 0f);
-            doorOpenRot = Quaternion.Euler(0f, doorOpenAngleY, 0f);
-
-            float yNow = nearDoorLeaf.localEulerAngles.y;
-            doorOpen = Mathf.Abs(Mathf.DeltaAngle(yNow, doorOpenAngleY)) < 5f;
-        }
+        if (other.CompareTag("Door")) BindDoor(other, +1);
+        else if (other.CompareTag("MinDoor")) BindDoor(other, -1);
 
         if (other.CompareTag("WeaponBox")) 
         { 
@@ -1875,7 +1912,12 @@ public class PlayerMov : MonoBehaviour
     {
         if (other.CompareTag("DonRun")) { donRunZoneCount = Mathf.Max(0, donRunZoneCount - 1); UpdateRunLock(); }
         if (other.CompareTag("ClimbZone")) canClimbZone = false;
-        if (other.CompareTag("Boss")) canAttack = false;
+        if (other.CompareTag("Boss"))
+        {
+            canAttack = false;
+            _gameClearArmed = false;
+            _gameClearShown = false;
+        }
 
         if (other.CompareTag("NPC")) { nearNPC.gameObject.SetActive(false); canTakeMission = false; }
 
@@ -1885,10 +1927,18 @@ public class PlayerMov : MonoBehaviour
             if (enemy == killTarget) { killTarget = null; canKill = false; }
         }
 
-        if (other.CompareTag("Door"))
+        if (other.CompareTag("Door") || other.CompareTag("MinDoor"))
         {
-            if (nearDoorRoot == null || other.transform.root == nearDoorRoot)
+            // 같은 문에서 나가는 경우만 해제
+            if (nearDoorLeaf && (other.transform == nearDoorLeaf || other.transform.IsChildOf(nearDoorLeaf)))
             {
+                nearDoor = false;
+                nearDoorRoot = null;
+                nearDoorLeaf = null;
+            }
+            else
+            {
+                // 트리거 구조가 다를 수 있으니 여유롭게 해제
                 nearDoor = false;
                 nearDoorRoot = null;
                 nearDoorLeaf = null;
@@ -1908,6 +1958,54 @@ public class PlayerMov : MonoBehaviour
             hasFoyerMission = false;
             inFoyerRange = false;
         }
+    }
+
+    // 문열기
+    static Transform FirstLeafChild(Transform t)
+    {
+        var cur = t;
+        while (cur.childCount > 0) cur = cur.GetChild(0);
+        return cur;
+    }
+
+    void BindDoor(Collider other, int sign) // sign : Door=+1, MinDoor=-1
+    {
+        nearDoorLeaf = FirstLeafChild(other.transform);
+        if (!doors.TryGetValue(nearDoorLeaf, out var data))
+        {
+            var e = nearDoorLeaf.localEulerAngles;
+            data = new DoorData
+            {
+                closed = nearDoorLeaf.localRotation,
+                open = Quaternion.Euler(e.x, e.y, e.z + sign * doorZDelta),
+                isOpen = Mathf.Abs(Mathf.DeltaAngle(e.z, e.z + sign * doorZDelta)) < 5f,
+                sign = sign
+            };
+            doors[nearDoorLeaf] = data;
+        }
+        else if (data.sign != sign)
+        {
+            // 같은 문을 반대 태그로 들어온 경우: '닫힘'을 기준으로 열림 각도만 재계산
+            var ce = data.closed.eulerAngles;
+            data.open = Quaternion.Euler(ce.x, ce.y, ce.z + sign * doorZDelta);
+            data.sign = sign;
+            doors[nearDoorLeaf] = data;
+        }
+    }
+
+    IEnumerator RotateLocal_Smooth(Transform tr, Quaternion from, Quaternion to, float duration)
+    {
+        isDoorRotating = true;
+        float t = 0f;
+        duration = Mathf.Max(0.0001f, duration);
+        while (t < 1f)
+        {
+            t += Time.deltaTime / duration;
+            tr.localRotation = Quaternion.Slerp(from, to, t);
+            yield return null;
+        }
+        tr.localRotation = to;
+        isDoorRotating = false;
     }
 
     void UpdateRunLock() => canRun = (donRunZoneCount == 0);
@@ -2365,10 +2463,7 @@ public class PlayerMov : MonoBehaviour
     public static void LockControls(bool showCursor = true)
     {
         blockInput = true;
-
-        // 현재 씬의 PlayerMov 찾아서 CameraMov 비활성화
-        var pm = FindObjectOfType<PlayerMov>();
-        if (pm && pm.cmov) pm.cmov.enabled = false;
+        if (CameraMov.i) CameraMov.i.enabled = false;
 
         Cursor.visible = showCursor;
         Cursor.lockState = showCursor ? CursorLockMode.None : CursorLockMode.Locked;
@@ -2377,9 +2472,7 @@ public class PlayerMov : MonoBehaviour
     public static void UnlockControls(bool hideCursor = true)
     {
         blockInput = false;
-        
-        var pm = FindObjectOfType<PlayerMov>();
-        if (pm && pm.cmov) pm.cmov.enabled = true;
+        if (CameraMov.i) CameraMov.i.enabled = true;
 
         Cursor.visible = !hideCursor ? true : false;
         Cursor.lockState = hideCursor ? CursorLockMode.Locked : CursorLockMode.None;
@@ -2497,5 +2590,13 @@ public class PlayerMov : MonoBehaviour
             _putAwayViaEquip = false;
             FadeRightArmLayer(0f, 0.08f); // 맨손 포즈 복귀
         }
+    }
+
+    public void AE_GameClearMoment()
+    {
+        if (!_gameClearArmed || _gameClearShown) return;
+
+        _gameClearShown = true;   // 중복 방지
+        ShowPausePanel(gameClearUI);  // 여기서 Time.timeScale=0, 일시정지 + 커서 표시
     }
 }

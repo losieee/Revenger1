@@ -76,7 +76,6 @@ public class ButtonControl : MonoBehaviour
             if (SoundManager.i != null)
                 SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
         }
-            
     }
 
     // ¾À ·Îµå

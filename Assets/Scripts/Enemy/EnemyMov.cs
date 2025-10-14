@@ -97,6 +97,7 @@ public class EnemyMov : MonoBehaviour
     private NavMeshAgent agent;
     [SerializeField] private BoxCollider catchBox;
     [SerializeField] private BoxCollider attackBox;
+    [SerializeField] private BoxCollider discover;
     private AudioSource audioSource;
     private AudioSource chaseAudio;     // 추격 루프 전용(추격 전용)
     private AudioSource footstepAudio;  // 평소 발소리 전용
@@ -112,6 +113,16 @@ public class EnemyMov : MonoBehaviour
 
     public static event Action<Transform> OnAnyEnemyKilled;
     private static readonly List<EnemyMov> Instances = new List<EnemyMov>();
+
+    // 공격 애니메이션
+    static readonly int HashState_NPC_Punch = Animator.StringToHash("NPC_Punch");
+    int _attackLayer = -1;
+    [SerializeField] float attackCooldown = 1.0f; // 펀치 쿨다운
+    [SerializeField] float minDistanceToPunch = 2.0f; // 너무 멀면 무시
+    bool _isAttacking = false;
+    float _lastAttackTime = -999f;
+    Coroutine _attackLayerRoutine;
+    int _hashFull_NPC_Punch;
 
     public bool IsChasingPublic => state == EnemyState.Chasing;
 
@@ -191,6 +202,9 @@ public class EnemyMov : MonoBehaviour
 
         if (waypoints != null && waypoints.Length > 0 && AgentReady())
             agent.SetDestination(waypoints[currentIndex].position);
+
+        _attackLayer = animator.GetLayerIndex("Attack");
+        _hashFull_NPC_Punch = Animator.StringToHash("Attack.NPC_Punch");
 
         player = TryFindPlayer();
     }
@@ -873,11 +887,6 @@ public class EnemyMov : MonoBehaviour
     // 애니메이션 끝에 모든 행동 비활성화
     public void OnDeathAnimationEnd()
     {
-        // 애니메이터 끄기(루트모션/포즈 되감기 차단)
-        //if (animator) animator.enabled = false;
-
-        // 드래그 가능한 상태 최종 온
-        GetComponent<DraggableCorpse>()?.OnDeath();
         enabled = false;
     }
 
@@ -938,6 +947,102 @@ public class EnemyMov : MonoBehaviour
             }
         }
     }
+
+    public void OnPlayerEnteredCatchBox(Transform playerTr)
+    {
+        Debug.Log("Enter CatchBox");
+        TryPlayPunch(playerTr);
+    }
+
+    void TryPlayPunch(Transform playerTr)
+    {
+        if (_isAttacking) return;
+        if (Time.time - _lastAttackTime < attackCooldown) return;
+        if (!playerTr) return;
+
+        // 거리/각도 같은 간단한 가드
+        float d = Vector3.Distance(transform.position, playerTr.position);
+        if (d > minDistanceToPunch) return;
+
+        Debug.Log("Try pucvh");
+
+        PlayPunchOnAttackLayer();
+    }
+
+    void SetAttackActive(bool on)
+    {
+        // 공격 중에 이동 로직에서 콜라이더/상태를 건드리지 않도록 보호가 필요하면 여기서 처리.
+        // 현재 구조에선 플래그만 유지하면 충분하니 no-op로 둬도 됩니다.
+    }
+
+    void PlayPunchOnAttackLayer()
+    {
+        if (_attackLayer < 0) return;
+
+        _isAttacking = true;
+        _lastAttackTime = Time.time;
+
+        // Attack 레이어 가중치 보장
+        animator.SetLayerWeight(_attackLayer, 1f);
+
+        // 즉시 재생 (해당 레이어의 NPC_Punch 상태로)
+        animator.Play(_hashFull_NPC_Punch, _attackLayer, 0f);
+
+        SetAttackActive(true); // 히트박스/가드 등 이동 로직 보호
+
+        // 이전 루틴 돌고 있으면 정리
+        if (_attackLayerRoutine != null) StopCoroutine(_attackLayerRoutine);
+        _attackLayerRoutine = StartCoroutine(Co_LowerAttackLayerWhenDone());
+    }
+
+    IEnumerator Co_LowerAttackLayerWhenDone()
+    {
+        // 레이어에 Play가 적용되도록 한 프레임 대기
+        yield return null;
+
+        // 1) Punch 상태에 '진입할 때'까지 잠깐 기다림 (전이 고려)
+        int safety = 0;
+        while (safety++ < 60) // 최대 60프레임(1초) 안전장치
+        {
+            var info = animator.GetCurrentAnimatorStateInfo(_attackLayer);
+            if (info.fullPathHash == _hashFull_NPC_Punch) break;
+            // 전이 중이면 다음 프레임
+            if (animator.IsInTransition(_attackLayer)) { yield return null; continue; }
+            yield return null;
+        }
+
+        // 2) Punch 상태가 끝날 때까지 대기 (전이도 고려)
+        while (true)
+        {
+            var info = animator.GetCurrentAnimatorStateInfo(_attackLayer);
+
+            // 여전히 우리가 원하는 상태라면, 끝날 때까지 기다림
+            if (info.fullPathHash == _hashFull_NPC_Punch && info.normalizedTime < 1f)
+            {
+                yield return null;
+                continue;
+            }
+
+            // 전이 중이면 다음 프레임까지 대기 (끝날 때까지)
+            if (animator.IsInTransition(_attackLayer))
+            {
+                yield return null;
+                continue;
+            }
+
+            // 여기 오면 더 이상 Punch가 아니거나(전이 완료), 끝난 것
+            break;
+        }
+
+        // 3) 원복
+        animator.SetLayerWeight(_attackLayer, 0f);
+        SetAttackActive(false);
+        _isAttacking = false;
+        _attackLayerRoutine = null;
+    }
+
+    public void EnableCatchBox() { if (discover) discover.enabled = true; }
+    public void DisableCatchBox() { if (discover) discover.enabled = false; }
 
 
     // 시야 관련 기즈모
