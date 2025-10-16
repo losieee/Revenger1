@@ -1301,6 +1301,9 @@ public class PlayerMov : MonoBehaviour
 
             var pickup = hit.collider.GetComponent<PickupItem>();
             if (pickup != null && pickup.TryPickup(this)) return true;
+
+            var candle = hit.collider.GetComponent<CandleSpot>() ?? hit.collider.GetComponentInParent<CandleSpot>();
+            if (candle != null && candle.TryInteract(this)) return true;
         }
 
         // 2) 주변 보정(반경)
@@ -1312,6 +1315,9 @@ public class PlayerMov : MonoBehaviour
 
             var pickup = col.GetComponent<PickupItem>();
             if (pickup != null && pickup.TryPickup(this)) return true;
+
+            var candle = col.GetComponent<CandleSpot>() ?? col.GetComponentInParent<CandleSpot>();
+            if (candle != null && candle.TryInteract(this)) return true;
         }
 
         return false;
