@@ -849,7 +849,6 @@ public class PlayerMov : MonoBehaviour
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
-            if (optionUI && optionUI.activeSelf) { HidePausePanel(optionUI); return; }
             ShowPausePanel(optionUI);
         }
 
