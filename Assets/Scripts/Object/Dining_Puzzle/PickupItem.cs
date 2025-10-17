@@ -8,18 +8,26 @@ public class PickupItem : MonoBehaviour
     void Awake()
     {
         info = GetComponent<ItemInfo>();
-        var col = GetComponent<Collider>();
-        col.isTrigger = true;
     }
 
-    public bool TryPickup(PlayerMov player)
+    public bool TryPickupOrReturn(PlayerMov player)
     {
         if (!player || !info) return false;
         var inv = PlayerInventory.Instance;
         if (!inv) return false;
 
-        // 잠금 상태면 false 반환 (먹기 실패)
+        // 인벤토리에 이미 있으면 → 되돌리기
+        if (inv.ContainsId(info.itemId))
+        {
+            return inv.TryDropToWorld(info);
+        }
+
+        // 줍기
         bool ok = inv.TryAdd(info);
+        if (ok && info.returnSpot != null)
+        {
+            info.returnSpot.ActivateSpot(info.itemId);
+        }
         return ok;
     }
 }

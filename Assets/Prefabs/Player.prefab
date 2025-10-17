@@ -116,7 +116,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3199902428702994963}
   - component: {fileID: 6783473571659401361}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Man
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -11903,6 +11903,7 @@ GameObject:
   - component: {fileID: 1113188437890521900}
   - component: {fileID: 3852090515459217326}
   - component: {fileID: 7616184704131864508}
+  - component: {fileID: 3099403507132160464}
   m_Layer: 12
   m_Name: Player
   m_TagString: Player
@@ -12017,10 +12018,12 @@ MonoBehaviour:
   interactMask:
     serializedVersion: 2
     m_Bits: 32768
+  studyCamTarget: {fileID: 0}
   laundryViewLayers:
   - Default
   - Ground
   - FoyerPuzzle
+  - Book
 --- !u!54 &3280543259842500694
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -12179,6 +12182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   items: []
+  maxBooks: 4
 --- !u!114 &7616184704131864508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12193,6 +12197,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerTag: Player
   playerLayer: Player
+--- !u!114 &3099403507132160464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5897442068557519355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c66ea72f15f41e43a05f3777a7ac00d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 347904173845909344}
+  cam: {fileID: 0}
+  maxDistance: 5
+  pickableMask:
+    serializedVersion: 2
+    m_Bits: 131072
 --- !u!1 &5922317807441333835
 GameObject:
   m_ObjectHideFlags: 0

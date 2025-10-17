@@ -289,6 +289,16 @@ public class PlayerMov : MonoBehaviour
     public float interactRange = 2f;
     public LayerMask interactMask;   // Pickup/SlotPlate가 있는 레이어 포함
 
+    [Header("서재 미션")]
+    public Transform studyCamTarget;
+    private bool hasStudyMission = false;
+    private bool inStudyRange = false;
+    private bool isStudyView = false;
+    public Transform studyResultCamTarget;
+    private bool hasStudyResult = false;
+    private bool inStudyResult = false;
+    private bool isStudyResultView = false;
+
 
     [Header("미션 간 보이는 Mask")]
     public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle" };
@@ -993,6 +1003,23 @@ public class PlayerMov : MonoBehaviour
             StartCoroutine(BlendMainCameraTo(foyerCamTarget, foyerCamBlend));
         }
 
+        // 서재 미션
+        if (inStudyRange && hasStudyMission && EPressed() && !isCamBlending && studyCamTarget)
+        {
+            EnterFoyerView();
+            StartCoroutine(BlendMainCameraTo(studyCamTarget, foyerCamBlend));
+        }
+
+        // 서재 미션 (정답 창)
+        if (inStudyResult && hasStudyResult && EPressed() && !isCamBlending && studyResultCamTarget)
+        {
+            EnterFoyerView();
+            StartCoroutine(BlendMainCameraTo(studyResultCamTarget, foyerCamBlend));
+
+            var ui = FindObjectOfType<InventoryBooksUI>(true);
+            if (ui) ui.Open();
+        }
+
         // 식당 미션
         if (EPressed())
         {
@@ -1174,6 +1201,9 @@ public class PlayerMov : MonoBehaviour
 
         FinishExitLaundryView();
 
+        var ui = FindObjectOfType<InventoryBooksUI>(true);
+        if (ui) ui.Close();
+
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
@@ -1299,7 +1329,7 @@ public class PlayerMov : MonoBehaviour
             if (slot != null && slot.TryOpenUI()) return true;
 
             var pickup = hit.collider.GetComponent<PickupItem>();
-            if (pickup != null && pickup.TryPickup(this)) return true;
+            if (pickup != null && pickup.TryPickupOrReturn(this)) return true;
 
             var candle = hit.collider.GetComponent<CandleSpot>() ?? hit.collider.GetComponentInParent<CandleSpot>();
             if (candle != null && candle.TryInteract(this)) return true;
@@ -1313,7 +1343,7 @@ public class PlayerMov : MonoBehaviour
             if (slot != null && slot.TryOpenUI()) return true;
 
             var pickup = col.GetComponent<PickupItem>();
-            if (pickup != null && pickup.TryPickup(this)) return true;
+            if (pickup != null && pickup.TryPickupOrReturn(this)) return true;
 
             var candle = col.GetComponent<CandleSpot>() ?? col.GetComponentInParent<CandleSpot>();
             if (candle != null && candle.TryInteract(this)) return true;
@@ -1911,6 +1941,18 @@ public class PlayerMov : MonoBehaviour
             hasFoyerMission = true;
             inFoyerRange = true;
         }
+
+        if (other.CompareTag("StudyRange"))
+        {
+            hasStudyMission = true;
+            inStudyRange = true;
+        }
+
+        if (other.CompareTag("StudyResultRange"))
+        {
+            hasStudyResult = true;
+            inStudyResult = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -1962,6 +2004,18 @@ public class PlayerMov : MonoBehaviour
         {
             hasFoyerMission = false;
             inFoyerRange = false;
+        }
+
+        if (other.CompareTag("StudyRange"))
+        {
+            hasStudyMission = false;
+            inStudyRange = false;
+        }
+
+        if (other.CompareTag("StudyResultRange"))
+        {
+            hasStudyResult = false;
+            inStudyResult = false;
         }
     }
 

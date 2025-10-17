@@ -2,12 +2,20 @@ using UnityEngine;
 
 public class ItemInfo : MonoBehaviour
 {
+    public enum ItemType { Generic, Book, Key, Etc }
+
+    [Header("기본 정보")]
     public string itemId;
     public string displayName;
-    public Sprite icon;             // ID별로 다른 아이콘(스프라이트)
+    public Sprite icon;
+
+    [Header("분류")]
+    public ItemType type = ItemType.Generic;
 
     [HideInInspector] public Vector3 startPos;
     [HideInInspector] public Quaternion startRot;
+
+    public BookReturnSpot returnSpot;
 
     void Awake()
     {

@@ -12,6 +12,9 @@ public class PlayerInventory : MonoBehaviour
 
     public static bool PickupsLocked { get; set; } = false;
 
+    [Header("Limits")]
+    [SerializeField] private int maxBooks = 4;
+
     // UI가 구독할 이벤트
     public event Action OnChanged;
 
@@ -19,14 +22,34 @@ public class PlayerInventory : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        // 필요하면 유지
-        //DontDestroyOnLoad(gameObject);
     }
 
     void NotifyChanged() => OnChanged?.Invoke();
 
+    private int CountOf(ItemInfo.ItemType t)
+    {
+        int c = 0;
+        for (int i = 0; i < items.Count; i++)
+            if (items[i] && items[i].type == t) c++;
+        return c;
+    }
+
+    private bool CanAdd(ItemInfo info)
+    {
+        if (!info) return false;
+        if (PickupsLocked) return false;
+
+        // 책 4개 제한
+        if (info.type == ItemInfo.ItemType.Book && CountOf(ItemInfo.ItemType.Book) >= maxBooks)
+            return false;
+
+        return true;
+    }
+
     public bool TryAdd(ItemInfo info)
     {
+        if (!CanAdd(info)) return false;
+
         if (PickupsLocked)
         {
             return false;
@@ -83,5 +106,43 @@ public class PlayerInventory : MonoBehaviour
     {
         items.Clear();
         NotifyChanged();
+    }
+
+    // 책 되돌리기
+    public bool TryDropToWorld(ItemInfo info, Vector3? worldPos = null, Quaternion? worldRot = null)
+    {
+        if (!info) return false;
+
+        // 인벤토리에서 제거
+        if (!TryTake(info, out var taken)) return false;
+
+        // 되돌릴 위치/회전 결정 (기본: 시작 위치)
+        Vector3 pos = worldPos ?? taken.startPos;
+        Quaternion rot = worldRot ?? taken.startRot;
+
+        // 안전하게 살짝 위로 띄워 충돌 방지(옵션)
+        pos += Vector3.up * 0.02f;
+
+        // 월드에 복귀
+        var go = taken.gameObject;
+        go.transform.SetPositionAndRotation(pos, rot);
+
+        var col = go.GetComponent<Collider>();
+        if (col) col.enabled = true;
+
+        go.SetActive(true);
+        // 필요하면 물리 초기화
+        var rb = go.GetComponent<Rigidbody>();
+        if (rb) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+
+        // UI 갱신 이벤트는 TryTake 내부에서 이미 호출됨
+        return true;
+    }
+
+    // id로 되돌리기 편의 함수
+    public bool TryDropToWorldById(string id)
+    {
+        if (!TryTakeById(id, out var taken)) return false;
+        return TryDropToWorld(taken);
     }
 }
