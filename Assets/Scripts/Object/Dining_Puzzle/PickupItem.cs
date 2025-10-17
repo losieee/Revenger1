@@ -5,6 +5,8 @@ public class PickupItem : MonoBehaviour
 {
     private ItemInfo info;
 
+    [SerializeField] private AudioClip pickupClip;
+
     void Awake()
     {
         info = GetComponent<ItemInfo>();
@@ -19,15 +21,18 @@ public class PickupItem : MonoBehaviour
         // 인벤토리에 이미 있으면 → 되돌리기
         if (inv.ContainsId(info.itemId))
         {
-            return inv.TryDropToWorld(info);
+            bool ok = inv.TryDropToWorld(info);
+            if (ok) SfxPlayer.Play(pickupClip, info.startPos);
+            return ok;
         }
 
         // 줍기
-        bool ok = inv.TryAdd(info);
-        if (ok && info.returnSpot != null)
+        bool added = inv.TryAdd(info);
+        if (added)
         {
-            info.returnSpot.ActivateSpot(info.itemId);
+            SfxPlayer.Play(pickupClip, transform.position);
+            if (info.returnSpot) info.returnSpot.ActivateSpot(info.itemId);
         }
-        return ok;
+        return added;
     }
 }

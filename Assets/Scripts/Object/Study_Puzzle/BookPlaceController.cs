@@ -8,6 +8,8 @@ public class BookPlaceController : MonoBehaviour
     [Header("선택된 슬롯(마우스 클릭 등으로 지정)")]
     public BookSlot currentTargetSlot;
 
+    [SerializeField] private AudioClip placeClip;
+
     void Awake()
     {
         if (!puzzle) puzzle = FindObjectOfType<BookshelfPuzzle>();
@@ -19,35 +21,28 @@ public class BookPlaceController : MonoBehaviour
         currentTargetSlot = slot;
     }
 
-    // --- UI에서 “이 책(ID)을 꽂기” 버튼을 눌렀다고 가정 ---
-    public bool PlaceById(string itemId)
+    public bool PlaceById(string id)
     {
-        if (!currentTargetSlot || string.IsNullOrEmpty(itemId)) return false;
+        if (!currentTargetSlot) return false;
         var inv = PlayerInventory.Instance;
         if (!inv) return false;
 
-        // 인벤토리에서 해당 ID 책을 꺼내기
-        if (!inv.TryTakeById(itemId, out var book)) return false;
+        if (!inv.TryTakeById(id, out var item)) return false;
 
-        // 타입이 Book인지 체크(원하면 생략 가능)
-        if (book.type != ItemInfo.ItemType.Book)
+        bool placed = currentTargetSlot.Place(item);
+        if (placed)
         {
-            // 다시 인벤토리로 환원
-            inv.Return(book);
-            return false;
+            // 꽂았을 때
+            SfxPlayer.Play(placeClip, currentTargetSlot.SnapPoint.position);
+
+            // 4칸 다 찼으면 퍼즐이 Validate() 되도록 기존 로직 유지
+            puzzle?.ValidateIfFull();
+            return true;
         }
 
-        // 슬롯에 놓기
-        if (!currentTargetSlot.Place(book))
-        {
-            // 슬롯이 이미 차있다면 환원
-            inv.Return(book);
-            return false;
-        }
-
-        // 4칸이 다 차면 자동 검증
-        puzzle.Validate();
-        return true;
+        // 실패 시 아이템을 인벤토리로 되돌려두는 기존 처리 유지
+        inv.Return(item);
+        return false;
     }
 
     // --- 편의: 인벤토리에서 "첫 번째 책"을 자동으로 꽂기 ---

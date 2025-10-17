@@ -2,44 +2,53 @@ using UnityEngine;
 
 public class BookSlot : MonoBehaviour
 {
-    [Header("스냅 포인트(책을 붙일 위치/회전)")]
+    [Header("스냅 지점(없으면 자기 Transform)")]
     public Transform snapPoint;
 
-    [Header("현재 꽂힌 책(없으면 null)")]
-    public ItemInfo current;                 // 활성화된 월드 오브젝트
+    [HideInInspector] public ItemInfo current;
 
-    // 이 슬롯에 책을 꽂는다. (월드 상에 활성화/부모설정/콜라이더 끔)
-    public bool Place(ItemInfo book)
+    // BookPlaceController에서 쓰는 프로퍼티들
+    public Transform SnapPoint => snapPoint ? snapPoint : transform;
+    public bool IsFilled => current != null;
+
+    // 인벤토리에서 꺼낸 책을 슬롯에 꽂기
+    public bool Place(ItemInfo item)
     {
-        if (current || !book) return false;
+        if (!item || current != null) return false;
 
-        current = book;
-        book.gameObject.SetActive(true);
-        var t = book.transform;
-        t.SetParent(snapPoint ? snapPoint : transform, worldPositionStays: false);
+        current = item;
+
+        var go = item.gameObject;
+        go.SetActive(true);
+
+        // 스냅 포즈로 배치
+        var t = go.transform;
+        t.SetParent(SnapPoint, worldPositionStays: false);
         t.localPosition = Vector3.zero;
         t.localRotation = Quaternion.identity;
 
-        var col = book.GetComponent<Collider>();
-        if (col) col.enabled = false;           // 꽂힌 뒤엔 클릭 방지
+        // 충돌/물리 정리(원하면 조정)
+        var col = go.GetComponent<Collider>(); if (col) col.enabled = false;
+        var rb = go.GetComponent<Rigidbody>();
+        if (rb) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; rb.isKinematic = true; }
 
         return true;
     }
 
-    // 슬롯에서 책을 뺀다(월드에 남길지, 인벤토리로 돌릴지는 호출자가 결정)
+    // 슬롯에서 책을 빼서 반환 (부모 해제)
     public ItemInfo Take()
     {
         if (!current) return null;
 
-        var b = current;
+        var it = current;
         current = null;
 
-        b.transform.SetParent(null, true);
-        var col = b.GetComponent<Collider>();
-        if (col) col.enabled = true;
+        var go = it.gameObject;
+        it.transform.SetParent(null, true);
 
-        return b;
+        var col = go.GetComponent<Collider>(); if (col) col.enabled = true;
+        var rb = go.GetComponent<Rigidbody>(); if (rb) rb.isKinematic = false;
+
+        return it;
     }
-
-    public bool IsFilled => current != null;
 }
