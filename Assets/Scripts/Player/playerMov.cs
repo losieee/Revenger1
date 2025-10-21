@@ -859,7 +859,7 @@ public class PlayerMov : MonoBehaviour
                 return;
             }
 
-            if (missionUI && missionUI.activeSelf) { HidePausePanel(missionUI); return; }
+            
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
@@ -2516,7 +2516,7 @@ public class PlayerMov : MonoBehaviour
     {
         if (!nearNPC) return;
         var keyName = KeyBindings.ToDisplay(KeyBindings.Get(GameAction.Interaction));
-        nearNPC.text = $"Press '{keyName}' to talk";
+        nearNPC.text = $"'{keyName}' 를 눌러 대화하세요.";
     }
 
     void FadeRightArmLayer(float targetWeight, float duration = 0.08f)
