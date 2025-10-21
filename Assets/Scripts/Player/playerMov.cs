@@ -299,7 +299,7 @@ public class PlayerMov : MonoBehaviour
     private bool inStudyResult = false;
     private bool isStudyResultView = false;
 
-    [Header("게스트룸 미션")]
+    [Header("드레스룸 미션")]
     public GameObject jewelryUI;
     private bool inJewelryRange = false;
 
@@ -1025,7 +1025,7 @@ public class PlayerMov : MonoBehaviour
             if (ui) ui.Open();
         }
 
-        // 게스트룸 미션
+        // 드레스룸 미션
         if(inJewelryRange && EPressed())
         {
             ShowOverlayPanel_NoPause(jewelryUI);
@@ -1965,7 +1965,7 @@ public class PlayerMov : MonoBehaviour
             inStudyResult = true;
         }
 
-        if (other.CompareTag("GuestRoomRange"))
+        if (other.CompareTag("DressRange"))
         {
             inJewelryRange = true;
         }
@@ -2034,7 +2034,7 @@ public class PlayerMov : MonoBehaviour
             inStudyResult = false;
         }
 
-        if (other.CompareTag("GuestRoomRange"))
+        if (other.CompareTag("DressRange"))
         {
             inJewelryRange = false;
         }

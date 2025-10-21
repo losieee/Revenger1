@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 
-public class GuestPuzzleManager : MonoBehaviour
+public class DressRoomPuzzleManager : MonoBehaviour
 {
     private AudioSource audioSource;
     public AudioClip[] clips;
@@ -16,7 +16,7 @@ public class GuestPuzzleManager : MonoBehaviour
     int correctMiddleNum = 2;
     int correctLastNum = 9;
 
-    int failCount = 2;
+    int failCount = 0;
 
     void Start()
     {
@@ -63,6 +63,14 @@ public class GuestPuzzleManager : MonoBehaviour
         else
         {
             Debug.Log("½ÇÆÐ");
+            failCount++;
+
+            if (failCount == 2)
+            {
+                audioSource.PlayOneShot(clips[2]);
+                failCount = 0;
+            }
+
             audioSource.volume = 1f;
             audioSource.PlayOneShot(clips[1]);
         }
