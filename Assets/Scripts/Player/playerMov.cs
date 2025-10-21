@@ -299,6 +299,10 @@ public class PlayerMov : MonoBehaviour
     private bool inStudyResult = false;
     private bool isStudyResultView = false;
 
+    [Header("게스트룸 미션")]
+    public GameObject jewelryUI;
+    private bool inJewelryRange = false;
+
 
     [Header("미션 간 보이는 Mask")]
     public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle" };
@@ -859,6 +863,7 @@ public class PlayerMov : MonoBehaviour
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
+            if (jewelryUI && jewelryUI.activeSelf) { HidePausePanel(jewelryUI); return; }
             ShowPausePanel(optionUI);
         }
 
@@ -989,7 +994,7 @@ public class PlayerMov : MonoBehaviour
             animator.CrossFade(stateHash, 0.05f, takeWeaponLayer, 0f);
         }
 
-        // 세탁실 미션 카메라 시점 이동
+        // 세탁실 미션
         if (inLaundryRange && hasLaundryMission && EPressed() && !isCamBlending && laundryCamTarget)
         {
             EnterLaundryView();
@@ -1018,6 +1023,12 @@ public class PlayerMov : MonoBehaviour
 
             var ui = FindObjectOfType<InventoryBooksUI>(true);
             if (ui) ui.Open();
+        }
+
+        // 게스트룸 미션
+        if(inJewelryRange && EPressed())
+        {
+            ShowOverlayPanel_NoPause(jewelryUI);
         }
 
         // 식당 미션
@@ -1953,6 +1964,11 @@ public class PlayerMov : MonoBehaviour
             hasStudyResult = true;
             inStudyResult = true;
         }
+
+        if (other.CompareTag("GuestRoomRange"))
+        {
+            inJewelryRange = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -2016,6 +2032,11 @@ public class PlayerMov : MonoBehaviour
         {
             hasStudyResult = false;
             inStudyResult = false;
+        }
+
+        if (other.CompareTag("GuestRoomRange"))
+        {
+            inJewelryRange = false;
         }
     }
 
