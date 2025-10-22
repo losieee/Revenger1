@@ -1757,7 +1757,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: 675cdc6b39d0d92418271c4c282bd9a2,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.0543
+      value: 0.0493
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 675cdc6b39d0d92418271c4c282bd9a2,
         type: 3}
@@ -2714,7 +2714,7 @@ MonoBehaviour:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 0}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_PressedColor: {r: 1, g: 1, b: 1, a: 1}
-    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 0}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -3379,7 +3379,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 21, y: 128}
+  m_AnchoredPosition: {x: 21, y: 77.2}
   m_SizeDelta: {x: 904.5, y: 98.44}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &342993793
@@ -3402,10 +3402,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Select a weapon first
+  m_text: "\uBB34\uAE30\uB97C \uCC59\uAE30\uC2DC\uC624."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 43c6cd2303adcff4b9e7aa5111d493ba, type: 2}
-  m_sharedMaterial: {fileID: 7301673263525755536, guid: 8f019fa995b158845baa1e997c03cfcb,
+  m_sharedMaterial: {fileID: -4744932835312577982, guid: 43c6cd2303adcff4b9e7aa5111d493ba,
     type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
@@ -3430,15 +3430,15 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 51.3
-  m_fontSizeBase: 51.3
+  m_fontSize: 40
+  m_fontSizeBase: 40
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 1
   m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
+  m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -3469,7 +3469,7 @@ MonoBehaviour:
   m_margin: {x: 0, y: 0, z: 0, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
-  m_hasFontAssetChanged: 1
+  m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
 --- !u!222 &342993794
@@ -3741,7 +3741,7 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 06c5a0d675d94294dab91508914568ea, type: 2}
+      objectReference: {fileID: 2100000, guid: 5e65ca9f23e9e2c46a441a1552f3af92, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4220,7 +4220,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.1981132, g: 0.1981132, b: 0.1981132, a: 1}
+  m_Color: {r: 0.0754717, g: 0.0754717, b: 0.0754717, a: 0.85882354}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -9700,9 +9700,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC9C0\uAE08 \uC2DC\uAC04\uC774\uBA74 \uC800\uD0DD\uC5D0  '\uBCA0\uB974\uB108
-    \uC288\uD0C0\uC778'\uC774 \uC788\uC744\uAC70\uC57C.\n\uD558\uC9C0\uB9CC \uACBD\uD638\uC6D0\uB4E4\uC774
-    \uAC8C\uC18D \uC21C\uCC30\uC911\uC774\uB2C8\uAE4C \uC870\uC2EC\uD558\uB77C\uACE0.\n\n\uC900\uBE44\uB410\uC5B4?"
+  m_text: "\"\uC800\uD0DD\uC5D0 \uACBD\uBE44\uAC00 \uC0DD\uAC01\uBCF4\uB2E4 \uD6E8\uC52C
+    \uB9CE\uC9C0\uB9CC,\n\uB098\uB294 \uB108\uC758 \uC7A0\uC785 \uAE30\uC220\uC744
+    \uBBFF\uACE0\uC788\uB2E4.\n\uBC18\uB4DC\uC2DC \uBCA0\uB974\uB108 \uC288\uD0C0\uC778\uC5D0\uAC8C
+    \uB300\uAC00\uB97C \uCE58\uB974\uAC8C \uD574\uC918.\n\uC900\uBE44 \uB410\uC5B4?\""
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 43c6cd2303adcff4b9e7aa5111d493ba, type: 2}
   m_sharedMaterial: {fileID: -4744932835312577982, guid: 43c6cd2303adcff4b9e7aa5111d493ba,
@@ -9742,7 +9743,7 @@ MonoBehaviour:
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
-  m_lineSpacing: 0
+  m_lineSpacing: 28.85
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
@@ -10052,7 +10053,7 @@ MonoBehaviour:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 0}
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_PressedColor: {r: 1, g: 1, b: 1, a: 1}
-    m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
+    m_SelectedColor: {r: 1, g: 1, b: 1, a: 0}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -17383,6 +17384,10 @@ MonoBehaviour:
   studyCamTarget: {fileID: 0}
   studyResultCamTarget: {fileID: 0}
   jewelryUI: {fileID: 0}
+  guestCamTarget: {fileID: 0}
+  guestBoxUI1: {fileID: 0}
+  guestBoxUI2: {fileID: 0}
+  guestBoxUI3: {fileID: 0}
   laundryViewLayers:
   - Default
   - Ground
