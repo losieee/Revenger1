@@ -303,6 +303,18 @@ public class PlayerMov : MonoBehaviour
     public GameObject jewelryUI;
     private bool inJewelryRange = false;
 
+    [Header("게스트룸 미션")]
+    public Transform guestCamTarget;
+    public GameObject guestBoxUI1;
+    public GameObject guestBoxUI2;
+    public GameObject guestBoxUI3;
+    private bool hasGuestMission = false;
+    private bool inGuestRange = false;
+    private bool inGuestBox1 = false;
+    private bool inGuestBox2 = false;
+    private bool inGuestBox3 = false;
+
+
 
     [Header("미션 간 보이는 Mask")]
     public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle" };
@@ -864,6 +876,9 @@ public class PlayerMov : MonoBehaviour
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
             if (jewelryUI && jewelryUI.activeSelf) { HidePausePanel(jewelryUI); return; }
+            if (guestBoxUI1 && guestBoxUI1.activeSelf) { HidePausePanel(guestBoxUI1); return; }
+            if (guestBoxUI2 && guestBoxUI2.activeSelf) { HidePausePanel(guestBoxUI2); return; }
+            if (guestBoxUI3 && guestBoxUI3.activeSelf) { HidePausePanel(guestBoxUI3); return; }
             ShowPausePanel(optionUI);
         }
 
@@ -1029,6 +1044,24 @@ public class PlayerMov : MonoBehaviour
         if(inJewelryRange && EPressed())
         {
             ShowOverlayPanel_NoPause(jewelryUI);
+        }
+
+        // 게스트룸 미션
+        if (inGuestRange && hasGuestMission && EPressed() && !isCamBlending && foyerCamTarget)
+        {
+            EnterFoyerView();
+            StartCoroutine(BlendMainCameraTo(guestCamTarget, foyerCamBlend));
+        }
+
+        // 게스트룸 미션 (여행 가방)
+        if ((inGuestBox1 || inGuestBox2 || inGuestBox3) && EPressed())
+        {
+            if(inGuestBox1)
+                ShowOverlayPanel_NoPause(guestBoxUI1);
+            if (inGuestBox2)
+                ShowOverlayPanel_NoPause(guestBoxUI2);
+            if (inGuestBox3)
+                ShowOverlayPanel_NoPause(guestBoxUI3);
         }
 
         // 식당 미션
@@ -1969,6 +2002,25 @@ public class PlayerMov : MonoBehaviour
         {
             inJewelryRange = true;
         }
+
+        if (other.CompareTag("GuestRoomRange"))
+        {
+            hasGuestMission = true;
+            inGuestRange = true;
+        }
+
+        if (other.CompareTag("GuestBox1"))
+        {
+            inGuestBox1 = true;
+        }
+        if (other.CompareTag("GuestBox2"))
+        {
+            inGuestBox2 = true;
+        }
+        if (other.CompareTag("GuestBox3"))
+        {
+            inGuestBox3 = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -2037,6 +2089,25 @@ public class PlayerMov : MonoBehaviour
         if (other.CompareTag("DressRange"))
         {
             inJewelryRange = false;
+        }
+
+        if (other.CompareTag("GuestRoomRange"))
+        {
+            hasGuestMission = false;
+            inGuestRange = false;
+        }
+
+        if (other.CompareTag("GuestBox1"))
+        {
+            inGuestBox1 = false;
+        }
+        if (other.CompareTag("GuestBox2"))
+        {
+            inGuestBox2 = false;
+        }
+        if (other.CompareTag("GuestBox3"))
+        {
+            inGuestBox3 = false;
         }
     }
 
