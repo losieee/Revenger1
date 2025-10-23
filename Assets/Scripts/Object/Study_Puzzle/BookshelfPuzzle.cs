@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class BookshelfPuzzle : MonoBehaviour
@@ -9,12 +10,16 @@ public class BookshelfPuzzle : MonoBehaviour
     public string[] answerIds = new string[4];                         // 명시적 ID 조합
     public ItemInfo.ItemType[] answerTypes = new ItemInfo.ItemType[4]; // 타입 조합
 
-    [Header("퍼즐 완료 시켜야 할 것들(문 열기 등)")]
-    public GameObject onSuccessEnable;
-    public GameObject onFailFlash;
+    [Header("비밀 정답 (맞추면 회전)")]
+    public string[] secretIds = new string[4];
+    public Transform secretTarget;             // 회전시킬 대상
+    public Vector3 secretRotateAxis = Vector3.up;
+    public float secretRotateAngle = -102f;
+    public float secretRotateDuration = 0.4f;
 
     [Header("SFX")]
-    public AudioClip successClip;
+    public AudioClip normalSuccessClip;
+    public AudioClip secretSuccessClip;
     public AudioClip failClip;
     [Range(0f, 1f)] public float sfxVolume = 1f;
 
@@ -35,10 +40,68 @@ public class BookshelfPuzzle : MonoBehaviour
         if (!IsReady) return;
         for (int i = 0; i < 4; i++) if (!slots[i].IsFilled) return;
 
-        bool ok = CheckAnswer();
+        bool isSecret = CheckIds(secretIds);                        // 비밀 정답
+        bool isNormal = CheckIds(answerIds) || CheckTypes();        // 일반 정답
+            
+        // 비밀 조합이면 회전
+        if (isSecret)
+        {
+            RotateSecretTarget();
+            PlaySfx(secretSuccessClip);
+        }
 
-        if (ok) Success();
-        else FailAndReturnAll();
+        if (isNormal)
+        {
+            PlaySfx(normalSuccessClip);
+        }
+        else if (!isSecret)  // 둘 다 아니면 실패
+        FailAndReturnAll();
+    }
+
+    bool CheckIds(string[] ids)
+    {
+        if (ids == null || ids.Length != 4) return false;
+        for (int i = 0; i < 4; i++)
+        {
+            if (string.IsNullOrEmpty(ids[i])) return false;
+            var cur = slots[i].current;
+            if (!cur || cur.itemId != ids[i]) return false;
+        }
+        return true;
+    }
+
+    bool CheckTypes()
+    {
+        if (answerTypes == null || answerTypes.Length != 4) return false;
+        for (int i = 0; i < 4; i++)
+        {
+            var cur = slots[i].current;
+            if (!cur || cur.type != answerTypes[i]) return false;
+        }
+        return true;
+    }
+
+    void RotateSecretTarget()
+    {
+        if (!secretTarget) return;
+        StopAllCoroutines();
+        StartCoroutine(RotateOverTime(secretTarget, secretRotateAxis.normalized, secretRotateAngle, secretRotateDuration));
+    }
+
+    IEnumerator RotateOverTime(Transform t, Vector3 axis, float angle, float duration)
+    {
+        Quaternion from = t.rotation;
+        Quaternion to = Quaternion.AngleAxis(angle, axis) * from;
+
+        float tmr = 0f;
+        duration = Mathf.Max(0.01f, duration);
+        while (tmr < 1f)
+        {
+            tmr += Time.deltaTime / duration;
+            t.rotation = Quaternion.Slerp(from, to, tmr);
+            yield return null;
+        }
+        t.rotation = to;
     }
 
     bool CheckAnswer()
@@ -70,14 +133,6 @@ public class BookshelfPuzzle : MonoBehaviour
         return false;
     }
 
-    void Success()
-    {
-        PlaySfx(successClip);
-
-        if (onSuccessEnable) onSuccessEnable.SetActive(true);
-        PlayerInventory.PickupsLocked = true;
-    }
-
     void FailAndReturnAll()
     {
         PlaySfx(failClip);
@@ -90,8 +145,6 @@ public class BookshelfPuzzle : MonoBehaviour
                 PlayerInventory.Instance.Return(taken);
             }
         }
-
-        if (onFailFlash) onFailFlash.SetActive(true);
     }
 
     void PlaySfx(AudioClip clip)

@@ -39,6 +39,9 @@ public class PlayerInventory : MonoBehaviour
         if (!info) return false;
         if (PickupsLocked) return false;
 
+        if (info.type == ItemInfo.ItemType.Generic && CountOf(ItemInfo.ItemType.Generic) >= 5)
+            return false;
+
         // 책 4개 제한
         if (info.type == ItemInfo.ItemType.Book && CountOf(ItemInfo.ItemType.Book) >= maxBooks)
             return false;
@@ -116,11 +119,11 @@ public class PlayerInventory : MonoBehaviour
         // 인벤토리에서 제거
         if (!TryTake(info, out var taken)) return false;
 
-        // 되돌릴 위치/회전 결정 (기본: 시작 위치)
+        // 되돌릴 위치/회전 결정
         Vector3 pos = worldPos ?? taken.startPos;
         Quaternion rot = worldRot ?? taken.startRot;
 
-        // 안전하게 살짝 위로 띄워 충돌 방지(옵션)
+        // 안전하게 살짝 위로 띄워 충돌 방지
         pos += Vector3.up * 0.02f;
 
         // 월드에 복귀

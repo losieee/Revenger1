@@ -1369,6 +1369,9 @@ public class PlayerMov : MonoBehaviour
         Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
         if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactMask, query))
         {
+            var rspot = hit.collider.GetComponentInParent<ReturnSpot>();
+            if (rspot != null && rspot.TryInteract()) return true;
+
             var slot = hit.collider.GetComponent<SlotPlate>();
             if (slot != null && slot.TryOpenUI()) return true;
 
@@ -1383,6 +1386,9 @@ public class PlayerMov : MonoBehaviour
         Collider[] cols = Physics.OverlapSphere(transform.position, 1f, interactMask, query);
         foreach (var col in cols)
         {
+            var rspot = col.GetComponentInParent<ReturnSpot>();
+            if (rspot != null && rspot.TryInteract()) return true;
+
             var slot = col.GetComponent<SlotPlate>();
             if (slot != null && slot.TryOpenUI()) return true;
 
@@ -1805,6 +1811,10 @@ public class PlayerMov : MonoBehaviour
                 weapon.transform.GetChild(i).gameObject.SetActive(false);
             weapon.SetActive(false);
         }
+
+        // 패널이 떠있다면 닫아도 됨
+        if (weaponChangePanel && weaponChangePanel.activeSelf)
+            HidePausePanel(weaponChangePanel);
 
         _weaponPickFlowActive = false;
 

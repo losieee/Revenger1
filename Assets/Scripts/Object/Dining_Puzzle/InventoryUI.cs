@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +11,12 @@ public class InventoryUI : MonoBehaviour
     public Image selectedPreview;
     [SerializeField] private Sprite defaultPreviewSprite;
 
+    [SerializeField] private bool useTypeFilter = true;
+    [SerializeField] private ItemInfo.ItemType filterType = ItemInfo.ItemType.Generic;
+
     private Sprite originalPreviewSprite;
+
+    private List<ItemInfo> _visible = new();
 
     int selectedIndex = -1;
 
@@ -61,33 +68,45 @@ public class InventoryUI : MonoBehaviour
         var inv = PlayerInventory.Instance;
         if (!inv) return;
 
-        // 상단 슬롯들 갱신
+        // 1) 필터링
+        if (useTypeFilter)
+            _visible = inv.Items.Where(it => it && it.type == filterType).ToList();
+        else
+            _visible = inv.Items.Where(it => it).ToList();
+
+        if (selectedIndex >= _visible.Count)
+            selectedIndex = -1;
+
         for (int i = 0; i < topSlotImages.Length; i++)
         {
-            if (!topSlotImages[i]) continue;
+            var img = topSlotImages[i];
+            var btn = (i < topSlotButtons.Length) ? topSlotButtons[i] : null;
 
-            if (i < inv.Items.Count && inv.Items[i] && inv.Items[i].icon)
-                topSlotImages[i].sprite = inv.Items[i].icon;
+            bool show = (i < _visible.Count);
+            if (btn) btn.gameObject.SetActive(show);
+
+            if (!img) continue;
+            if (show)
+                img.sprite = _visible[i].icon ? _visible[i].icon : emptySprite;
             else
-                topSlotImages[i].sprite = emptySprite;
+                img.sprite = emptySprite;
         }
 
-        // 아래 미리보기 갱신
+        // 3) 미리보기 갱신
         if (selectedPreview)
         {
             if (selectedIndex >= 0 &&
-                selectedIndex < inv.Items.Count &&
-                inv.Items[selectedIndex] &&
-                inv.Items[selectedIndex].icon)
+                selectedIndex < _visible.Count &&
+                _visible[selectedIndex] &&
+                _visible[selectedIndex].icon)
             {
-                selectedPreview.sprite = inv.Items[selectedIndex].icon;
+                selectedPreview.sprite = _visible[selectedIndex].icon;
             }
             else
             {
-                // 선택 해제 또는 범위 밖 → 원래 기본 이미지로 복귀
                 selectedPreview.sprite = originalPreviewSprite != null
                     ? originalPreviewSprite
-                    : defaultPreviewSprite; // 혹시 백업도 null이면 기본으로
+                    : defaultPreviewSprite;
             }
         }
     }
@@ -107,9 +126,7 @@ public class InventoryUI : MonoBehaviour
 
     public ItemInfo GetSelected()
     {
-        var inv = PlayerInventory.Instance;
-        if (!inv) return null;
-        if (selectedIndex < 0 || selectedIndex >= inv.Items.Count) return null;
-        return inv.Items[selectedIndex];
+        if (selectedIndex < 0 || selectedIndex >= _visible.Count) return null;
+        return _visible[selectedIndex];
     }
 }
