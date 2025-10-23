@@ -28,7 +28,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 859433565750157117}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1333591, y: -0.5126732, z: 0.080978975, w: 0.84428906}
+  m_LocalRotation: {x: 0.13335997, y: -0.51267076, z: 0.08097896, w: 0.8442904}
   m_LocalPosition: {x: 6.13, y: 3.09, z: -2.05}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -151,16 +151,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 2013945124829406003, guid: 69d300de9ad61ef4fa30e23ad0dd7e91, type: 3}
+  explicitPivot: {fileID: 0}
   mouseSensitivity: 1.5
   distance: 3
-  minDistance: 0.5
+  minDistance: 0.8
   heightOffset: 1.5
   pitchMin: -40
   pitchMax: 80
-  collisionRadius: 0.25
-  collisionOffset: 0.15
+  minSensitivity: 1
+  maxSensitivity: 6
+  collisionRadius: 0.4
+  collisionOffset: 0.3
   collisionLayers:
     serializedVersion: 2
     m_Bits: 4294967295
   pullInSmoothTime: 0.05
   relaxOutSmoothTime: 0.15
+  crawlDown: 0.35
+  crawlLerp: 0.12
+  smoothOnEnable: 1
+  enableBlendDuration: 0.25

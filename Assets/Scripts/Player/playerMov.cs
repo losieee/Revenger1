@@ -1806,10 +1806,6 @@ public class PlayerMov : MonoBehaviour
             weapon.SetActive(false);
         }
 
-        // 패널이 떠있다면 닫아도 됨
-        if (weaponChangePanel && weaponChangePanel.activeSelf)
-            HidePausePanel(weaponChangePanel);
-
         _weaponPickFlowActive = false;
 
         // 손 포즈는 일단 Idle로(실장 취향)
@@ -2640,9 +2636,8 @@ public class PlayerMov : MonoBehaviour
     // 엎드리기 끝 애니메이션
     public void AE_OnCrawlUpEnd()
     {
-        // 애니메이션 이벤트로 호출하려면 클립 마지막 프레임에 붙여줘
         if (!CanStandUp()) return;
-        ApplyColliderPose(boxSizeStand, boxCenterStand, 0.05f);
+        ApplyColliderPose(boxSizeCrawl, boxCenterCrawl, 0.05f);
         isCrawlAnimating = false;
     }
 
@@ -2654,8 +2649,6 @@ public class PlayerMov : MonoBehaviour
         if (rb)
         {
             rb.velocity = Vector3.zero;
-            // rb.isKinematic = true;   // 필요하면 켜기 (밀림 방지)
-            // rb.useGravity = true;    // 띄우지 않으면 그대로 두기
         }
         animator?.SetFloat("MoveX", 0f);
         animator?.SetFloat("MoveY", 0f);

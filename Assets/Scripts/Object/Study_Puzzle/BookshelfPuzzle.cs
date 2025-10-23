@@ -67,8 +67,6 @@ public class BookshelfPuzzle : MonoBehaviour
             }
             return true;
         }
-
-        Debug.LogWarning("[BookshelfPuzzle] 정답이 설정되지 않았습니다.");
         return false;
     }
 
@@ -78,8 +76,6 @@ public class BookshelfPuzzle : MonoBehaviour
 
         if (onSuccessEnable) onSuccessEnable.SetActive(true);
         PlayerInventory.PickupsLocked = true;
-
-        Debug.Log("BookshelfPuzzle: SUCCESS");
     }
 
     void FailAndReturnAll()
@@ -96,20 +92,11 @@ public class BookshelfPuzzle : MonoBehaviour
         }
 
         if (onFailFlash) onFailFlash.SetActive(true);
-        Debug.Log("BookshelfPuzzle: FAIL → all books returned.");
     }
 
     void PlaySfx(AudioClip clip)
     {
         if (!clip) return;
         AudioSource.PlayClipAtPoint(clip, transform.position, sfxVolume);
-    }
-
-    // 편의: 현재 꽂힌 수
-    public int FilledCount()
-    {
-        int c = 0;
-        for (int i = 0; i < slots.Length; i++) if (slots[i] && slots[i].IsFilled) c++;
-        return c;
     }
 }

@@ -78,12 +78,30 @@ public class SecretHoldSpot : MonoBehaviour
         // 완료
         if (DrawingPuzzleManager.Instance.audioSource && completeClip) 
             DrawingPuzzleManager.Instance.audioSource.PlayOneShot(completeClip);
-        Debug.Log("SECRET: 3초 홀드 성공!");
+
+        playerIn = false;
 
         var col = GetComponent<Collider>();
         col.enabled = false;
 
-        // TODO: 열림/보상 로직
         StopHold(); // 루프 정리
+
+        StartCoroutine(RotateToAngle(-116f, 0.5f));
+    }
+
+    IEnumerator RotateToAngle(float targetX, float duration)
+    {
+        Quaternion startRot = transform.rotation;
+        Quaternion targetRot = Quaternion.Euler(targetX, transform.eulerAngles.y, transform.eulerAngles.z);
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            transform.rotation = Quaternion.Slerp(startRot, targetRot, t / duration);
+            yield return null;
+        }
+
+        transform.rotation = targetRot;
     }
 }

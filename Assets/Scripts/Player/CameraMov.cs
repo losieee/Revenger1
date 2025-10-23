@@ -80,6 +80,9 @@ public class CameraMov : MonoBehaviour
             _enableBlendPos0 = transform.position;
             _enableBlendRot0 = transform.rotation;
         }
+
+        var cam = GetComponent<Camera>();
+        if (cam) cam.nearClipPlane = 0.03f;
     }
 
     void OnEnable()
@@ -187,11 +190,7 @@ public class CameraMov : MonoBehaviour
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Public API
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>플레이어(또는 카메라 피벗)를 바인딩한다.</summary>
+    // 플레이어를 바인딩한다.
     public void BindPlayer(Transform playerRootOrPivot, Transform optionalExplicitPivot = null)
     {
         if (!playerRootOrPivot) return;
@@ -206,7 +205,6 @@ public class CameraMov : MonoBehaviour
         }
     }
 
-    /// <summary>외부에서 부드럽게 페이드 인(활성화 블렌드) 시작</summary>
     public void BeginBlendIn(float duration)
     {
         _blendInDur = Mathf.Max(0.01f, duration);
@@ -216,7 +214,6 @@ public class CameraMov : MonoBehaviour
         _blendInActive = true;
     }
 
-    /// <summary>즉시 리센터</summary>
     public void RecenterToPlayer()
     {
         var p = GetPivot();
@@ -229,7 +226,6 @@ public class CameraMov : MonoBehaviour
         }
     }
 
-    /// <summary>부드럽게 리센터</summary>
     public void RecenterToPlayerSmooth(float duration = 0.5f)
     {
         if (recenterCoroutine != null) StopCoroutine(recenterCoroutine);
@@ -239,23 +235,17 @@ public class CameraMov : MonoBehaviour
     public void SetSensitivity01(float v) => mouseSensitivity = Mathf.Lerp(minSensitivity, maxSensitivity, v);
     public float GetSensitivity01() => Mathf.InverseLerp(minSensitivity, maxSensitivity, mouseSensitivity);
 
-    /// <summary>엎드림 뷰 온/오프</summary>
     public void SetCrawl(bool on, float amount = -1f)
     {
         if (amount > 0f) crawlDown = amount;
         _crawlYTarget = on ? Mathf.Abs(crawlDown) : 0f;
     }
 
-    /// <summary>마우스 입력이 일정 시간 없으면 자동 리센터</summary>
     public void RecenterIfNoMouseFor(float idleWindow, float duration)
     {
         if (_recenterCo != null) StopCoroutine(_recenterCo);
         _recenterCo = StartCoroutine(Co_RecenterIfIdle(idleWindow, duration));
     }
-
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Private helpers
-    // ─────────────────────────────────────────────────────────────────────────────
 
     Transform GetPivot()
     {
