@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,11 +16,14 @@ public class WeaponManager : MonoBehaviour
 
     public static event Action<WeaponType> OnWeaponChosen;
 
+    public RectTransform target;
+    public Vector2 newPosition;
+
     void Awake()
     {
-        if (i != null && i != this) { Destroy(gameObject); return; } // ¡ﬂ∫π πÊ¡ˆ
+        if (i != null && i != this) { Destroy(gameObject); return; } // Ï§ëÎ≥µ Î∞©ÏßÄ
         i = this;
-        DontDestroyOnLoad(gameObject); // æ¿ ≥—æÓ∞°µµ ¿Ø¡ˆ
+        DontDestroyOnLoad(gameObject); // Ïî¨ ÎÑòÏñ¥Í∞ÄÎèÑ Ïú†ÏßÄ
     }
 
     public void OnClickCrowbar()
@@ -30,7 +33,7 @@ public class WeaponManager : MonoBehaviour
         OnWeaponChosen?.Invoke(SelectedWeapon);
         
     }
-
+    
     public void OnClickGun()
     {
         canGunSwitch = true;
@@ -44,4 +47,10 @@ public class WeaponManager : MonoBehaviour
         SelectedWeapon = WeaponType.Bat;
         OnWeaponChosen?.Invoke(SelectedWeapon);
     }
+    public void MoveToPosition()
+    {
+        if (target != null)
+            target.anchoredPosition = newPosition;
+    }
+
 }
