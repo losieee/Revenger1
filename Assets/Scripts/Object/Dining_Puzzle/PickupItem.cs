@@ -16,13 +16,19 @@ public class PickupItem : MonoBehaviour
     {
         if (!player || !info) return false;
         var inv = PlayerInventory.Instance;
-        if (!inv) return false;
+        if (!inv)   return false;
 
         // 인벤토리에 이미 있으면 → 되돌리기
         if (inv.ContainsId(info.itemId))
         {
             bool ok = inv.TryDropToWorld(info);
-            if (ok) SfxPlayer.Play(pickupClip, info.startPos);
+
+            if (ok)
+            {
+                if (info.returnSpot)
+                    info.returnSpot.MarkFilled(info.itemId);
+            }
+
             return ok;
         }
 

@@ -23,20 +23,46 @@ public class BookshelfPuzzle : MonoBehaviour
     public AudioClip failClip;
     [Range(0f, 1f)] public float sfxVolume = 1f;
 
+    public bool lockOnSuccess = true;                // 성공 시 잠금
+
+    private bool solved;
+    public bool IsSolved => solved;
+
     public bool IsReady =>
         slots != null && slots.Length == 4 && System.Array.TrueForAll(slots, s => s != null);
 
     // BookPlaceController에서 부르는 함수 (4칸 다 채워지면 자동 판정)
     public void ValidateIfFull()
     {
+        if (solved) return;
         if (!IsReady) return;
         for (int i = 0; i < 4; i++) if (!slots[i].IsFilled) return;
-        Validate();
+
+        bool isSecret = CheckIds(secretIds);
+        bool isNormal = CheckAnswer();
+
+        if (isSecret)
+        {
+            RotateSecretTarget();
+            PlaySfx(secretSuccessClip);
+            MarkSolved();
+        }
+
+        if (isNormal)
+        {
+            PlaySfx(normalSuccessClip);
+            MarkSolved();
+        }
+        else if (!isSecret)
+        {
+            FailAndReturnAll();
+        }
     }
 
     // 슬롯이 4칸 다 찼을 때 호출하면 됨
     public void Validate()
     {
+        if (solved) return;
         if (!IsReady) return;
         for (int i = 0; i < 4; i++) if (!slots[i].IsFilled) return;
 
@@ -48,14 +74,41 @@ public class BookshelfPuzzle : MonoBehaviour
         {
             RotateSecretTarget();
             PlaySfx(secretSuccessClip);
+            MarkSolved();
         }
 
         if (isNormal)
         {
             PlaySfx(normalSuccessClip);
+            MarkSolved();
         }
         else if (!isSecret)  // 둘 다 아니면 실패
         FailAndReturnAll();
+    }
+
+    void MarkSolved()
+    {
+        if (solved) return;
+        solved = true;
+
+        if (!lockOnSuccess) return;
+
+        // 슬롯 상호작용 차단
+        foreach (var s in slots)
+        {
+            if (!s) continue;
+
+            // 1) 슬롯 자신의 상호작용 끄기
+            s.enabled = false;
+
+            // 2) 슬롯/자식의 클릭 스크립트가 따로 있다면 함께 끄기
+            var click = s.GetComponentInChildren<BookSlotClick>(true);
+            if (click) click.enabled = false;
+
+            // 3) 슬롯/자식 콜라이더 끄기
+            var colls = s.GetComponentsInChildren<Collider>(true);
+            foreach (var c in colls) c.enabled = false;
+        }
     }
 
     bool CheckIds(string[] ids)
@@ -108,33 +161,31 @@ public class BookshelfPuzzle : MonoBehaviour
     {
         // 1) ID 기준
         bool allIdsGiven = answerIds != null && answerIds.Length == 4 &&
-                           System.Array.TrueForAll(answerIds, id => !string.IsNullOrEmpty(id));
-        if (allIdsGiven)
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                var cur = slots[i].current;
-                if (!cur || cur.itemId != answerIds[i]) return false;
-            }
-            return true;
-        }
+                       System.Array.TrueForAll(answerIds, id => !string.IsNullOrEmpty(id));
+        if (allIdsGiven) return CheckIds(answerIds);
+
 
         // 2) 타입 기준
         bool allTypesGiven = answerTypes != null && answerTypes.Length == 4;
         if (allTypesGiven)
         {
+            bool anySet = false;
             for (int i = 0; i < 4; i++)
             {
-                var cur = slots[i].current;
-                if (!cur || cur.type != answerTypes[i]) return false;
+                if (answerTypes[i] != ItemInfo.ItemType.Generic)
+                {
+                    anySet = true;
+                    break;
+                }
             }
-            return true;
+            if (anySet) return CheckTypes();
         }
         return false;
     }
 
     void FailAndReturnAll()
     {
+        if (solved) return;
         PlaySfx(failClip);
 
         for (int i = 0; i < 4; i++)

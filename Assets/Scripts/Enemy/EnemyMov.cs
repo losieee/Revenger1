@@ -950,7 +950,6 @@ public class EnemyMov : MonoBehaviour
 
     public void OnPlayerEnteredCatchBox(Transform playerTr)
     {
-        Debug.Log("Enter CatchBox");
         TryPlayPunch(playerTr);
     }
 

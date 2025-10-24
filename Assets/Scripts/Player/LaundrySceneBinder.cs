@@ -5,42 +5,57 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
+
+[DefaultExecutionOrder(0)]
 public class LaundrySceneBinder : MonoBehaviour
 {
-    [Header("씬에 있는 회전 타겟들 (Cube1~Cube8)")]
+    [Header("세탁실 퍼즐용 회전 타겟들 (Cube1~8 등)")]
     public Transform[] targetCubes;
 
-    [Header("씬에 있는 Result 오브젝트")]
+    [Header("세탁실 퍼즐 Result 오브젝트")]
     public GameObject resultObjectInScene;
 
-    [Header("씬에 있는 pivot 오브젝트")]
+    [Header("세탁실 퍼즐 카메라 타겟 (LaundryPivot)")]
     public Transform cameraPivotInScene;
+
+    [Space(12)]
+    [Header("다른 미션 카메라 타겟들")]
+    public Transform foyerCamTarget;
+    public Transform studyCamTarget;
+    public Transform studyResultCamTarget;
+    public Transform guestCamTarget;
 
     void Awake()
     {
         // 플레이어 / 매니저 찾기
         var player = GameBootstrap.i?.player ?? FindObjectOfType<PlayerMov>();
         var mgr = player ? player.GetComponentInChildren<LaundryPuzzleManager>(true) : null;
-        if (!mgr || !player) return;
+        if (!player) return;
 
-        // 피벗이 비어있으면 이름으로도 한 번 더 시도
+        // 이름으로 기본 채우기
         if (!cameraPivotInScene)
+            cameraPivotInScene = GameObject.Find("LaundryPivot")?.transform;
+        if (!foyerCamTarget)
+            foyerCamTarget = GameObject.Find("FoyerCameraPivot")?.transform;
+        if (!studyCamTarget)
+            studyCamTarget = GameObject.Find("Study_CamPivot")?.transform;
+        if (!studyResultCamTarget)
+            studyResultCamTarget = GameObject.Find("StudyResultCamPivot")?.transform;
+        if (!guestCamTarget)
+            guestCamTarget = GameObject.Find("GuestCameraPivot")?.transform;
+
+        // 세탁실 퍼즐 매니저 바인딩
+        if (mgr)
         {
-            var go = GameObject.Find("LaundryPivot");
-            if (go) cameraPivotInScene = go.transform;
+            var targets = targetCubes?.Select(t => t ? t.gameObject : null).ToArray();
+            mgr.BindSceneObjects(targets, resultObjectInScene, cameraPivotInScene);
         }
 
-        // 씬 타겟을 GameObject 배열로 변환
-        var targets = targetCubes?.Select(t => t ? t.gameObject : null).ToArray();
-
-        // 1) 퍼즐 타겟/리절트 바인딩(+ 카메라 피벗 같이 전달)
-        mgr.BindSceneObjects(targets, resultObjectInScene, cameraPivotInScene);
-
-        // 2) 플레이어 쪽에도 직접 세팅(퍼즐 뷰 진입 시 사용)
-        if (cameraPivotInScene)
-        {
-            player.laundryCamTarget = cameraPivotInScene; // ← 이것 때문에 null이면 이동 후 끊겨 보임
-            player.BindCameraPivot(cameraPivotInScene);   // 카메라 팔로우 피벗도 교체(선택)
-        }
+        //플레이어의 미션용 카메라 목적지만 세팅
+        if (cameraPivotInScene) player.laundryCamTarget = cameraPivotInScene;
+        if (foyerCamTarget) player.foyerCamTarget = foyerCamTarget;
+        if (studyCamTarget) player.studyCamTarget = studyCamTarget;
+        if (studyResultCamTarget) player.studyResultCamTarget = studyResultCamTarget;
+        if (guestCamTarget) player.guestCamTarget = guestCamTarget;
     }
 }

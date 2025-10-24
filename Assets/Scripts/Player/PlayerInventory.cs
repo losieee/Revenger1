@@ -18,6 +18,8 @@ public class PlayerInventory : MonoBehaviour
     // UI가 구독할 이벤트
     public event Action OnChanged;
 
+    [SerializeField] private AudioClip dropReturnClip;      // 되돌리는 사운드
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -137,6 +139,13 @@ public class PlayerInventory : MonoBehaviour
         // 필요하면 물리 초기화
         var rb = go.GetComponent<Rigidbody>();
         if (rb) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+
+        if (dropReturnClip)
+        {
+            // 리턴 스팟이 있다면 그 위치, 없으면 배치 위치에서 재생
+            Vector3 sfxPos = (taken.returnSpot ? taken.returnSpot.transform.position : pos);
+            AudioSource.PlayClipAtPoint(dropReturnClip, sfxPos, 1f);
+        }
 
         // UI 갱신 이벤트는 TryTake 내부에서 이미 호출됨
         return true;

@@ -7,6 +7,21 @@ public class BookPickup : MonoBehaviour
     public float maxDistance = 5f;
     public LayerMask pickableMask; // Book + ReturnSpot 포함
 
+    void Awake()
+    {
+        // cam이 비어있다면 MainCamera를 자동으로 찾음
+        if (cam == null)
+        {
+            cam = Camera.main;
+        }
+
+        // player 자동 연결 (혹시 누락될 경우 대비)
+        if (player == null)
+        {
+            player = FindObjectOfType<PlayerMov>();
+        }
+    }
+
     void Update()
     {
         if (!Input.GetMouseButtonDown(0)) return;

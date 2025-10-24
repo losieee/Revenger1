@@ -9,6 +9,7 @@ using UnityEngine.Rendering;
 using System.Collections.Generic;
 
 [RequireComponent(typeof(Rigidbody))]
+[DefaultExecutionOrder(-100)]
 public class PlayerMov : MonoBehaviour
 {
     [Header("Component")]
@@ -397,6 +398,10 @@ public class PlayerMov : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        var follow = CameraMov.i ?? FindObjectOfType<CameraMov>(true);
+        if (follow) BindCameraPivot(follow.transform);
+        else if (Camera.main) BindCameraPivot(Camera.main.transform);
+
         RebindSceneUI();
 
         donRunZoneCount = 0; UpdateRunLock();
@@ -464,6 +469,10 @@ public class PlayerMov : MonoBehaviour
 
     void Start()
     {
+        var follow = CameraMov.i ?? FindObjectOfType<CameraMov>(true);
+        if (follow) BindCameraPivot(follow.transform);
+        else if (Camera.main) BindCameraPivot(Camera.main.transform);
+
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
