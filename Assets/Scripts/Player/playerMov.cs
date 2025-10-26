@@ -936,7 +936,7 @@ public class PlayerMov : MonoBehaviour
             if (_weaponPickFlowActive) return; // 진행 중이면 무시
             _weaponPickFlowActive = true;
 
-            ButtonControl button = transform.GetChild(1).GetChild(0).GetChild(1).GetComponent<ButtonControl>();
+            ButtonControl button = transform.GetChild(1).GetChild(0).GetChild(0).GetChild(1).GetComponent<ButtonControl>();
             button.canNextStage = true;
 
             blockInput = true;
