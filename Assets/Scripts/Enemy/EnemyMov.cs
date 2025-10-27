@@ -892,7 +892,7 @@ public class EnemyMov : MonoBehaviour
     }
 
     // 공격 받자마자 행동 정지
-    public void FreezeForAssassination(bool on)
+    public void FreezeForAttack(bool on)
     {
         isFrozen = on;
 

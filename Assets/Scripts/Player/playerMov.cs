@@ -666,7 +666,7 @@ public class PlayerMov : MonoBehaviour
         Vector3 moveForward = (isAlt || justReleasedAlt) ? savedForward : camForward;
         Vector3 moveRight = (isAlt || justReleasedAlt) ? savedRight : camRight;
 
-        // 못움직임
+        // 움직임 제한
         if (blockInput)
         {
             currentMoveInput = Vector3.zero;
@@ -675,7 +675,7 @@ public class PlayerMov : MonoBehaviour
             animator.SetFloat("Speed", 0f);
         }
 
-        // 1) 일반 이동
+        // 일반 이동
         if (!blockInput)
         {
             Vector3 targetMoveInput = (moveForward * v + moveRight * h).normalized;
@@ -901,7 +901,7 @@ public class PlayerMov : MonoBehaviour
         {
             if (canKill && killTarget != null)
             {
-                StartAssassination(killTarget);
+                StartAttack(killTarget);
             }
             else if (!AnyPauseOpen()) // 클리어/옵션 UI 떠 있으면 무시
             {
@@ -1465,11 +1465,11 @@ public class PlayerMov : MonoBehaviour
     }
 
     // 공격 (암살)
-    private void StartAssassination(EnemyMov enemy)
+    private void StartAttack(EnemyMov enemy)
     {
         if (enemy == null) return;
 
-        enemy.FreezeForAssassination(true);
+        enemy.FreezeForAttack(true);
 
         isAssassinating = true;
         pendingAssassination = enemy;
@@ -1569,20 +1569,6 @@ public class PlayerMov : MonoBehaviour
         if (!miniPos) return;
         Vector3 p = transform.position;
         miniPos.transform.position = new Vector3(p.x, p.y + miniPosYOffset, p.z);
-    }
-
-    private IEnumerator RotateLocalY_Smooth(Transform tr, Quaternion from, Quaternion to, float duration)
-    {
-        isDoorRotating = true;
-        float t = 0f;
-        while (t < 1f)
-        {
-            t += Time.deltaTime / Mathf.Max(0.0001f, duration);
-            tr.localRotation = Quaternion.Slerp(from, to, t);
-            yield return null;
-        }
-        tr.localRotation = to;
-        isDoorRotating = false;
     }
 
     void ApplyCrouchCollider(bool crouch)
