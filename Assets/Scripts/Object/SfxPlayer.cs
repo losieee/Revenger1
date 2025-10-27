@@ -1,20 +1,25 @@
 using UnityEngine;
+using UnityEngine.Audio;
 
 public static class SfxPlayer
 {
-    public static void Play(AudioClip clip, Vector3 pos, float volume = 1f, float pitch = 1f)
+    static AudioSource _src2D;
+    public static AudioMixerGroup outputGroup;
+
+    public static void Play2D(AudioClip clip, float volume = 0.1f)
     {
         if (!clip) return;
-        var go = new GameObject("SFX_" + clip.name);
-        go.transform.position = pos;
-        var src = go.AddComponent<AudioSource>();
-        src.clip = clip;
-        src.spatialBlend = 1f;     // 3D
-        src.minDistance = 1.5f;
-        src.maxDistance = 20f;
-        src.pitch = Mathf.Clamp(pitch, 0.1f, 3f);
-        src.volume = Mathf.Clamp01(volume);
-        src.Play();
-        Object.Destroy(go, clip.length / src.pitch + 0.05f);
+        if (_src2D == null)
+        {
+            var go = new GameObject("SFX2D");
+            Object.DontDestroyOnLoad(go);
+            _src2D = go.AddComponent<AudioSource>();
+            _src2D.spatialBlend = 0f;            // 2D
+            _src2D.playOnAwake = false;
+
+            if (outputGroup != null)
+                _src2D.outputAudioMixerGroup = outputGroup;
+        }
+        _src2D.PlayOneShot(clip, volume);
     }
 }

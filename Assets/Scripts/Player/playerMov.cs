@@ -4,9 +4,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using System;
 using TMPro;
-using UnityEngine.Animations.Rigging;
-using UnityEngine.Rendering;
 using System.Collections.Generic;
+using UnityEngine.Audio;
 
 [RequireComponent(typeof(Rigidbody))]
 [DefaultExecutionOrder(-100)]
@@ -25,6 +24,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimap1fPicture;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;
+    [SerializeField] private AudioMixerGroup sfxGroup;
 
     [Header("Move and Rotate")]
     public float speed = 5f;
@@ -450,7 +450,12 @@ public class PlayerMov : MonoBehaviour
 
     bool IsPointerOverUI() => EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-    void Awake() => RebindSceneUI();
+    void Awake() 
+    {
+        RebindSceneUI(); 
+        SfxPlayer.outputGroup = sfxGroup; 
+    }
+
     void RebindSceneUI()
     {
         var canvas = GetComponentInChildren<Canvas>(true);
@@ -2036,6 +2041,11 @@ public class PlayerMov : MonoBehaviour
         {
             inGuestBox3 = true;
         }
+
+        if (other.CompareTag("StairRange"))
+        {
+            Physics.gravity = new Vector3(0, -100f, 0);
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -2123,6 +2133,11 @@ public class PlayerMov : MonoBehaviour
         if (other.CompareTag("GuestBox3"))
         {
             inGuestBox3 = false;
+        }
+
+        if (other.CompareTag("StairRange"))
+        {
+            Physics.gravity = new Vector3(0, -9.81f, 0);
         }
     }
 

@@ -7,13 +7,6 @@ using UnityEngine.UI;
 public class PlacementUI : MonoBehaviour
 {
     public static PlacementUI i; // 싱글턴 간단히
-    void Awake() 
-    {
-        i = this;
-        if (confirmButton) confirmButton.onClick.AddListener(OnConfirm);
-        if (cancelButton) cancelButton.onClick.AddListener(Close);
-        if (removeButton) removeButton.onClick.AddListener(OnRemovePlaced);
-    }
 
     [Header("Root / Buttons / Preview")]
     public GameObject panelRoot;        // Panel
@@ -30,6 +23,52 @@ public class PlacementUI : MonoBehaviour
     ItemInfo selected;
 
     readonly List<Button> spawned = new();
+
+    void OnEnable() => WireButtons();           // 씬 복귀 시 보강
+    void OnDisable() => UnwireButtons();        // 중복 방지
+
+    void Awake()
+    {
+        if (i != null && i != this) { Destroy(gameObject); return; }
+        i = this;
+        DontDestroyOnLoad(gameObject);
+
+        // 필수 레퍼런스 보정
+        if (itemButtonPrefab == null)
+        {
+            itemButtonPrefab = Resources.Load<Button>("Prefabs/ItemButton_Template"); // 경로 예시
+            if (itemButtonPrefab == null)
+                Debug.LogError("[PlacementUI] itemButtonPrefab null (에셋 지정/경로 확인)");
+        }
+
+        WireButtons();
+    }
+
+    void WireButtons()
+    {
+        if (confirmButton)
+        {
+            confirmButton.onClick.RemoveAllListeners();
+            confirmButton.onClick.AddListener(OnConfirm);
+        }
+        if (cancelButton)
+        {
+            cancelButton.onClick.RemoveAllListeners();
+            cancelButton.onClick.AddListener(Close);
+        }
+        if (removeButton)
+        {
+            removeButton.onClick.RemoveAllListeners();
+            removeButton.onClick.AddListener(OnRemovePlaced);
+        }
+    }
+
+    void UnwireButtons()
+    {
+        if (confirmButton) confirmButton.onClick.RemoveAllListeners();
+        if (cancelButton) cancelButton.onClick.RemoveAllListeners();
+        if (removeButton) removeButton.onClick.RemoveAllListeners();
+    }
 
     public void Open(SlotPlate slot, string reqId)
     {
