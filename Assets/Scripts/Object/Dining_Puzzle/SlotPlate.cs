@@ -68,7 +68,6 @@ public class SlotPlate : MonoBehaviour
         if (col) col.isTrigger = true;
 
         item.gameObject.SetActive(true);
-        Debug.Log($"[SlotPlate] 배치 완료: {item.displayName} → {name}");
 
         GetComponentInParent<DiningPuzzleGroup>()?.NotifyChanged();
     }

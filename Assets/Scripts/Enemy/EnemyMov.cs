@@ -98,6 +98,7 @@ public class EnemyMov : MonoBehaviour
     [SerializeField] private BoxCollider catchBox;
     [SerializeField] private BoxCollider attackBox;
     [SerializeField] private BoxCollider discover;
+    [SerializeField] private BoxCollider discoverClose;
     private AudioSource audioSource;
     private AudioSource chaseAudio;     // 추격 루프 전용(추격 전용)
     private AudioSource footstepAudio;  // 평소 발소리 전용
@@ -1040,8 +1041,16 @@ public class EnemyMov : MonoBehaviour
         _attackLayerRoutine = null;
     }
 
-    public void EnableCatchBox() { if (discover) discover.enabled = true; }
-    public void DisableCatchBox() { if (discover) discover.enabled = false; }
+    public void EnableCatchBox() 
+    { 
+        if (discover) discover.enabled = true; 
+        if (discoverClose) discoverClose.enabled = true; 
+    }
+    public void DisableCatchBox() 
+    { 
+        if (discover) discover.enabled = false; 
+        if (discoverClose) discoverClose.enabled = false; 
+    }
 
 
     // 시야 관련 기즈모

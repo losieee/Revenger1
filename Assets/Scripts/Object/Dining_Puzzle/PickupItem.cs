@@ -27,6 +27,7 @@ public class PickupItem : MonoBehaviour
             {
                 if (info.returnSpot)
                     info.returnSpot.MarkFilled(info.itemId);
+                SfxPlayer.Play(pickupClip, transform.position);
             }
 
             return ok;
