@@ -33,7 +33,7 @@ public class BookPlaceController : MonoBehaviour
         if (placed)
         {
             // 꽂았을 때
-            SfxPlayer.Play(placeClip, currentTargetSlot.SnapPoint.position);
+            SfxPlayer.Play2D(placeClip);
 
             // 4칸 다 찼으면 퍼즐이 Validate() 되도록 기존 로직 유지
             puzzle?.ValidateIfFull();
