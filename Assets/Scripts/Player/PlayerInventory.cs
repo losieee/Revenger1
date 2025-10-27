@@ -25,7 +25,6 @@ public class PlayerInventory : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
     }
-
     void NotifyChanged() => OnChanged?.Invoke();
 
     private int CountOf(ItemInfo.ItemType t)
