@@ -4,7 +4,7 @@ using UnityEngine.Rendering.Universal;
 
 public class BlurRenderPass : ScriptableRenderPass
 {
-    private Material material;
+    [SerializeField] private Material material;
     private BlurSettings blurSettings;
 
     private RenderTargetHandle source;

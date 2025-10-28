@@ -1,6 +1,5 @@
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -24,17 +23,19 @@ public class ButtonControl : MonoBehaviour
     [Header("Scene Jump")]
     [SerializeField] string spawnId = "Default";
 
+    [SerializeField] TMP_Text takeWeaponText;
+
 
     [HideInInspector] public bool canNextStage = false;
 
-    private void OnDisable()
+    /*private void OnDisable()
     {
         if (transform.childCount > 0 && transform.GetChild(0) != null)
         {
             var child = transform.GetChild(0);
             if (child != null) child.gameObject.SetActive(false);
         }
-    }
+    }*/
 
     void Start()
     {
@@ -149,9 +150,9 @@ public class ButtonControl : MonoBehaviour
 
     IEnumerator TextCount()
     {
-        transform.GetChild(1).gameObject.SetActive(true);
+        takeWeaponText.gameObject.SetActive(true);
         yield return new WaitForSecondsRealtime(0.5f);
-        transform.GetChild(1).gameObject.SetActive(false);
+        takeWeaponText.gameObject.SetActive(false);
     }
 
     // 슬라이더 → 오디오
