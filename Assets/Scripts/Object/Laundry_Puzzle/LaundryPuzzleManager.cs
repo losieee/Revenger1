@@ -48,6 +48,7 @@ public class LaundryPuzzleManager : MonoBehaviour
     private Quaternion[] fromRot;
     private float[] tLerp;
     private Rigidbody[] rbs;
+    private int failAttempts = 0;
 
     private Quaternion resultBaseRot;
     private Coroutine resultCo;
@@ -277,11 +278,14 @@ public class LaundryPuzzleManager : MonoBehaviour
         if (correct)
         {
             puzzleCleared = true;
+            failAttempts = 0;
             PlaySolvedSfx();
         }
         else
         {
-            PlayFailedSfx();
+            failAttempts++;
+            if (failAttempts % 2 == 0)
+                PlayFailedSfx();
         }
     }
 
@@ -345,6 +349,7 @@ public class LaundryPuzzleManager : MonoBehaviour
 
     public void ResetLaundryPuzzle()
     {
+        failAttempts = 0;
         activeSet.Clear();
         puzzleCleared = false;
 

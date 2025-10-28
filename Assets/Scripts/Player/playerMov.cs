@@ -6,6 +6,7 @@ using System;
 using TMPro;
 using System.Collections.Generic;
 using UnityEngine.Audio;
+using UnityEditor;
 
 [RequireComponent(typeof(Rigidbody))]
 [DefaultExecutionOrder(-100)]
@@ -210,6 +211,10 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float doorZDelta = 90f;
     private int doorSign = +1;
 
+    private readonly HashSet<Transform> nearDoorLeaves = new();
+    private readonly Dictionary<Transform, Coroutine> doorRoutines = new();
+    private readonly Dictionary<Transform, DoorData> doors = new();
+
     struct DoorData
     {
         public Quaternion closed;
@@ -217,16 +222,6 @@ public class PlayerMov : MonoBehaviour
         public bool isOpen;
         public int sign;
     }
-    private readonly Dictionary<Transform, DoorData> doors = new();
-
-    private bool nearDoor = false;
-    private Transform nearDoorRoot;
-    private Transform nearDoorLeaf;
-    private bool doorOpen = false;
-    private bool isDoorRotating = false;
-    private Quaternion doorClosedRot;
-    private Quaternion doorOpenRot;
-    private Coroutine doorRoutine;
 
     // 무기 바꾸기 관련
     public bool canWeaponSwitch = false;
@@ -406,8 +401,6 @@ public class PlayerMov : MonoBehaviour
 
         donRunZoneCount = 0; UpdateRunLock();
         canAttack = false; killTarget = null; choiceWeapon = false; canTakeMission = false;
-
-        nearDoor = false; nearDoorRoot = null; nearDoorLeaf = null;
 
         canClimbZone = false; isHolding = false; isClimbing = false; blockInput = false;
 
@@ -910,19 +903,36 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 문열기
-        if (nearDoorLeaf && KeyBindings.GetKeyDown(GameAction.Interaction) && !isDoorRotating && !isCrawling)
+        if (nearDoorLeaves.Count > 0 && KeyBindings.GetKeyDown(GameAction.Interaction) && !isCrawling)
         {
-            if (!doors.TryGetValue(nearDoorLeaf, out var data)) return;
+            // 현재 범위에 잡힌 모든 문짝 스냅샷
+            var leaves = new List<Transform>(nearDoorLeaves);
 
-            Quaternion from = nearDoorLeaf.localRotation;
-            Quaternion to = data.isOpen ? data.closed : data.open;
+            // 첫 문짝의 반대 상태로 전체 동기화
+            var first = leaves[0];
+            if (!doors.TryGetValue(first, out var baseData)) goto SkipDoor; // 방어
+            bool targetOpen = !baseData.isOpen;
 
-            if (doorRoutine != null) StopCoroutine(doorRoutine);
-            doorRoutine = StartCoroutine(RotateLocal_Smooth(nearDoorLeaf, from, to, doorRotateDuration));
+            foreach (var leaf in leaves)
+            {
+                if (!leaf) continue;
+                if (!doors.TryGetValue(leaf, out var data)) continue;
 
-            data.isOpen = !data.isOpen;
-            doors[nearDoorLeaf] = data;
+                Quaternion from = leaf.localRotation;
+                Quaternion to = targetOpen ? data.open : data.closed;
+
+                // 문짝별 코루틴 관리
+                if (doorRoutines.TryGetValue(leaf, out var running) && running != null)
+                    StopCoroutine(running);
+
+                var co = StartCoroutine(RotateLocal_Smooth(leaf, from, to, doorRotateDuration));
+                doorRoutines[leaf] = co;
+
+                data.isOpen = targetOpen;
+                doors[leaf] = data;
+            }
         }
+        SkipDoor:;
 
         // 무기 선택창
         if (choiceWeapon && EPressed() && !isCrawling)
@@ -1972,7 +1982,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         if (other.CompareTag("Door")) BindDoor(other, +1);
-        else if (other.CompareTag("MinDoor")) BindDoor(other, -1);
+        if (other.CompareTag("MinDoor")) BindDoor(other, -1);
 
         if (other.CompareTag("WeaponBox")) 
         { 
@@ -2055,20 +2065,8 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("Door") || other.CompareTag("MinDoor"))
         {
-            // 같은 문에서 나가는 경우만 해제
-            if (nearDoorLeaf && (other.transform == nearDoorLeaf || other.transform.IsChildOf(nearDoorLeaf)))
-            {
-                nearDoor = false;
-                nearDoorRoot = null;
-                nearDoorLeaf = null;
-            }
-            else
-            {
-                // 트리거 구조가 다를 수 있으니 여유롭게 해제
-                nearDoor = false;
-                nearDoorRoot = null;
-                nearDoorLeaf = null;
-            }
+            var leaf = FirstLeafChild(other.transform);
+            if (leaf) nearDoorLeaves.Remove(leaf);
         }
 
         if (other.CompareTag("WeaponBox")) choiceWeapon = false;
@@ -2135,34 +2133,34 @@ public class PlayerMov : MonoBehaviour
         return cur;
     }
 
-    void BindDoor(Collider other, int sign) // sign : Door=+1, MinDoor=-1
+    void BindDoor(Collider other, int sign)
     {
-        nearDoorLeaf = FirstLeafChild(other.transform);
-        if (!doors.TryGetValue(nearDoorLeaf, out var data))
+        var leaf = FirstLeafChild(other.transform);
+        nearDoorLeaves.Add(leaf);
+
+        if (!doors.TryGetValue(leaf, out var data))
         {
-            var e = nearDoorLeaf.localEulerAngles;
+            var e = leaf.localEulerAngles;
             data = new DoorData
             {
-                closed = nearDoorLeaf.localRotation,
+                closed = leaf.localRotation,
                 open = Quaternion.Euler(e.x, e.y, e.z + sign * doorZDelta),
                 isOpen = Mathf.Abs(Mathf.DeltaAngle(e.z, e.z + sign * doorZDelta)) < 5f,
                 sign = sign
             };
-            doors[nearDoorLeaf] = data;
+            doors[leaf] = data;
         }
         else if (data.sign != sign)
         {
-            // 같은 문을 반대 태그로 들어온 경우: '닫힘'을 기준으로 열림 각도만 재계산
             var ce = data.closed.eulerAngles;
             data.open = Quaternion.Euler(ce.x, ce.y, ce.z + sign * doorZDelta);
             data.sign = sign;
-            doors[nearDoorLeaf] = data;
+            doors[leaf] = data;
         }
     }
 
     IEnumerator RotateLocal_Smooth(Transform tr, Quaternion from, Quaternion to, float duration)
     {
-        isDoorRotating = true;
         float t = 0f;
         duration = Mathf.Max(0.0001f, duration);
         while (t < 1f)
@@ -2172,7 +2170,6 @@ public class PlayerMov : MonoBehaviour
             yield return null;
         }
         tr.localRotation = to;
-        isDoorRotating = false;
     }
 
     void UpdateRunLock() => canRun = (donRunZoneCount == 0);
