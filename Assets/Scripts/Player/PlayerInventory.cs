@@ -135,9 +135,6 @@ public class PlayerInventory : MonoBehaviour
         if (col) col.enabled = true;
 
         go.SetActive(true);
-        // 필요하면 물리 초기화
-        var rb = go.GetComponent<Rigidbody>();
-        if (rb) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
 
         if (dropReturnClip)
         {

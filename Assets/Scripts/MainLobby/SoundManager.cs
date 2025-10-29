@@ -7,7 +7,7 @@ using System.Linq;
 
 public enum SfxBus { Effect, ButtonClick }
 
-public enum PlayerSfx { CrouchToggle, Jump, Land, ClimbStart, ClimbEnd }
+public enum PlayerSfx { CrouchToggle, Jump, Land, ClimbStart, ClimbEnd, LeftWalk, RightWalk }
 
 public class SoundManager : MonoBehaviour
 {

@@ -480,6 +480,7 @@ public class PlayerMov : MonoBehaviour
         animator = GetComponentInChildren<Animator>();
         cmov = cameraPivot ? cameraPivot.GetComponent<CameraMov>() : null;
 
+
         gripLayer = animator.GetLayerIndex("RightHandGrip");
         gripIdleHash = Animator.StringToHash("RightHandGrip.Idle State");
         gripBatPoseHash = Animator.StringToHash("RightHandGrip.BatPose");
@@ -2759,5 +2760,14 @@ public class PlayerMov : MonoBehaviour
 
         _gameClearShown = true;   // 중복 방지
         ShowPausePanel(gameClearUI);  // 여기서 Time.timeScale=0, 일시정지 + 커서 표시
+    }
+
+    public void LeftWalkingSound()
+    {
+        SoundManager.i?.PlaySFX(PlayerSfx.LeftWalk, SfxBus.Effect, 1f);
+    }
+    public void RightWalkingSound()
+    {
+        SoundManager.i?.PlaySFX(PlayerSfx.RightWalk, SfxBus.Effect, 1f);
     }
 }

@@ -568,7 +568,7 @@ public class EnemyMov : MonoBehaviour
         if (vAngle > verticalFovUp || vAngle < -verticalFovDown) return false;
 
         // 4) 가림막 체크(기존 그대로)
-        if (Physics.Raycast(eyePos, to.normalized, dist, occluderMask, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(eyePos, to.normalized, dist, occluderMask, QueryTriggerInteraction.Collide))
             return false;
 
         return true;
@@ -590,7 +590,7 @@ public class EnemyMov : MonoBehaviour
 
         if (checkLOS)
         {
-            if (Physics.Raycast(eyePos, toTarget.normalized, dist, occluderMask, QueryTriggerInteraction.Ignore))
+            if (Physics.Raycast(eyePos, toTarget.normalized, dist, occluderMask, QueryTriggerInteraction.Collide))
                 return false; // 사이에 벽이 있으면 안보임
         }
         return true;
