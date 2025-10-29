@@ -5,6 +5,7 @@ using UnityEngine;
 public class AnimationCtl : MonoBehaviour
 {
     public PlayerMov player;
+    public PlayerFootstepProxy footStep;
 
     public void OnJumpingDownComplete()
     {
@@ -118,4 +119,7 @@ public class AnimationCtl : MonoBehaviour
     public void TakeWeapon() => player.AE_OnEquipWeapon();
     public void TakeOffWeapon() => player.AE_OnEquipHide();
     public void AttackVillain() => player.AE_GameClearMoment();
+    public void LeftWalkingSound() => footStep.OnLeftFootstep();
+    public void RightWalkingSound() => footStep.OnRightFootstep();
+    public void AttackWeaponSound() => player.AE_PlayAttackSfx();
 }

@@ -45,6 +45,7 @@ public class OptionsPanel : MonoBehaviour
     }
 
     // 슬라이더 OnValueChanged(float)에 연결
+    public void OnMasterChanged(float v) => SoundManager.i.SetMasterVolume(v);
     public void OnMusicChanged(float v) => SoundManager.i?.SetMusicVolume(v);
     public void OnEffectChanged(float v) => SoundManager.i?.SetEffectVolume(v);
 

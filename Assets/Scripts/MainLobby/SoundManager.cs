@@ -7,7 +7,13 @@ using System.Linq;
 
 public enum SfxBus { Effect, ButtonClick }
 
-public enum PlayerSfx { CrouchToggle, Jump, Land, ClimbStart, ClimbEnd, LeftWalk, RightWalk }
+public enum PlayerSfx
+{
+    CrouchToggle, Jump, Land, ClimbStart, ClimbEnd,
+    LeftWalkIndoor, RightWalkIndoor, LeftRunIndoor, RightRunIndoor,
+    LeftWalkOutdoor, RightWalkOutdoor, LeftRunOutdoor, RightRunOutdoor,
+    ChestOpen, ChestClose, WeaponDraw, AttackCrowbar, AttackGun, AttackBat
+}
 
 public class SoundManager : MonoBehaviour
 {
@@ -45,6 +51,7 @@ public class SoundManager : MonoBehaviour
     public List<SceneBgm> sceneBgms;
     [Range(0.1f, 5f)] public float bgmFadeTime = 1f;
 
+    const string MASTER = "MasterVol";
     const string MUSIC = "MusicVol";
     const string EFFECT = "EffectVol";
 
@@ -107,7 +114,11 @@ public class SoundManager : MonoBehaviour
         if (sfxButtonSource) { sfxButtonSource.mute = false; }
     }
 
-
+    public void SetMasterVolume(float v)
+    {
+        audioMixer.SetFloat(MASTER, LinearToDecibel(v));
+        PlayerPrefs.SetFloat(MASTER, v);
+    }
     public void SetMusicVolume(float v)
     {
         audioMixer.SetFloat(MUSIC, LinearToDecibel(v));
@@ -122,8 +133,11 @@ public class SoundManager : MonoBehaviour
     {
         float m = PlayerPrefs.GetFloat(MUSIC, 1f);
         float e = PlayerPrefs.GetFloat(EFFECT, 1f);
+        float master = PlayerPrefs.GetFloat(MASTER, 1f);
+
         audioMixer.SetFloat(MUSIC, LinearToDecibel(m));
         audioMixer.SetFloat(EFFECT, LinearToDecibel(e));
+        audioMixer.SetFloat(MASTER, LinearToDecibel(master));
     }
     float LinearToDecibel(float v) => (v <= 0.0001f) ? -80f : Mathf.Log10(v) * 20f;
 
@@ -175,6 +189,11 @@ public class SoundManager : MonoBehaviour
         bgmSource.volume = baseVol;
     }
 
+    public float GetMasterVolume01()
+    {
+        if (!audioMixer.GetFloat(MASTER, out var db)) return 1f;
+        return db <= -80f ? 0f : Mathf.Pow(10f, db / 20f);
+    }
     public float GetMusicVolume01()
     {
         if (!audioMixer.GetFloat(MUSIC, out var db)) return 1f;

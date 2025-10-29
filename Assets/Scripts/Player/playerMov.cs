@@ -95,6 +95,7 @@ public class PlayerMov : MonoBehaviour
     private float edgeProbeOffset = 0.18f;     // 앞/뒤/좌/우 보조 프로브 오프셋
     private float groundedCoyoteTime = 0.12f;  // 유예 시간
     private float groundedTimer = 0f;
+    int _lastAttackSfxFrame = -1;
 
     [Header("Floor detect")]
     [SerializeField] private float minAirTimeForLand = 0.12f; // 최소 공중시간
@@ -963,6 +964,8 @@ public class PlayerMov : MonoBehaviour
 
             animator.ResetTrigger("WeaponPick");
             animator.SetTrigger("WeaponPick");
+
+            SoundManager.i.PlaySFX(PlayerSfx.ChestOpen, SfxBus.Effect, 1f);
         }
 
         // 무기 스위치 가능해지면 패널 닫기
@@ -970,6 +973,7 @@ public class PlayerMov : MonoBehaviour
         {
             canWeaponSwitch = true;
             if (weaponChangePanel && weaponChangePanel.activeSelf) HidePausePanel(weaponChangePanel);
+            SoundManager.i.PlaySFX(PlayerSfx.ChestClose, SfxBus.Effect, 1f);
         }
 
         // 무기 바꾸기
@@ -995,6 +999,7 @@ public class PlayerMov : MonoBehaviour
                 if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.08f, gripLayer, 0f);
                 if (rightArmLayer >= 0) FadeRightArmLayer(0f, 0.10f);
 
+                SoundManager.i.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
                 int stateHash = GetEquipStateHash(cur);
                 animator.speed = 1f; // ✅ 정방향
                 animator.CrossFade(stateHash, 0.05f, takeWeaponLayer, 0f);
@@ -1026,6 +1031,8 @@ public class PlayerMov : MonoBehaviour
             if (equipInProgress) return;
             equipInProgress = true;
 
+            SoundManager.i.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
+            
             if (takeWeaponLayer < 0)
                 takeWeaponLayer = animator.GetLayerIndex("TakeWeapon");
             if (takeWeaponLayer >= 0) animator.SetLayerWeight(takeWeaponLayer, 1f);
@@ -2043,6 +2050,12 @@ public class PlayerMov : MonoBehaviour
         {
             Physics.gravity = new Vector3(0, -100f, 0);
         }
+
+        var footstepProxy = GetComponent<PlayerFootstepProxy>();
+        if (other.CompareTag("IndoorZone"))
+            footstepProxy.SetEnvironment(FootEnv.Indoor);
+        else if (other.CompareTag("OutdoorZone"))
+            footstepProxy.SetEnvironment(FootEnv.Outdoor);
     }
 
     private void OnTriggerExit(Collider other)
@@ -2762,12 +2775,28 @@ public class PlayerMov : MonoBehaviour
         ShowPausePanel(gameClearUI);  // 여기서 Time.timeScale=0, 일시정지 + 커서 표시
     }
 
-    public void LeftWalkingSound()
+    public void AE_PlayAttackSfx()
     {
-        SoundManager.i?.PlaySFX(PlayerSfx.LeftWalk, SfxBus.Effect, 1f);
-    }
-    public void RightWalkingSound()
-    {
-        SoundManager.i?.PlaySFX(PlayerSfx.RightWalk, SfxBus.Effect, 1f);
+        // 전이 중/같은 프레임 중복 재생 방지
+        if (animator && animator.IsInTransition(0)) return;
+        if (Time.frameCount == _lastAttackSfxFrame) return;
+        _lastAttackSfxFrame = Time.frameCount;
+
+        var wm = WeaponManager.i;
+        var type = wm ? wm.SelectedWeapon : WeaponManager.WeaponType.Crowbar;
+
+        switch (type)
+        {
+            case WeaponManager.WeaponType.Gun:
+                SoundManager.i?.PlaySFX(PlayerSfx.AttackGun, SfxBus.Effect, 1f);
+                break;
+            case WeaponManager.WeaponType.Bat:
+                SoundManager.i?.PlaySFX(PlayerSfx.AttackBat, SfxBus.Effect, 1f);
+                break;
+            case WeaponManager.WeaponType.Crowbar:
+            default:
+                SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
+                break;
+        }
     }
 }
