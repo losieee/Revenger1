@@ -23,6 +23,8 @@ public class PlayerMov : MonoBehaviour
     public GameObject weapon;
     public GameObject weaponChangePanel;
     public GameObject minimap1fPicture;
+    public GameObject minimapInside;
+    public GameObject minimapOut;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;
     [SerializeField] private AudioMixerGroup sfxGroup;
@@ -258,6 +260,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject miniPos;
     public float miniPosYOffset = -30f;
     public bool minimapStartsHidden = true;
+    private bool isMiniMapActive = false;
 
     float _sceneInputGraceTimer = 0f;
 
@@ -865,8 +868,29 @@ public class PlayerMov : MonoBehaviour
         //ShowPausePanel(gameClearUI);
 
         // 미니맵
-        if (KeyBindings.GetKeyDown(GameAction.MiniMap)) minimapPanel?.SetActive(true);
-        if (KeyBindings.GetKeyUp(GameAction.MiniMap)) minimapPanel?.SetActive(false);
+        if (KeyBindings.GetKeyDown(GameAction.MiniMap))
+        {
+            minimapPanel?.SetActive(true);
+
+            string currentScene = SceneManager.GetActiveScene().name;
+
+            if (minimapInside != null) minimapInside.SetActive(false);
+            if (minimapOut != null) minimapOut.SetActive(false);
+
+            // 현재 씬 이름에 따라 해당 미니맵만 켜기
+            if (currentScene == "1_stage_inside" && minimapInside != null)
+            {
+                minimapInside.SetActive(true);
+            }
+            else if (currentScene == "1_stage_out" && minimapOut != null)
+            {
+                minimapOut.SetActive(true);
+            }
+        }
+        if (KeyBindings.GetKeyUp(GameAction.MiniMap))
+        {
+            minimapPanel?.SetActive(false);
+        }
 
         // 미션 받기
         if (canTakeMission && EPressed() && !isCrawling) ShowPausePanel(missionUI);
