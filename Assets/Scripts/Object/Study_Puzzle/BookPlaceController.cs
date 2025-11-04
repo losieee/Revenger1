@@ -84,8 +84,8 @@ public class BookPlaceController : MonoBehaviour
         var col = book.GetComponent<Collider>(); if (col) col.enabled = true;
         book.gameObject.SetActive(true);
 
-        var rb = book.GetComponent<Rigidbody>();
-        if (rb) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
+        //var rb = book.GetComponent<Rigidbody>();
+        //if (rb) { rb.velocity = Vector3.zero; rb.angularVelocity = Vector3.zero; }
         return true;
     }
 }

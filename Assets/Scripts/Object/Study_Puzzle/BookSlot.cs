@@ -47,7 +47,6 @@ public class BookSlot : MonoBehaviour
         it.transform.SetParent(null, true);
 
         var col = go.GetComponent<Collider>(); if (col) col.enabled = true;
-        var rb = go.GetComponent<Rigidbody>(); if (rb) rb.isKinematic = false;
 
         return it;
     }

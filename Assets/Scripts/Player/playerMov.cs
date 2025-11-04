@@ -212,7 +212,6 @@ public class PlayerMov : MonoBehaviour
     [Header("Door")]
     [SerializeField] private float doorRotateDuration = 0.6f;
     [SerializeField] private float doorZDelta = 90f;
-    private int doorSign = +1;
 
     private readonly HashSet<Transform> nearDoorLeaves = new();
     private readonly Dictionary<Transform, Coroutine> doorRoutines = new();
@@ -260,7 +259,6 @@ public class PlayerMov : MonoBehaviour
     public GameObject miniPos;
     public float miniPosYOffset = -30f;
     public bool minimapStartsHidden = true;
-    private bool isMiniMapActive = false;
 
     float _sceneInputGraceTimer = 0f;
 

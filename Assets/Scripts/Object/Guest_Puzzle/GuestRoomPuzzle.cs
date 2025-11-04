@@ -15,7 +15,6 @@ public class GuestRoomPuzzle : MonoBehaviour
     [SerializeField] int[] correct = new int[3] { 6, 5, 5 };
 
     int[] nums = new int[3];
-    int failCount = 0;
 
     GuestRoomPuzzleSetManager set;
     int myIndex;

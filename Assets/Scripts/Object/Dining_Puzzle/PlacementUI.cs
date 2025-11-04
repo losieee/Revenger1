@@ -11,8 +11,9 @@ public class PlacementUI : MonoBehaviour
     [Header("Root / Buttons / Preview")]
     public GameObject panelRoot;        // Panel
     public Transform gridParent;        // TopBar
-    public Button itemButtonPrefab;     // ItemButton_Template (자식에 RawImage 포함)
-    public Image previewImage;          // Result/Image (RawImage)
+    public Button itemButtonPrefab;     // ItemButton_Template
+    public Image previewImage;          // Result/Image
+    public Sprite previewOriginImage;   // Result BackGround
     public Button confirmButton;        // Con
     public Button cancelButton;         // Cancel
     public Button removeButton;         // Back
@@ -21,6 +22,7 @@ public class PlacementUI : MonoBehaviour
     InventoryUI invUI;
     string requiredId;
     ItemInfo selected;
+    string requiredTag = "Dining_Item";
 
     readonly List<Button> spawned = new();
 
@@ -75,7 +77,7 @@ public class PlacementUI : MonoBehaviour
         currentSlot = slot;
         requiredId = reqId;
         selected = null;
-        if (previewImage) previewImage.sprite = null;
+        if (previewImage) previewImage.sprite = previewOriginImage;
 
         // 슬롯에 이미 올라가 있으면 Remove 버튼 활성
         if (removeButton) removeButton.interactable = currentSlot && currentSlot.HasPlaced;
@@ -86,13 +88,18 @@ public class PlacementUI : MonoBehaviour
 
     void BuildGrid(IReadOnlyList<ItemInfo> items)
     {
-        // 기존 버튼 정리
         foreach (var b in spawned) if (b) Destroy(b.gameObject);
         spawned.Clear();
 
         if (items != null)
         {
-            foreach (var item in items)
+            // Generic만 필터 → 리스트로 캐시
+            var filtered = items
+                .Where(it => it != null && it.type == ItemInfo.ItemType.Generic)
+                .ToList();
+
+            // filtered를 순회
+            foreach (var item in filtered)
             {
                 var btn = Instantiate(itemButtonPrefab, gridParent);
                 spawned.Add(btn);
@@ -103,15 +110,15 @@ public class PlacementUI : MonoBehaviour
                 btn.onClick.AddListener(() =>
                 {
                     selected = item;
-                    if (previewImage) previewImage.sprite = item.icon ? item.icon : null;
-                    if (confirmButton) confirmButton.interactable = true; // 선택되면 가능
+                    if (previewImage) previewImage.sprite = item.icon ? item.icon : previewOriginImage;
+                    if (confirmButton) confirmButton.interactable = true;
                 });
             }
         }
 
-        // 아이템 없으면 Confirm 비활성
         if (confirmButton) confirmButton.interactable = (selected != null);
     }
+
 
     void OnConfirm()
     {
@@ -120,7 +127,6 @@ public class PlacementUI : MonoBehaviour
         // 이미 채워진 슬롯이면 배치 금지 + UI 유지
         if (currentSlot.HasPlaced)
         {
-            Debug.Log("[PlacementUI] 이미 채워진 슬롯입니다. 먼저 되돌리세요.");
             if (removeButton) removeButton.interactable = true; // 되돌리기 유도
             return; // 닫지 않음
         }
@@ -146,14 +152,12 @@ public class PlacementUI : MonoBehaviour
         // UI 닫기
         HideOverlay_NoPause();
         currentSlot = null; requiredId = null; selected = null;
-        if (previewImage) previewImage.sprite = null;
+        if (previewImage) previewImage.sprite = previewOriginImage;
     }
 
     // ====== 보이는/숨김 유틸 ======
     void ShowOverlay_NoPause()
     {
-        if (!panelRoot) { Debug.LogError("[PlacementUI] Panel Root 미지정"); return; }
-
         // 1) 반드시 EventSystem 존재 보장
         if (!EventSystem.current)
         {
@@ -165,8 +169,8 @@ public class PlacementUI : MonoBehaviour
 
         // 2) Canvas & GraphicRaycaster 보장 (월드/스크린 상관없이 필요)
         var canvas = panelRoot.GetComponentInParent<Canvas>();
-        if (!canvas) Debug.LogWarning("[PlacementUI] Canvas가 없습니다. Canvas 하위에 Panel을 두세요.");
-        else if (!canvas.GetComponent<GraphicRaycaster>())
+        
+        if (!canvas.GetComponent<GraphicRaycaster>())
             canvas.gameObject.AddComponent<GraphicRaycaster>();
 
         // 3) 패널 활성 + 클릭 가능 설정
