@@ -12,7 +12,7 @@ public class GuestRoomPuzzle : MonoBehaviour
     [SerializeField] AudioClip failClip;
     [SerializeField] AudioClip secondFailClip;
 
-    [SerializeField] int[] correct = new int[3] { 6, 5, 5 };
+    [SerializeField] int[] correct = new int[3] { 3, 6, 5 };
 
     int[] nums = new int[3];
 
