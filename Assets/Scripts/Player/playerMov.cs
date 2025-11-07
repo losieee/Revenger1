@@ -115,6 +115,9 @@ public class PlayerMov : MonoBehaviour
     private float lastBoxWallRemainingHeight = 0f;
     bool inSecretRange = false;
     bool _boxJumpWantsCrawl = false;
+    bool _boxJumpSfxPlayed = false;
+    [SerializeField] private Collider extraCollidersToToggle;
+    int _colDisableDepth = 0;
 
     [Header("Sound Range")]
     public float walkDetectRange = 6f;
@@ -194,6 +197,7 @@ public class PlayerMov : MonoBehaviour
     [SerializeField, Range(0f, 1f)]
     Vector3 boxSizeCrawl, boxCenterCrawl;
     private bool isCrawlAnimating = false;
+    private bool _lieMoveOn = false;
 
     [Header("Crawl Cam")]
     public float crawlCamDown = 1f;   // 얼마나 내릴지
@@ -720,6 +724,30 @@ public class PlayerMov : MonoBehaviour
             animator.SetFloat("MoveY", 0f);
         }
 
+        if (isCrawling && !blockInput)
+        {
+            // localMove는 위에서 반드시 할당됨
+            bool moving = (localMove.x * localMove.x + localMove.z * localMove.z) > 0.0004f; // ~0.02²
+            if (moving)
+            {
+                if (!_lieMoveOn)
+                {
+                    SoundManager.i.PlayLoopSFX(PlayerSfx.LieMoving);
+                    _lieMoveOn = true;
+                }
+            }
+            else if (_lieMoveOn)
+            {
+                SoundManager.i.StopSFX(PlayerSfx.LieMoving);
+                _lieMoveOn = false;
+            }
+        }
+        else if (_lieMoveOn)
+        {
+            SoundManager.i.StopSFX(PlayerSfx.LieMoving);
+            _lieMoveOn = false;
+        }
+
         // 회전
         if (isCrawling)
         {
@@ -840,6 +868,7 @@ public class PlayerMov : MonoBehaviour
         if (KeyBindings.GetKeyDown(GameAction.Crawl) && crouchCooldownTimer <= 0f)
         {
             ToggleCrawl();
+            SoundManager.i?.PlaySFX(PlayerSfx.LieDown, SfxBus.Effect, 1f, 1.2f);
             // 크로스 토글 간 충돌 방지 쿨다운 (원하는 값으로)
             crouchCooldownTimer = 0.25f;
         }
@@ -1138,6 +1167,8 @@ public class PlayerMov : MonoBehaviour
     // 엎드려있는 상태에서 앉기
     void SwitchCrawlToCrouch()
     {
+        if (!CanCrawlToCrouch())    return;
+        
         // 1) 상태 플래그
         isCrawling = false;                 // 크롤 종료
         isCrouching = true;                 // 앉기 시작
@@ -1151,13 +1182,15 @@ public class PlayerMov : MonoBehaviour
         // 전용 트리거를 만들었다면 같이 쏴주기
         animator.SetTrigger("CrawlToCrouch");
 
-        // 3) 콜라이더: 크롤 → 앉기 사이즈로 부드럽게 보간
+        // 3) 콜라이더 보간
         ApplyColliderPose(boxSizeCrouch, boxCenterCrouch, 0.08f);
 
         (cmov ?? CameraMov.i)?.SetCrawl(false);
 
         // 4) 이동/속도 등 보정
         isRunning = false;
+
+        if (_lieMoveOn) { SoundManager.i.StopSFX(PlayerSfx.LieMoving); _lieMoveOn = false; }
 
         SetCrawlCamByState(false);
     }
@@ -1186,6 +1219,7 @@ public class PlayerMov : MonoBehaviour
             ForceUnequipWeapon();
 
             CameraMov.i?.SetCrawl(true, crawlCamDown);
+            if (_lieMoveOn) { SoundManager.i.StopSFX(PlayerSfx.LieMoving); _lieMoveOn = false; }
             SetCrawlCamByState(true);
         }
         else
@@ -1212,6 +1246,8 @@ public class PlayerMov : MonoBehaviour
     // 세탁실 미션 시점 변경 시 플레이어 고정
     void EnterLaundryView()
     {
+        if (_lieMoveOn) { SoundManager.i.StopSFX(PlayerSfx.LieMoving); _lieMoveOn = false; }
+
         // 조작 잠금
         blockInput = true;
         currentMoveInput = Vector3.zero;
@@ -1250,6 +1286,8 @@ public class PlayerMov : MonoBehaviour
     // 휴게실 시점
     void EnterFoyerView()
     {
+        if (_lieMoveOn) { SoundManager.i.StopSFX(PlayerSfx.LieMoving); _lieMoveOn = false; }
+
         // 조작 잠금
         blockInput = true;
         currentMoveInput = Vector3.zero;
@@ -2003,6 +2041,8 @@ public class PlayerMov : MonoBehaviour
         climbTimer = 0f;
         climbDuration = duration;
 
+        SetClimbCollisionEnabled(false);
+
         climbStartPos = transform.position;
         climbStartRot = transform.rotation;
 
@@ -2017,7 +2057,23 @@ public class PlayerMov : MonoBehaviour
         isClimbing = true;
         rb.useGravity = false;
 
-        //EnterCrawlSilently();
+        SoundManager.i?.PlaySFX(PlayerSfx.ClimbStart, SfxBus.Effect, 1f, 1.3f);
+    }
+
+    void SetClimbCollisionEnabled(bool enabled)
+    {
+        if (!box) return;
+
+        if (enabled)
+        {
+            _colDisableDepth = Mathf.Max(0, _colDisableDepth - 1);
+            if (_colDisableDepth == 0) box.enabled = true;
+        }
+        else
+        {
+            _colDisableDepth++;
+            box.enabled = false;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -2341,6 +2397,10 @@ public class PlayerMov : MonoBehaviour
 
         rb.velocity = Vector3.zero;
         blockInput = false;
+
+        SetClimbCollisionEnabled(true);
+
+        SoundManager.i?.PlaySFX(PlayerSfx.ClimbEnd, SfxBus.Effect, 1f);
     }
 
     void CheckNearbyEnemies()
@@ -2362,6 +2422,11 @@ public class PlayerMov : MonoBehaviour
 
     void StartBoxJump(Vector3 wallPoint, Vector3 wallNormal, float height)
     {
+        if (!_boxJumpSfxPlayed)
+        {
+            SoundManager.i?.PlaySFX(PlayerSfx.ClimbStart, SfxBus.Effect, 1f, 1.5f);
+            _boxJumpSfxPlayed = true;
+        }
         ClearLandTriggers();
         isCrouching = false;
         animator.SetBool("IsCrouching", false);
@@ -2402,6 +2467,8 @@ public class PlayerMov : MonoBehaviour
 
     private IEnumerator BoxJumpLerp(Vector3 targetPos, float duration)
     {
+        SetClimbCollisionEnabled(false);
+
         Vector3 start = transform.position;
         float t = 0f;
 
@@ -2420,6 +2487,7 @@ public class PlayerMov : MonoBehaviour
 
         _boxJumpWantsCrawl = false;
         blockInput = false;
+        SetClimbCollisionEnabled(true);
     }
 
     public void MoveToBoxTop(float duration)
@@ -2461,6 +2529,8 @@ public class PlayerMov : MonoBehaviour
             EnterCrawlSilently();
 
         _boxJumpWantsCrawl = false;
+        _boxJumpSfxPlayed = false;
+        SetClimbCollisionEnabled(true);
     }
 
     void OnDrawGizmosSelected()
@@ -2512,6 +2582,39 @@ public class PlayerMov : MonoBehaviour
         camT.localPosition = to;
         camYCo = null;
     }
+
+    bool HasHeadroomFor(Vector3 targetSize, Vector3 targetCenter)
+    {
+        if (!box) return true;
+
+        float curTop = box.center.y + box.size.y * 0.5f;
+        float targetTop = targetCenter.y + targetSize.y * 0.5f;
+        float deltaTop = targetTop - curTop;
+        if (deltaTop <= 0.001f) return true; // 더 낮아지거나 같으면 OK
+
+        // 현재 top~목표 top 사이 슬라이스만 검사(겹치면 막힘)
+        float sliceCenterLocalY = curTop + deltaTop * 0.5f;
+        Vector3 localCenter = new Vector3(box.center.x, sliceCenterLocalY, box.center.z);
+        Vector3 worldCenter = transform.TransformPoint(localCenter);
+
+        Vector3 half = new Vector3(
+            box.size.x * 0.5f * transform.lossyScale.x,
+            deltaTop * 0.5f * transform.lossyScale.y,
+            box.size.z * 0.5f * transform.lossyScale.z
+        );
+
+        var hits = Physics.OverlapBox(worldCenter, half, transform.rotation, ~0, QueryTriggerInteraction.Ignore);
+        foreach (var h in hits)
+        {
+            if (!h || h.isTrigger) continue;
+            if (h.transform.IsChildOf(transform)) continue; // 자기 자신 무시
+            return false; // 뭔가 걸림
+        }
+        return true;
+    }
+
+    // 엎드림→앉기 가능 여부(크라우치 목표 치수로 검사)
+    bool CanCrawlToCrouch() => HasHeadroomFor(boxSizeCrouch, boxCenterCrouch);
 
     void ShowPausePanel(GameObject panel)
     {
