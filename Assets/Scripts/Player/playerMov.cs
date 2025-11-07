@@ -111,7 +111,10 @@ public class PlayerMov : MonoBehaviour
     private bool canClimbZone = false;
     private bool isClimbing = false;
     public static bool blockInput = false;
+    bool _wasCrouchingBeforeClimb;
     private float lastBoxWallRemainingHeight = 0f;
+    bool inSecretRange = false;
+    bool _boxJumpWantsCrawl = false;
 
     [Header("Sound Range")]
     public float walkDetectRange = 6f;
@@ -193,7 +196,7 @@ public class PlayerMov : MonoBehaviour
     private bool isCrawlAnimating = false;
 
     [Header("Crawl Cam")]
-    public float crawlCamDown = 0.35f;   // 얼마나 내릴지
+    public float crawlCamDown = 1f;   // 얼마나 내릴지
     public float crawlCamLerp = 0.12f;   // 보간 시간
     private bool _crawlCamOn = false;
 
@@ -1694,8 +1697,9 @@ public class PlayerMov : MonoBehaviour
         rb.isKinematic = false;
         rb.useGravity = true;
 
-        blockInput = false;
+        EnterCrawlSilently();
 
+        blockInput = false;
         isCancellingHold = false;
     }
 
@@ -1912,6 +1916,7 @@ public class PlayerMov : MonoBehaviour
     {
         ClearLandTriggers();
         isCrouching = false;
+        _wasCrouchingBeforeClimb = isCrouching;
         animator.SetBool("IsCrouching", false);
 
         float wallTop = hit.collider.bounds.max.y;
@@ -1921,7 +1926,7 @@ public class PlayerMov : MonoBehaviour
         remainingWallHeight = wallHeight;
         detectedWallHeight = wallHeight;
 
-        if (wallHeight <= 1.0f)
+        if (wallHeight <= 1.2f)
         {
             StartBoxJump(hit.point, hit.normal, wallHeight);
             return;
@@ -1938,6 +1943,31 @@ public class PlayerMov : MonoBehaviour
 
         animator.SetTrigger("Hold");
         holdCancelAllowed = false;
+    }
+
+    // 벽을 탄 후 엎드리기
+    void EnterCrawlSilently()
+    {
+        // 애니 트리거 충돌 방지
+        animator?.ResetTrigger("CrawlDown");
+        animator?.ResetTrigger("CrawlUp");
+
+        // 상태 플래그
+        isCrawling = true;
+        isCrouching = false;
+        isRunning = false;
+
+        // 애니 파라미터
+        animator?.SetBool("IsCrouching", false);
+        animator?.SetBool("IsCrawling", true);
+
+        // 무기는 넣어두기
+        ForceUnequipWeapon();
+
+        // 콜라이더/카메라를 즉시 엎드림 세팅으로
+        ApplyColliderPose(boxSizeCrawl, boxCenterCrawl, 0.10f);
+        (cmov ?? CameraMov.i)?.SetCrawl(true, crawlCamDown);
+        SetCrawlCamByState(true);
     }
 
     public void AE_AttachToWall()
@@ -1961,6 +1991,8 @@ public class PlayerMov : MonoBehaviour
 
         holdingStartPos = targetPos;
         holdCancelAllowed = false;
+
+        EnterCrawlSilently();
     }
 
     public void StartClimbFromHold(float duration)
@@ -1984,6 +2016,8 @@ public class PlayerMov : MonoBehaviour
 
         isClimbing = true;
         rb.useGravity = false;
+
+        //EnterCrawlSilently();
     }
 
     private void OnTriggerEnter(Collider other)
@@ -2078,6 +2112,12 @@ public class PlayerMov : MonoBehaviour
             footstepProxy.SetEnvironment(FootEnv.Indoor);
         else if (other.CompareTag("OutdoorZone"))
             footstepProxy.SetEnvironment(FootEnv.Outdoor);
+
+        if (other.CompareTag("SecretRange"))
+        {
+            inSecretRange = true;
+            animator?.SetBool("InSecret", true);
+        }
     }
 
     private void OnTriggerExit(Collider other)
@@ -2158,6 +2198,12 @@ public class PlayerMov : MonoBehaviour
         if (other.CompareTag("StairRange"))
         {
             Physics.gravity = new Vector3(0, -9.81f, 0);
+        }
+
+        if (other.CompareTag("SecretRange"))
+        {
+            inSecretRange = false;
+            animator?.SetBool("InSecret", false);
         }
     }
 
@@ -2325,6 +2371,8 @@ public class PlayerMov : MonoBehaviour
         isClimbing = false;
         rb.useGravity = false;
 
+        _boxJumpWantsCrawl = inSecretRange;
+
         Vector3 targetPos = wallPoint + wallNormal * 0.14f;
         targetPos.y = transform.position.y;
         Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
@@ -2366,6 +2414,11 @@ public class PlayerMov : MonoBehaviour
 
         rb.useGravity = true;
         rb.isKinematic = false;
+
+        if (_boxJumpWantsCrawl)
+            EnterCrawlSilently();
+
+        _boxJumpWantsCrawl = false;
         blockInput = false;
     }
 
@@ -2382,15 +2435,18 @@ public class PlayerMov : MonoBehaviour
             upOffset = wallHeight * 0.5f;
 
             lastBoxWallRemainingHeight = wallHeight;
+
+            upOffset = Mathf.Clamp(wallHeight * 0.6f, 0.6f, 1.2f);
         }
 
-        Vector3 targetPos = transform.position + Vector3.up * upOffset + transform.forward * 0.3f;
+        EnterCrawlSilently();
+        Vector3 targetPos = transform.position + Vector3.up * upOffset + transform.forward * 0.1f;
         StartCoroutine(BoxJumpLerp(targetPos, duration));
     }
 
     public void MoveToBoxTopRemaining(float duration)
     {
-        float upOffset = lastBoxWallRemainingHeight * 0.5f;
+        float upOffset = Mathf.Clamp(lastBoxWallRemainingHeight * 0.6f, 0.4f, 1.2f);
         Vector3 targetPos = transform.position + Vector3.up * upOffset;
         StartCoroutine(BoxJumpLerp(targetPos, duration));
     }
@@ -2400,6 +2456,11 @@ public class PlayerMov : MonoBehaviour
         rb.useGravity = true;
         rb.isKinematic = false;
         blockInput = false;
+
+        if (_boxJumpWantsCrawl)
+            EnterCrawlSilently();
+
+        _boxJumpWantsCrawl = false;
     }
 
     void OnDrawGizmosSelected()

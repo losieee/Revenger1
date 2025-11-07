@@ -8,7 +8,6 @@ public class CameraMov : MonoBehaviour
 
     [Header("Follow Target")]
     public Transform target;         // 플레이어 루트(또는 카메라 피벗)
-    [SerializeField] Transform explicitPivot;  // 있으면 이걸 우선 사용(선택)
 
     [Header("카메라 옵션")]
     public float mouseSensitivity = 3f;
@@ -32,7 +31,7 @@ public class CameraMov : MonoBehaviour
     public float relaxOutSmoothTime = 0.15f;   // 다시 멀어질 때 천천히
 
     [Header("엎드렸을 때 뷰")]
-    public float crawlDown = 0.35f;
+    public float crawlDown = 1;
     public float crawlLerp = 0.12f;
     float _crawlYTarget = 0f;
     float _crawlY = 0f;
@@ -195,7 +194,6 @@ public class CameraMov : MonoBehaviour
     {
         if (!playerRootOrPivot) return;
         target = playerRootOrPivot;
-        explicitPivot = optionalExplicitPivot; // null이면 무시
 
         // 처음 물릴 때 플레이어 바라보도록 간단 리센터
         Vector3 fwd = GetPivot().forward; fwd.y = 0f;
@@ -249,7 +247,6 @@ public class CameraMov : MonoBehaviour
 
     Transform GetPivot()
     {
-        if (explicitPivot) return explicitPivot;
         return target;
     }
 
