@@ -2406,6 +2406,7 @@ MonoBehaviour:
   activateSound: {fileID: 0}
   deactivateSound: {fileID: 0}
   spawnId: Default
+  takeWeaponText: {fileID: 0}
   canNextStage: 0
 --- !u!114 &253963570
 MonoBehaviour:
@@ -6916,6 +6917,7 @@ MonoBehaviour:
   activateSound: {fileID: 0}
   deactivateSound: {fileID: 0}
   spawnId: Default
+  takeWeaponText: {fileID: 0}
   canNextStage: 0
 --- !u!114 &532038272
 MonoBehaviour:
@@ -8832,6 +8834,8 @@ MonoBehaviour:
   selectedPreview: {fileID: 1498437862}
   defaultPreviewSprite: {fileID: 21300000, guid: 5b8927c46d47c71499d3e5bda266f791,
     type: 3}
+  useTypeFilter: 1
+  filterType: 0
 --- !u!114 &669019227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11738,6 +11742,8 @@ MonoBehaviour:
   soundSettingImg: {fileID: 470712261}
   keySettingImg: {fileID: 805109861}
   sensitivity: {fileID: 1112489474}
+  lighting: {fileID: 0}
+  lightingVolume: {fileID: 0}
 --- !u!1 &882413108
 GameObject:
   m_ObjectHideFlags: 0
@@ -16601,6 +16607,7 @@ MonoBehaviour:
   activateSound: {fileID: 0}
   deactivateSound: {fileID: 0}
   spawnId: Default
+  takeWeaponText: {fileID: 0}
   canNextStage: 0
 --- !u!114 &1278173844
 MonoBehaviour:
@@ -17337,6 +17344,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1703288013}
+  footStep: {fileID: 0}
 --- !u!95 &1335606831
 Animator:
   serializedVersion: 5
@@ -19686,6 +19694,7 @@ MonoBehaviour:
   itemButtonPrefab: {fileID: 786031377685460911, guid: fcd83bc909d0997448f554bfb9e4fceb,
     type: 3}
   previewImage: {fileID: 1498437862}
+  previewOriginImage: {fileID: 0}
   confirmButton: {fileID: 802473797}
   cancelButton: {fileID: 1503274266}
   removeButton: {fileID: 1938328185}
@@ -22977,6 +22986,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   items: []
+  maxBooks: 4
+  dropReturnClip: {fileID: 0}
 --- !u!82 &1703288010
 AudioSource:
   m_ObjectHideFlags: 0
@@ -23143,8 +23154,11 @@ MonoBehaviour:
   weapon: {fileID: 509088408}
   weaponChangePanel: {fileID: 989739827}
   minimap1fPicture: {fileID: 0}
+  minimapInside: {fileID: 0}
+  minimapOut: {fileID: 0}
   enemies1f: []
   laundryPuzzle: {fileID: 1929984313}
+  sfxGroup: {fileID: 0}
   speed: 1.5
   rotSpeed: 5
   runSpeed: 3
@@ -23210,6 +23224,13 @@ MonoBehaviour:
   interactMask:
     serializedVersion: 2
     m_Bits: 32768
+  studyCamTarget: {fileID: 0}
+  studyResultCamTarget: {fileID: 0}
+  jewelryUI: {fileID: 0}
+  guestCamTarget: {fileID: 0}
+  guestBoxUI1: {fileID: 0}
+  guestBoxUI2: {fileID: 0}
+  guestBoxUI3: {fileID: 0}
   laundryViewLayers:
   - Default
   - Ground
@@ -46847,6 +46868,7 @@ MonoBehaviour:
   catchBox: {fileID: 8898476554543250331}
   attackBox: {fileID: 0}
   discover: {fileID: 0}
+  discoverClose: {fileID: 0}
   attackCooldown: 1
   minDistanceToPunch: 2
 --- !u!1 &8827484336379799123
