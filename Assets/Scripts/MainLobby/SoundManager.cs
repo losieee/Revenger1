@@ -12,7 +12,8 @@ public enum PlayerSfx
     CrouchToggle, Jump, Land, ClimbStart, ClimbEnd,
     LeftWalkIndoor, RightWalkIndoor, LeftRunIndoor, RightRunIndoor,
     LeftWalkOutdoor, RightWalkOutdoor, LeftRunOutdoor, RightRunOutdoor,
-    ChestOpen, ChestClose, WeaponDraw, AttackCrowbar, AttackGun, AttackBat
+    ChestOpen, ChestClose, WeaponDraw, AttackCrowbar, AttackGun, AttackBat,
+    LieDown, LieMoving
 }
 
 public class SoundManager : MonoBehaviour
@@ -38,6 +39,7 @@ public class SoundManager : MonoBehaviour
     [Header("Player SFX Library")]
     public List<SfxEntry> playerSfx = new List<SfxEntry>();
     private Dictionary<PlayerSfx, SfxEntry> sfxMap;  // 매핑 테이블
+    private readonly Dictionary<PlayerSfx, AudioSource> _loopSources = new();
 
     [Header("Assign in Inspector")]
     public AudioMixer audioMixer;
@@ -142,20 +144,93 @@ public class SoundManager : MonoBehaviour
     float LinearToDecibel(float v) => (v <= 0.0001f) ? -80f : Mathf.Log10(v) * 20f;
 
     // 효과음 재생
-    public void PlaySFX(AudioClip clip, SfxBus bus = SfxBus.Effect, float scale = 1f)
+    public void PlaySFX(AudioClip clip, SfxBus bus = SfxBus.Effect, float scale = 1f, float pitch = 1f)
     {
         if (!clip) return;
         var src = (bus == SfxBus.ButtonClick) ? sfxButtonSource : sfxEffectSource;
         if (src) src.PlayOneShot(clip, scale);
+
+        float oldPitch = src.pitch;
+        src.pitch = pitch;
+        src.PlayOneShot(clip, scale);
+        src.pitch = oldPitch;
     }
 
     // 이벤트 키 기반 재생
-    public void PlaySFX(PlayerSfx id, SfxBus bus = SfxBus.Effect, float scale = 1f)
+    public void PlaySFX(PlayerSfx id, SfxBus bus = SfxBus.Effect, float scale = 1f, float pitch = 1f)
     {
         if (sfxMap == null) return;
         if (!sfxMap.TryGetValue(id, out var entry)) return;
         if (!entry.clip) return;
-        PlaySFX(entry.clip, bus, entry.baseVolume * scale);
+        PlaySFX(entry.clip, bus, entry.baseVolume * scale, pitch);
+    }
+
+    public void PlayLoopSFX(PlayerSfx id, SfxBus bus = SfxBus.Effect, float scale = 1f, bool restartIfPlaying = false)
+    {
+        if (sfxMap == null) return;
+        if (!sfxMap.TryGetValue(id, out var entry)) return;
+        if (!entry.clip) return;
+
+        if (_loopSources.TryGetValue(id, out var src) && src)
+        {
+            if (src.isPlaying && !restartIfPlaying) return;
+            src.clip = entry.clip;
+            src.volume = entry.baseVolume * scale;
+            src.loop = true;
+            src.Play();
+            return;
+        }
+
+        // 새 소스 생성
+        var go = new GameObject($"SFX_Loop_{id}");
+        go.transform.SetParent(transform, false);
+        var loopSrc = go.AddComponent<AudioSource>();
+        loopSrc.playOnAwake = false;
+        loopSrc.loop = true;
+        loopSrc.spatialBlend = 0f;
+
+        loopSrc.outputAudioMixerGroup = (bus == SfxBus.ButtonClick) ? sfxButtonSource?.outputAudioMixerGroup : effectGroup;
+
+        loopSrc.clip = entry.clip;
+        loopSrc.volume = entry.baseVolume * scale;
+        loopSrc.Play();
+
+        _loopSources[id] = loopSrc;
+    }
+
+    public void StopSFX(PlayerSfx id, float fadeOut = 0f)
+    {
+        if (!_loopSources.TryGetValue(id, out var src) || !src) return;
+        if (!src.isPlaying) return;
+
+        if (fadeOut <= 0f)
+        {
+            src.Stop();
+            return;
+        }
+        StartCoroutine(CoFadeOutAndStop(src, fadeOut));
+    }
+
+    IEnumerator CoFadeOutAndStop(AudioSource src, float dur)
+    {
+        float t = 0f, v0 = src.volume;
+        dur = Mathf.Max(0.01f, dur);
+        while (t < 1f && src)
+        {
+            t += Time.unscaledDeltaTime / dur;
+            src.volume = Mathf.Lerp(v0, 0f, t);
+            yield return null;
+        }
+        if (src)
+        {
+            src.Stop();
+            src.volume = v0;
+        }
+    }
+
+    public bool IsSFXPlaying(PlayerSfx id)
+    {
+        return _loopSources.TryGetValue(id, out var src) && src && src.isPlaying;
     }
 
     public void TryPlaySceneBgm(string sceneName)
