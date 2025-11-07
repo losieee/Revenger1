@@ -1052,7 +1052,6 @@ public class EnemyMov : MonoBehaviour
         if (discoverClose) discoverClose.enabled = false; 
     }
 
-
     // 시야 관련 기즈모
     void OnDrawGizmosSelected()
     {
