@@ -66,6 +66,10 @@ public class EnemyMov : MonoBehaviour
     [Header("시야 가림막 레이어")]
     public LayerMask occluderMask;
 
+    [Header("도착/정지 튜닝")]
+    [SerializeField] float arriveSlack = 0.15f;         // 남은 거리 여유치
+    [SerializeField] float waypointStopDist = 0.1f;     // 에이전트 자체 정지 거리
+
     // 내부 상태
     private int currentIndex = 0;               // 현재 이동 중인 waypoint 인덱스
     private int direction = 1;                  // 방향: 1 = 순방향, -1 = 역방향
@@ -169,7 +173,7 @@ public class EnemyMov : MonoBehaviour
         footstepAudio.priority = 200;                           // 우선순위 (낮을수록 높음)
 
 
-        originalViewAngle = viewAngle;      //시작할때는 기본 사야각 60으로
+        originalViewAngle = viewAngle;
         lostPlayerTimer = 0f;
         viewFov.SetActive(true);
 
@@ -188,6 +192,8 @@ public class EnemyMov : MonoBehaviour
         agent.acceleration = 40f;
         agent.angularSpeed = 720f;
         agent.updateRotation = false;
+        agent.autoBraking = true;
+        agent.stoppingDistance = waypointStopDist;
         agent.autoBraking = false;
         agent.stoppingDistance = 0f;
 
@@ -477,25 +483,35 @@ public class EnemyMov : MonoBehaviour
 
         agent.speed = walkSpeed;
 
-        // 목적지 도달 확인
-        if (!agent.pathPending && agent.remainingDistance < 0.2f)
+        bool arrived = !agent.pathPending && agent.remainingDistance <= (agent.stoppingDistance + arriveSlack);
+
+        if (arrived)
         {
-            // 시작점 or 끝점에 도달했을 경우
+            // 끝/시작 지점에 도달했다면 방향 전환 전 '완전 정지'
             if ((currentIndex == 0 && direction == -1) || (currentIndex == waypoints.Length - 1 && direction == 1))
             {
-                direction *= -1; // 반드시 방향 반전 필요
+                direction *= -1;
+
+                // 확실히 멈추기
+                if (AgentReady())
+                {
+                    agent.isStopped = true;
+                    agent.velocity = Vector3.zero;
+                    agent.ResetPath();
+                }
+
                 StartCoroutine(WaitBeforeMoving());
                 return;
             }
 
-            // 다음 인덱스로 이동
+            // 일반 중간 지점 도착 -> 다음 인덱스로 진행
             currentIndex += direction;
 
-            // 다음 목적지 설정
-            agent.SetDestination(waypoints[currentIndex].position);
-
             if (AgentReady())
+            {
+                agent.isStopped = false;
                 agent.SetDestination(waypoints[currentIndex].position);
+            }
         }
 
         // 속도 보간을 통해 애니메이션 부드럽게 처리
@@ -528,6 +544,14 @@ public class EnemyMov : MonoBehaviour
     {
         animator.SetFloat("Speed", 0f);
         isWaiting = true;
+
+        if (AgentReady())
+        {
+            agent.isStopped = true;       // 대기 동안 완전 정지
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();            // 남아있는 경로/회피 정보 제거
+        }
+
         yield return new WaitForSeconds(waitTimeAtEnds);
         isWaiting = false;
 
