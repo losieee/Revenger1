@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -11,9 +12,11 @@ public class OptionsPanel : MonoBehaviour
 
     [SerializeField] private GameObject soundSettingImg;
     [SerializeField] private GameObject keySettingImg;
+    [SerializeField] private GameObject graphicSettingImg;
     [SerializeField] private Slider sensitivity;
     [SerializeField] private Slider lighting;
     [SerializeField] private Volume lightingVolume;
+    [SerializeField] TMP_Dropdown dropdown;
 
     const float LightingMin = 0.5f;
     const float LightingMax = 3f;
@@ -22,6 +25,13 @@ public class OptionsPanel : MonoBehaviour
 
     ColorAdjustments colorAdj;
 
+    readonly Vector2Int[] list = {
+        new Vector2Int(1920,1080),
+        new Vector2Int(1600, 900),
+        new Vector2Int(1280, 720),
+        new Vector2Int(800,  600),
+    };
+
     void Awake()
     {
         // ColorAdjustments Ä³½Ì
@@ -29,6 +39,9 @@ public class OptionsPanel : MonoBehaviour
         {
             lightingVolume.profile.TryGet(out colorAdj);
         }
+
+        if (!dropdown) dropdown = GetComponentInChildren<TMP_Dropdown>();
+        dropdown.onValueChanged.AddListener(OnChanged);
     }
 
     void OnEnable()
@@ -56,16 +69,32 @@ public class OptionsPanel : MonoBehaviour
             sensitivity.SetValueWithoutNotify(CameraMov.i.GetSensitivity01());
     }
 
+    private void Start()
+    {
+        int saved = PlayerPrefs.GetInt("ResolutionIndex", 0);
+        dropdown.value = Mathf.Clamp(saved, 0, list.Length - 1);
+        dropdown.RefreshShownValue();
+
+        ApplyResolution(dropdown.value);
+    }
+
     public void OnSoundSetting()
     {
-        soundSettingImg.SetActive(true);
         keySettingImg.SetActive(false);
+        graphicSettingImg.SetActive(false);
+
     }
 
     public void OnKeySetting()
     {
         soundSettingImg.SetActive(false);
-        keySettingImg.SetActive(true);
+        graphicSettingImg.SetActive(false);
+    }
+
+    public void OnGraphicSetting()
+    {
+        soundSettingImg.SetActive(false);
+        keySettingImg.SetActive(false);
     }
 
     public void OnSensitivityChanged(float v)
@@ -113,5 +142,20 @@ public class OptionsPanel : MonoBehaviour
         }
 
         Time.timeScale = 1;
+    }
+
+    void OnChanged(int index)
+    {
+        ApplyResolution(index);
+    }
+
+    void ApplyResolution(int index)
+    {
+        if (index < 0 || index >= list.Length) return;
+        var r = list[index];
+
+        Screen.SetResolution(r.x, r.y, Screen.fullScreenMode);
+
+        PlayerPrefs.SetInt("ResolutionIndex", index);
     }
 }

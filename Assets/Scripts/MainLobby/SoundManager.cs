@@ -20,6 +20,8 @@ public class SoundManager : MonoBehaviour
 {
     public static SoundManager i;
 
+    Coroutine _bgmSwap;
+
     [System.Serializable]
     public struct SceneBgm
     {
@@ -76,6 +78,12 @@ public class SoundManager : MonoBehaviour
 
         if (sfxEffectSource && effectGroup) sfxEffectSource.outputAudioMixerGroup = effectGroup;
         if (sfxButtonSource && effectGroup) sfxButtonSource.outputAudioMixerGroup = effectGroup;
+
+        foreach (var e in playerSfx)
+        {
+            if (e.clip && e.clip.loadState != AudioDataLoadState.Loaded)
+                e.clip.LoadAudioData();
+        }
     }
 
     void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
@@ -147,8 +155,17 @@ public class SoundManager : MonoBehaviour
     public void PlaySFX(AudioClip clip, SfxBus bus = SfxBus.Effect, float scale = 1f, float pitch = 1f)
     {
         if (!clip) return;
+
         var src = (bus == SfxBus.ButtonClick) ? sfxButtonSource : sfxEffectSource;
-        if (src) src.PlayOneShot(clip, scale);
+        if (!src) return;
+
+        scale = Mathf.Clamp01(scale);
+        if (scale < 0.001f) scale = 0.001f;
+        pitch = Mathf.Clamp(pitch, 0.1f, 3f);
+
+        // 로딩 보장
+        if (clip.loadState != AudioDataLoadState.Loaded)
+            clip.LoadAudioData();
 
         float oldPitch = src.pitch;
         src.pitch = pitch;
@@ -240,8 +257,9 @@ public class SoundManager : MonoBehaviour
         var target = sceneBgms[idx];
         if (!bgmSource || !target.clip) return;
         if (bgmSource.clip == target.clip && bgmSource.isPlaying) return;
-        StopAllCoroutines();
-        StartCoroutine(SwapBgmCoroutine(target.clip, target.baseVolume));
+
+        if (_bgmSwap != null) StopCoroutine(_bgmSwap);
+        _bgmSwap = StartCoroutine(SwapBgmCoroutine(target.clip, target.baseVolume));
     }
 
     IEnumerator SwapBgmCoroutine(AudioClip nextClip, float baseVol)
