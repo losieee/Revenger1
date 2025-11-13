@@ -11741,9 +11741,11 @@ MonoBehaviour:
   effectSlider: {fileID: 1537960368}
   soundSettingImg: {fileID: 470712261}
   keySettingImg: {fileID: 805109861}
+  graphicSettingImg: {fileID: 0}
   sensitivity: {fileID: 1112489474}
   lighting: {fileID: 0}
   lightingVolume: {fileID: 0}
+  dropdown: {fileID: 0}
 --- !u!1 &882413108
 GameObject:
   m_ObjectHideFlags: 0
@@ -23176,6 +23178,7 @@ MonoBehaviour:
   climbableLayer:
     serializedVersion: 2
     m_Bits: 8
+  extraCollidersToToggle: {fileID: 0}
   walkDetectRange: 2.5
   runDetectRange: 6
   aiLayerMask:
@@ -24675,7 +24678,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
-  explicitPivot: {fileID: 0}
   mouseSensitivity: 1.5
   distance: 3
   minDistance: 0.5
@@ -25240,7 +25242,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
-  explicitPivot: {fileID: 0}
   mouseSensitivity: 1.5
   distance: 1.5
   minDistance: 0.5
@@ -46862,6 +46863,8 @@ MonoBehaviour:
   occluderMask:
     serializedVersion: 2
     m_Bits: 0
+  arriveSlack: 0.15
+  waypointStopDist: 0.1
   footstepVolume: 0.7
   QuestionVolume: 0.7
   chaseVolume: 0.7
