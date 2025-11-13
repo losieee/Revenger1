@@ -69,6 +69,9 @@ public class GuestRoomPuzzle : MonoBehaviour
             audioSource.PlayOneShot(successClip);
         }
 
+        SoundManager.i?.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
+        KeyManager.i.AddKey(1);
+
         set.OnPuzzleSolved();
     }
 

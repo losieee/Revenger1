@@ -56,16 +56,16 @@ public class DressRoomPuzzleManager : MonoBehaviour
                     && guestNums[1] == guestCorrect[1]
                     && guestNums[2] == guestCorrect[2];
 
-        if (dressOK || guestOK)
+        if (dressOK || guestOK)         // 성공
         {
-            Debug.Log("성공");
             audioSource.volume = 0.1f;
             audioSource.PlayOneShot(clips[0]);
+            SoundManager.i?.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
+            KeyManager.i.AddKey(1);
             DestroyButtons();
         }
-        else
+        else                            // 실패
         {
-            Debug.Log("실패");
             failCount++;
 
             if (failCount == 2)

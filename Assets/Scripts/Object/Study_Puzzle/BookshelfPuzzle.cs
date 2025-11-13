@@ -9,6 +9,7 @@ public class BookshelfPuzzle : MonoBehaviour
     [Header("정답 정의")]
     public string[] answerIds = new string[4];                         // 명시적 ID 조합
     public ItemInfo.ItemType[] answerTypes = new ItemInfo.ItemType[4]; // 타입 조합
+    [SerializeField] private GameObject bedRoomKey;
 
     [Header("비밀 정답")]
     public string[] secretIds = new string[4];
@@ -60,6 +61,9 @@ public class BookshelfPuzzle : MonoBehaviour
         {
             normalCleared = true;
             PlaySfx(normalSuccessClip);
+
+            if (bedRoomKey != null)
+                bedRoomKey.SetActive(true);
         }
 
         // 둘 다 달성했을 때만 최종 클리어
@@ -95,6 +99,9 @@ public class BookshelfPuzzle : MonoBehaviour
         {
             normalCleared = true;
             PlaySfx(normalSuccessClip);
+
+            if (bedRoomKey != null)
+                bedRoomKey.SetActive(true);
         }
 
         if (normalCleared && secretCleared)

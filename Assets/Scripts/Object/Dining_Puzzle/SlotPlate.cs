@@ -81,7 +81,6 @@ public class SlotPlate : MonoBehaviour
         PlayerInventory.Instance?.Return(placed);
         placed = null;
 
-        Debug.Log($"[SlotPlate] '{name}'에서 아이템을 되돌림");
         GetComponentInParent<DiningPuzzleGroup>()?.NotifyChanged();
     }
 
