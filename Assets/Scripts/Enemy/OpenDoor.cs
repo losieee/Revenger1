@@ -99,7 +99,7 @@ public class OpenDoor : MonoBehaviour
     static Transform FirstLeafChild(Transform t)
     {
         var cur = t;
-        while (cur.childCount > 0) cur = cur.GetChild(0);
+        cur = cur.GetChild(0);
         return cur;
     }
 
