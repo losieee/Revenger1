@@ -230,6 +230,8 @@ public class PlayerMov : MonoBehaviour
         public Quaternion open;
         public bool isOpen;
         public int sign;
+
+        public bool requiresBedroomKey;
     }
 
     // 무기 바꾸기 관련
@@ -277,6 +279,7 @@ public class PlayerMov : MonoBehaviour
     private bool isCamBlending = false;
     private CameraMov cmov;
     private bool isLaundryView = false;         // 전용 뷰에 들어와 있는지
+    private bool _laundryRangeDisabled = false; // 성공 후 범위 비활성화
     public float restoreCamBlend = 0.4f;        // 복귀시 리센터 시간
     private Vector3 _preViewCamPos;
     private Quaternion _preViewCamRot;
@@ -322,7 +325,8 @@ public class PlayerMov : MonoBehaviour
 
 
     [Header("미션 간 보이는 Mask")]
-    public string[] laundryViewLayers = new[] { "Default", "Ground" , "FoyerPuzzle" };
+    public string[] laundryViewLayers = new[] 
+    { "Default", "Ground" , "FoyerPuzzle" , "OutlineRendererHelper" , "OutlineRendererBox" , "OutlineRendererBook"};
 
     private int _savedCamMask;
     private bool _hasSavedCamMask = false;
@@ -890,7 +894,7 @@ public class PlayerMov : MonoBehaviour
         CheckNearbyEnemies();
 
         // 클리어
-        if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack))
+        if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && CanAttackWithWeapon())
         {
             _gameClearArmed = true;
             TriggerAttackByCurrentWeapon();
@@ -946,7 +950,7 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 암살
-        if (_sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && canKill && !isCrawling)
+        if (_sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && canKill && !isCrawling && CanAttackWithWeapon())
         {
             if (canKill && killTarget != null)
             {
@@ -961,12 +965,21 @@ public class PlayerMov : MonoBehaviour
         // 문열기
         if (nearDoorLeaves.Count > 0 && KeyBindings.GetKeyDown(GameAction.Interaction) && !isCrawling)
         {
-            // 현재 범위에 잡힌 모든 문짝 스냅샷
             var leaves = new List<Transform>(nearDoorLeaves);
 
-            // 첫 문짝의 반대 상태로 전체 동기화
             var first = leaves[0];
-            if (!doors.TryGetValue(first, out var baseData)) goto SkipDoor; // 방어
+            if (!doors.TryGetValue(first, out var baseData)) goto SkipDoor;
+
+            // 열쇠 부족이면 리턴
+            if (baseData.requiresBedroomKey)
+            {
+                if (KeyManager.i == null || !KeyManager.i.canInBedroom)
+                {
+                    // SoundManager.i?.PlaySFX(PlayerSfx.DoorLocked, SfxBus.Effect, 1f);
+                    return;
+                }
+            }
+
             bool targetOpen = !baseData.isOpen;
 
             foreach (var leaf in leaves)
@@ -977,7 +990,6 @@ public class PlayerMov : MonoBehaviour
                 Quaternion from = leaf.localRotation;
                 Quaternion to = targetOpen ? data.open : data.closed;
 
-                // 문짝별 코루틴 관리
                 if (doorRoutines.TryGetValue(leaf, out var running) && running != null)
                     StopCoroutine(running);
 
@@ -1101,9 +1113,33 @@ public class PlayerMov : MonoBehaviour
             EnterLaundryView();
             StartCoroutine(BlendMainCameraTo(laundryCamTarget, laundryCamBlend));
         }
+        if (LaundryPuzzleManager.i.puzzleCleared && !_laundryRangeDisabled)
+        {
+            _laundryRangeDisabled = true;
+
+            var laundryRoot = GameObject.Find("LaundryPuzzle");
+            if (laundryRoot != null)
+            {
+                // Range 콜라이더 비활성화
+                var rangeTr = laundryRoot.transform.Find("Range");
+                if (rangeTr != null)
+                {
+                    var col = rangeTr.GetComponent<BoxCollider>();
+                    if (col != null) col.enabled = false;
+                }
+
+                // BedRoomKey 활성화
+                var keyTr = laundryRoot.transform.Find("BedRoomKey1");
+                if (keyTr != null)
+                    keyTr.gameObject.SetActive(true);
+            }
+
+            hasLaundryMission = false;
+            inLaundryRange = false;
+        }
 
         // 휴게실 미션
-        if(inFoyerRange && hasFoyerMission && EPressed() && !isCamBlending && foyerCamTarget)
+        if (inFoyerRange && hasFoyerMission && EPressed() && !isCamBlending && foyerCamTarget)
         {
             EnterFoyerView();
             StartCoroutine(BlendMainCameraTo(foyerCamTarget, foyerCamBlend));
@@ -1161,6 +1197,7 @@ public class PlayerMov : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.P))
         {
             transform.position = new Vector3(-0.956f, 5.022f, 19.404f);
+            KeyManager.i.canInBedroom = true;
         }
     }
 
@@ -2103,6 +2140,8 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("Door")) BindDoor(other, +1);
         if (other.CompareTag("MinDoor")) BindDoor(other, -1);
+        if (other.CompareTag("BedRoomDoor")) BindDoor(other, +1, true);
+        if (other.CompareTag("BedRoomMinDoor")) BindDoor(other, -1, true);
 
         if (other.CompareTag("WeaponBox")) 
         { 
@@ -2195,7 +2234,8 @@ public class PlayerMov : MonoBehaviour
             if (enemy == killTarget) { killTarget = null; canKill = false; }
         }
 
-        if (other.CompareTag("Door") || other.CompareTag("MinDoor"))
+        if (other.CompareTag("Door") || other.CompareTag("MinDoor") ||
+        other.CompareTag("BedRoomDoor") || other.CompareTag("BedRoomMinDoor"))
         {
             var leaf = FirstLeafChild(other.transform);
             if (leaf) nearDoorLeaves.Remove(leaf);
@@ -2271,9 +2311,11 @@ public class PlayerMov : MonoBehaviour
         return cur;
     }
 
-    void BindDoor(Collider other, int sign)
+    void BindDoor(Collider other, int sign, bool requiresBedroomKey = false)
     {
         var leaf = FirstLeafChild(other.transform);
+        if (!leaf) return;
+
         nearDoorLeaves.Add(leaf);
 
         if (!doors.TryGetValue(leaf, out var data))
@@ -2284,17 +2326,23 @@ public class PlayerMov : MonoBehaviour
                 closed = leaf.localRotation,
                 open = Quaternion.Euler(e.x, e.y, e.z + sign * doorZDelta),
                 isOpen = Mathf.Abs(Mathf.DeltaAngle(e.z, e.z + sign * doorZDelta)) < 5f,
-                sign = sign
+                sign = sign,
+                requiresBedroomKey = requiresBedroomKey
             };
-            doors[leaf] = data;
         }
-        else if (data.sign != sign)
+        else
         {
-            var ce = data.closed.eulerAngles;
-            data.open = Quaternion.Euler(ce.x, ce.y, ce.z + sign * doorZDelta);
-            data.sign = sign;
-            doors[leaf] = data;
+            if (data.sign != sign)
+            {
+                var ce = data.closed.eulerAngles;
+                data.open = Quaternion.Euler(ce.x, ce.y, ce.z + sign * doorZDelta);
+                data.sign = sign;
+            }
+
+            data.requiresBedroomKey |= requiresBedroomKey;
         }
+
+        doors[leaf] = data;
     }
 
     IEnumerator RotateLocal_Smooth(Transform tr, Quaternion from, Quaternion to, float duration)
@@ -2399,6 +2447,7 @@ public class PlayerMov : MonoBehaviour
         blockInput = false;
 
         SetClimbCollisionEnabled(true);
+        ApplyPostClimbPose();
 
         SoundManager.i?.PlaySFX(PlayerSfx.ClimbEnd, SfxBus.Effect, 1f);
     }
@@ -2417,6 +2466,39 @@ public class PlayerMov : MonoBehaviour
             if (enemy != null) enemy.PlayerDetected(transform.position);
             var villain = col.GetComponentInParent<Villain>() ?? col.GetComponent<Villain>();
             if (villain != null) villain.PlayerDetectedBySound(transform.position);
+        }
+    }
+
+    // 어디서 벽을 타냐 기준
+    void ApplyPostClimbPose()
+    {
+        if (inSecretRange)
+        {
+            // 엎드린 상태
+            if (!isCrawling)
+            {
+                EnterCrawlSilently();
+            }
+        }
+        else
+        {
+            // 앉은 상태
+            if (isCrawling)
+            {
+                if (CanCrawlToCrouch())
+                {
+                    SwitchCrawlToCrouch();
+                }
+            }
+            else
+            {
+                isCrouching = true;
+                animator.SetBool("IsCrouching", true);
+                animator.SetBool("IsCrawling", false);
+
+                ApplyCrouchCollider(true);
+                SetCrawlCamByState(false);
+            }
         }
     }
 
@@ -2439,7 +2521,7 @@ public class PlayerMov : MonoBehaviour
         _boxJumpWantsCrawl = inSecretRange;
 
         Vector3 targetPos = wallPoint + wallNormal * 0.14f;
-        targetPos.y = transform.position.y;
+        targetPos.y = transform.position.y; 
         Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
 
         StartCoroutine(BoxJumpPrepareLerp(targetPos, targetRot, 0.15f));
@@ -2525,10 +2607,8 @@ public class PlayerMov : MonoBehaviour
         rb.isKinematic = false;
         blockInput = false;
 
-        if (_boxJumpWantsCrawl)
-            EnterCrawlSilently();
+        ApplyPostClimbPose();
 
-        _boxJumpWantsCrawl = false;
         _boxJumpSfxPlayed = false;
         SetClimbCollisionEnabled(true);
     }
@@ -2697,9 +2777,10 @@ public class PlayerMov : MonoBehaviour
     {
         // 진행 중엔 무시
         if (blockInput || isAssassinating || isHolding || isClimbing) return;
+        if (!CanAttackWithWeapon()) return;
         if (WeaponManager.i == null) return;
 
-        string trig = null;
+        string trig = null; 
         switch (WeaponManager.i.SelectedWeapon)
         {
             case WeaponManager.WeaponType.Gun:
@@ -2984,5 +3065,14 @@ public class PlayerMov : MonoBehaviour
                 SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
                 break;
         }
+    }
+
+    // 공격이 가능한 상태인가
+    bool CanAttackWithWeapon()
+    {
+        if (!IsWeaponShown()) return false;
+        if (WeaponManager.i == null) return false;
+        if (WeaponManager.i.SelectedWeapon == WeaponManager.WeaponType.None) return false;
+        return true;
     }
 }

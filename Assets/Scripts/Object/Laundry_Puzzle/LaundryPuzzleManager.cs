@@ -40,7 +40,7 @@ public class LaundryPuzzleManager : MonoBehaviour
 
     private readonly HashSet<int> correctSet = new HashSet<int> { 0, 5, 7 };
     private readonly HashSet<int> activeSet = new HashSet<int>();
-    private bool puzzleCleared = false;
+    [HideInInspector] public bool puzzleCleared = false;
 
     private bool[] isOn;
     private Quaternion[] baseRot;

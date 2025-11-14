@@ -8,6 +8,8 @@ public class DiningPuzzleGroup : MonoBehaviour
     private SlotPlate[] slots;
     private bool solved = false;
 
+    [SerializeField] GameObject key;
+
     void Awake()
     {
         slots = GetComponentsInChildren<SlotPlate>(true);
@@ -29,7 +31,8 @@ public class DiningPuzzleGroup : MonoBehaviour
             {
                 solved = true;
                 PlayerInventory.PickupsLocked = true;
-                Debug.Log("[Puzzle] 정답! 모든 슬롯 완료 -> 잠금");
+                SoundManager.i?.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
+                key.SetActive(true);
 
                 // 모두 잠금
                 foreach (var s in slots) s.SetLocked(true);
@@ -39,7 +42,7 @@ public class DiningPuzzleGroup : MonoBehaviour
             }
             else
             {
-                Debug.Log("[Puzzle] 실패! 전부 채웠지만 조합이 틀림");
+                SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
             }
         }
     }

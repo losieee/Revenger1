@@ -11,6 +11,8 @@ public class DrawingPuzzleManager : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip[] clips;           // 0 성공     1 실패        2 2회 실패
 
+    public GameObject key;
+
     private int failCount = 0;
 
     // 이번 라운드의 입력 순서/중복 방지
@@ -74,6 +76,8 @@ public class DrawingPuzzleManager : MonoBehaviour
             // 성공 사운드
             if (clips != null && clips.Length > 0 && clips[0] != null)
                 audioSource.PlayOneShot(clips[0]);
+
+            key.SetActive(true);
 
             // 연속 실패 초기화
             failCount = 0;

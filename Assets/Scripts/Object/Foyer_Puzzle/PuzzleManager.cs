@@ -14,6 +14,7 @@ public class PuzzleManager : MonoBehaviour
 
     public AudioSource audioSource;
     public AudioClip fail;
+    public AudioClip success;
 
     private void Start()
     {
@@ -38,6 +39,8 @@ public class PuzzleManager : MonoBehaviour
             {
                 // 모든 퍼즐이 맞았을 때
                 _solved = true;
+                audioSource.PlayOneShot(success, 0.5f);
+                KeyManager.i.AddKey(1);
                 try { onSolved?.Invoke(); }
                 finally { _firing = false; }
                 return;
