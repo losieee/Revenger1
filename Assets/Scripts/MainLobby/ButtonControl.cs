@@ -28,15 +28,6 @@ public class ButtonControl : MonoBehaviour
 
     [HideInInspector] public bool canNextStage = false;
 
-    /*private void OnDisable()
-    {
-        if (transform.childCount > 0 && transform.GetChild(0) != null)
-        {
-            var child = transform.GetChild(0);
-            if (child != null) child.gameObject.SetActive(false);
-        }
-    }*/
-
     void Start()
     {
         // 슬라이더 초기화
@@ -109,6 +100,11 @@ public class ButtonControl : MonoBehaviour
         Time.timeScale = 1f;
 
         SceneManager.LoadScene(sceneName);   // Home 진입
+    }
+
+    public void StartStory()
+    {
+        SceneManager.LoadScene("Story");
     }
 
     public void StartGame()

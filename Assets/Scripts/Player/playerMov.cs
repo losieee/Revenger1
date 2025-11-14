@@ -1197,6 +1197,7 @@ public class PlayerMov : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.P))
         {
             transform.position = new Vector3(-0.956f, 5.022f, 19.404f);
+            KeyManager.i.canInBedroom = true;
         }
     }
 
@@ -2446,6 +2447,7 @@ public class PlayerMov : MonoBehaviour
         blockInput = false;
 
         SetClimbCollisionEnabled(true);
+        ApplyPostClimbPose();
 
         SoundManager.i?.PlaySFX(PlayerSfx.ClimbEnd, SfxBus.Effect, 1f);
     }
@@ -2464,6 +2466,39 @@ public class PlayerMov : MonoBehaviour
             if (enemy != null) enemy.PlayerDetected(transform.position);
             var villain = col.GetComponentInParent<Villain>() ?? col.GetComponent<Villain>();
             if (villain != null) villain.PlayerDetectedBySound(transform.position);
+        }
+    }
+
+    // 어디서 벽을 타냐 기준
+    void ApplyPostClimbPose()
+    {
+        if (inSecretRange)
+        {
+            // 엎드린 상태
+            if (!isCrawling)
+            {
+                EnterCrawlSilently();
+            }
+        }
+        else
+        {
+            // 앉은 상태
+            if (isCrawling)
+            {
+                if (CanCrawlToCrouch())
+                {
+                    SwitchCrawlToCrouch();
+                }
+            }
+            else
+            {
+                isCrouching = true;
+                animator.SetBool("IsCrouching", true);
+                animator.SetBool("IsCrawling", false);
+
+                ApplyCrouchCollider(true);
+                SetCrawlCamByState(false);
+            }
         }
     }
 
@@ -2486,7 +2521,7 @@ public class PlayerMov : MonoBehaviour
         _boxJumpWantsCrawl = inSecretRange;
 
         Vector3 targetPos = wallPoint + wallNormal * 0.14f;
-        targetPos.y = transform.position.y;
+        targetPos.y = transform.position.y; 
         Quaternion targetRot = Quaternion.LookRotation(-wallNormal);
 
         StartCoroutine(BoxJumpPrepareLerp(targetPos, targetRot, 0.15f));
@@ -2572,10 +2607,8 @@ public class PlayerMov : MonoBehaviour
         rb.isKinematic = false;
         blockInput = false;
 
-        if (_boxJumpWantsCrawl)
-            EnterCrawlSilently();
+        ApplyPostClimbPose();
 
-        _boxJumpWantsCrawl = false;
         _boxJumpSfxPlayed = false;
         SetClimbCollisionEnabled(true);
     }
