@@ -2236,6 +2236,8 @@ public class PlayerMov : MonoBehaviour
             footstepProxy.SetEnvironment(FootEnv.Indoor);
         else if (other.CompareTag("OutdoorZone"))
             footstepProxy.SetEnvironment(FootEnv.Outdoor);
+        else if (other.CompareTag("SerwerZone"))
+            footstepProxy.SetEnvironment(FootEnv.InSerwer);
 
         if (other.CompareTag("SecretRange"))
         {

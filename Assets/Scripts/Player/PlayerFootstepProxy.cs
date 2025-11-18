@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum FootEnv { Indoor, Outdoor }
+public enum FootEnv { Indoor, Outdoor, InSerwer }
 
 public class PlayerFootstepProxy : MonoBehaviour
 {
@@ -23,7 +23,11 @@ public class PlayerFootstepProxy : MonoBehaviour
         return animator.GetFloat("Speed") > runThreshold ? Gait.Run : Gait.Walk;
     }
 
-    public void SetEnvironment(FootEnv env) => _env = env;
+    public void SetEnvironment(FootEnv env)
+    {
+        Debug.Log("환경 변경: " + env);
+        _env = env;
+    }
 
     void TryPlay(PlayerSfx sfx, float minGap)
     {
@@ -43,8 +47,11 @@ public class PlayerFootstepProxy : MonoBehaviour
         if (_env == FootEnv.Indoor)
             TryPlay(gait == Gait.Run ? PlayerSfx.LeftRunIndoor : PlayerSfx.LeftWalkIndoor,
                     gait == Gait.Run ? minGapRun : minGapWalk);
-        else
+        else if (_env == FootEnv.Outdoor)
             TryPlay(gait == Gait.Run ? PlayerSfx.LeftRunOutdoor : PlayerSfx.LeftWalkOutdoor,
+                    gait == Gait.Run ? minGapRun : minGapWalk);
+        else if (_env == FootEnv.InSerwer)
+            TryPlay(gait == Gait.Run ? PlayerSfx.SerwerLeft : PlayerSfx.SerwerLeft,
                     gait == Gait.Run ? minGapRun : minGapWalk);
     }
 
@@ -55,8 +62,11 @@ public class PlayerFootstepProxy : MonoBehaviour
         if (_env == FootEnv.Indoor)
             TryPlay(gait == Gait.Run ? PlayerSfx.RightRunIndoor : PlayerSfx.RightWalkIndoor,
                     gait == Gait.Run ? minGapRun : minGapWalk);
-        else
+        else if (_env == FootEnv.Outdoor)
             TryPlay(gait == Gait.Run ? PlayerSfx.RightRunOutdoor : PlayerSfx.RightWalkOutdoor,
+                    gait == Gait.Run ? minGapRun : minGapWalk);
+        else if (_env == FootEnv.InSerwer)
+            TryPlay(gait == Gait.Run ? PlayerSfx.SerwerRight : PlayerSfx.SerwerRight,
                     gait == Gait.Run ? minGapRun : minGapWalk);
     }
 }
