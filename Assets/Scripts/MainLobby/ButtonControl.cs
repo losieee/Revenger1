@@ -82,7 +82,18 @@ public class ButtonControl : MonoBehaviour
         else
         {
             Time.timeScale = 1f;
-            SceneTransit.Go(sceneName, spawnId);
+
+            if (ScreenFader.i != null)
+            {
+                ScreenFader.i.FadeOutAndLoad(() =>
+                {
+                    SceneTransit.Go(sceneName, spawnId);
+                });
+            }
+            else
+            {
+                SceneTransit.Go(sceneName, spawnId);
+            }
         }
     }
 
@@ -95,16 +106,35 @@ public class ButtonControl : MonoBehaviour
             return;
         }
 
-        // 혹시 일시정지/볼륨이 켜져 있던 상황 복구
         AudioListener.pause = false;
         Time.timeScale = 1f;
 
-        SceneManager.LoadScene(sceneName);   // Home 진입
+        if (ScreenFader.i != null)
+        {
+            ScreenFader.i.FadeOutAndLoad(() =>
+            {
+                SceneManager.LoadScene(sceneName);
+            });
+        }
+        else
+        {
+            SceneManager.LoadScene(sceneName);
+        }
     }
 
     public void StartStory()
     {
-        SceneManager.LoadScene("Story");
+        if (ScreenFader.i != null)
+        {
+            ScreenFader.i.FadeOutAndLoad(() =>
+            {
+                SceneManager.LoadScene("Story Start");
+            });
+        }
+        else
+        {
+            SceneManager.LoadScene("Story Start");
+        }
     }
 
     public void StartGame()
@@ -115,18 +145,26 @@ public class ButtonControl : MonoBehaviour
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
-        // 멈춤/클리어/오버 패널들 숨기기 (있으면)
+        // 멈춤/클리어/오버 패널들 숨기기
         HidePanelByName("GameOver");
         HidePanelByName("GameClear");
         HidePanelByName("OptionPop");
         HidePanelByName("Weapon_Choice_Panel");
-        HidePanelByName("MissionImg");  // 미션창을 멈춤 패널로 쓰면 같이
+        HidePanelByName("MissionImg");
 
-        // 선택 포커스 초기화(가끔 버튼이 남아있는 문제 방지)
+        // 선택 포커스 초기화
         if (EventSystem.current) EventSystem.current.SetSelectedGameObject(null);
 
         // 스폰 포인트로 씬 이동
-        SceneTransit.Go("Home", "Home_Start");
+        if (ScreenFader.i != null)
+        {
+            ScreenFader.i.FadeOutAndLoad(() =>
+            {
+                SceneTransit.Go("Home", "Home_Start");
+            });
+        }
+        else
+            SceneTransit.Go("Home", "Home_Start");
     }
 
     static void HidePanelByName(string name)

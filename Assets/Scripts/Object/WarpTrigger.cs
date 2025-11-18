@@ -54,6 +54,9 @@ public class WarpTrigger : MonoBehaviour
     private void DoWarp()
     {
         onWarp?.Invoke();
-        SceneTransit.Go(sceneName, spawnPointName);
+        ScreenFader.i.FadeOutAndLoad(() =>
+        {
+            SceneTransit.Go(sceneName, spawnPointName);
+        });
     }
 }
