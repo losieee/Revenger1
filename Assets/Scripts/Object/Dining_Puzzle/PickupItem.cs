@@ -5,22 +5,9 @@ public class PickupItem : MonoBehaviour
 {
     private ItemInfo info;
 
-    [SerializeField] private AudioClip pickupClip;
-
-    private AudioClip _clipToPlayOnEnable;
-
     void Awake()
     {
         info = GetComponent<ItemInfo>();
-    }
-
-    private void OnEnable()
-    {
-        if (_clipToPlayOnEnable)
-        {
-            SfxPlayer.Play2D(_clipToPlayOnEnable);
-            _clipToPlayOnEnable = null;
-        }
     }
 
     public bool TryPickupOrReturn(PlayerMov player)
@@ -47,9 +34,9 @@ public class PickupItem : MonoBehaviour
         bool added = inv.TryAdd(info);
         if (added)
         {
-            _clipToPlayOnEnable = pickupClip;
-
-            SfxPlayer.Play2D(pickupClip);
+            if (info.pickupClip)
+                SoundManager.Play2D(info.pickupClip);
+          
             if (info.returnSpot) info.returnSpot.ActivateSpot(info.itemId);
         }
         return added;

@@ -13,6 +13,7 @@ public class KeyPickUp : MonoBehaviour
             if (KeyManager.i != null)
             {
                 KeyManager.i.AddKey(1);
+                SoundManager.i.PlaySFX(PlayerSfx.GetKey, SfxBus.Effect, 1f);
             }
 
             Destroy(gameObject);

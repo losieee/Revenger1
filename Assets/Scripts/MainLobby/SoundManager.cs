@@ -13,7 +13,7 @@ public enum PlayerSfx
     LeftWalkIndoor, RightWalkIndoor, LeftRunIndoor, RightRunIndoor,
     LeftWalkOutdoor, RightWalkOutdoor, LeftRunOutdoor, RightRunOutdoor,
     ChestOpen, ChestClose, WeaponDraw, AttackCrowbar, AttackGun, AttackBat,
-    LieDown, LieMoving
+    LieDown, LieMoving, GetKey
 }
 
 public class SoundManager : MonoBehaviour
@@ -226,6 +226,13 @@ public class SoundManager : MonoBehaviour
             return;
         }
         StartCoroutine(CoFadeOutAndStop(src, fadeOut));
+    }
+
+    public static void Play2D(AudioClip clip, SfxBus bus = SfxBus.Effect, float scale = 1f, float pitch = 1f)
+    {
+        if (i == null) return;
+
+        i.PlaySFX(clip, bus, scale, pitch);
     }
 
     IEnumerator CoFadeOutAndStop(AudioSource src, float dur)

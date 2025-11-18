@@ -11,6 +11,7 @@ public class ItemInfo : MonoBehaviour
 
     [Header("ºÐ·ù")]
     public ItemType type = ItemType.Generic;
+    [SerializeField] public AudioClip pickupClip;
 
     [HideInInspector] public Vector3 startPos;
     [HideInInspector] public Quaternion startRot;
