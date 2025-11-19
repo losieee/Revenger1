@@ -24,6 +24,7 @@ public class EnemyMov : MonoBehaviour
     public GameObject miniQuestionMark;             // 미니맵에서 물음표
     public GameObject miniAnswerMark;               // 미니맵에서 느낌표
     public GameObject viewFov;                      // 죽었을 때 비활성화 할 시야각
+    public float nearDetectDistance = 0.7f;         // 가까이 있으면 무조건 보이게
 
     [Header("수직 시야 관련")]
     public float eyeHeight = 1.5f;                  // 적 눈 높이
@@ -577,21 +578,33 @@ public class EnemyMov : MonoBehaviour
         float maxDist = (state == EnemyState.Chasing) ? chaseViewDistance : viewDistance;
         if (dist > maxDist) return false;
 
-        // 1) 수직 높이 차 컷
+        // 너무 가까우면 시야각 상관없이 본 걸로 처리
+        if (dist < nearDetectDistance)
+        {
+            if (!Physics.Raycast(eyePos, to.normalized, dist, occluderMask, QueryTriggerInteraction.Collide))
+                return true;
+        }
+
+        // 수직 높이 차
         float dy = targetPos.y - eyePos.y;
         if (dy > maxDetectUp || dy < -maxDetectDown) return false;
 
-        // 2) 수평 FOV(바닥 평면 기준)
+        // 수평 FOV
         Vector3 toFlat = new Vector3(to.x, 0f, to.z);
-        if (toFlat.sqrMagnitude < 0.0001f) return false;
-        float hAngle = Vector3.Angle(transform.forward, toFlat.normalized);
-        if (hAngle > viewAngle * 0.5f) return false;
+        float sqrFlat = toFlat.sqrMagnitude;
 
-        // 3) 수직 FOV(상하)
-        float vAngle = Mathf.Atan2(dy, toFlat.magnitude) * Mathf.Rad2Deg;
+        float hAngle = 0f;
+        if (sqrFlat >= 0.0001f)
+        {
+            hAngle = Vector3.Angle(transform.forward, toFlat.normalized);
+            if (hAngle > viewAngle * 0.5f) return false;
+        }
+
+        // 수직 FOV
+        float vAngle = Mathf.Atan2(dy, Mathf.Sqrt(sqrFlat)) * Mathf.Rad2Deg;
         if (vAngle > verticalFovUp || vAngle < -verticalFovDown) return false;
 
-        // 4) 가림막 체크(기존 그대로)
+        // 가림막
         if (Physics.Raycast(eyePos, to.normalized, dist, occluderMask, QueryTriggerInteraction.Collide))
             return false;
 
@@ -987,8 +1000,6 @@ public class EnemyMov : MonoBehaviour
         // 거리/각도 같은 간단한 가드
         float d = Vector3.Distance(transform.position, playerTr.position);
         if (d > minDistanceToPunch) return;
-
-        Debug.Log("Try pucvh");
 
         PlayPunchOnAttackLayer();
     }

@@ -8,7 +8,6 @@ public class ScreenFader : MonoBehaviour
     public static ScreenFader i;
 
     [Header("Fade Times")]
-    [SerializeField] float fadeInTime = 0.5f;
     [SerializeField] float fadeOutTime = 0.5f;
 
     Image img;
@@ -23,8 +22,6 @@ public class ScreenFader : MonoBehaviour
         img.color = c;
 
         img.raycastTarget = false;
-
-        StartCoroutine(Fade(1f, 0f, fadeInTime));
     }
     public void FadeOutAndLoad(Action sceneLoadAction)
     {

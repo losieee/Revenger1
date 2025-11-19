@@ -113,12 +113,12 @@ public class ButtonControl : MonoBehaviour
         {
             ScreenFader.i.FadeOutAndLoad(() =>
             {
-                SceneManager.LoadScene(sceneName);
+                SceneTransit.Go(sceneName, spawnId);
             });
         }
         else
         {
-            SceneManager.LoadScene(sceneName);
+            SceneTransit.Go(sceneName, spawnId);
         }
     }
 

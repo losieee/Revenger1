@@ -251,6 +251,16 @@ public class PlayerMov : MonoBehaviour
 
     // 무기 선택
     private bool choiceWeapon;
+    [Header("Weapon Move Speed")]
+    public float handSpeedMul = 1.0f;
+    public float gunSpeedMul = 1.0f;
+    public float crowbarSpeedMul = 0.75f;
+    public float batSpeedMul = 0.5f;
+    [Header("Weapon Anim Speed")]
+    public float handAnimMul = 1.0f;
+    public float gunAnimMul = 1.0f;
+    public float crowbarAnimMul = 0.95f;
+    public float batAnimMul = 0.8f;
 
     // RightHandGrip 애니메이션 레이어 제어
     private int gripLayer;
@@ -744,7 +754,30 @@ public class PlayerMov : MonoBehaviour
         float speedParam = (isGrounded && currentMoveInput.magnitude > 0.05f)
             ? (isRunning ? 1f : 0.5f)
             : 0f;
-        animator.SetFloat("Speed", speedParam, 0.1f, Time.deltaTime);
+
+        float animMul = handAnimMul;
+
+        if (IsWeaponShown() && WeaponManager.i != null)
+        {
+            switch (WeaponManager.i.SelectedWeapon)
+            {
+                case WeaponManager.WeaponType.Gun:
+                    animMul = gunAnimMul;
+                    break;
+                case WeaponManager.WeaponType.Crowbar:
+                    animMul = crowbarAnimMul;
+                    break;
+                case WeaponManager.WeaponType.Bat:
+                    animMul = batAnimMul;
+                    break;
+                case WeaponManager.WeaponType.None:
+                default:
+                    animMul = handAnimMul;
+                    break;
+            }
+        }
+        animator.SetFloat("Speed", speedParam * animMul, 0.1f, Time.deltaTime);
+
         if (speedParam == 0f)
         {
             animator.SetFloat("MoveX", 0f);
@@ -799,7 +832,7 @@ public class PlayerMov : MonoBehaviour
         if (justReleasedAlt && !isAlt) justReleasedAlt = false;
 
         // 벽 잡기 시작
-        if (KeyBindings.GetKeyDown(GameAction.Climb) && canClimbZone && !isHolding && !isClimbing)
+        if (KeyBindings.GetKeyDown(GameAction.Climb) && canClimbZone && !isHolding && !isClimbing && !IsClimbBlockedByWeapon())
         {
             Vector3 dir = transform.forward;
             Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
@@ -911,6 +944,29 @@ public class PlayerMov : MonoBehaviour
         float moveSpeed = isRunning ? speed * runSpeed : speed;
         if (isCrouching) moveSpeed *= 0.55f;
         if (isCrawling) moveSpeed *= crawlSpeedMul;
+        // 무기별 속도
+        float weaponMul = handSpeedMul;
+
+        if (IsWeaponShown() && WeaponManager.i != null)
+        {
+            switch (WeaponManager.i.SelectedWeapon)
+            {
+                case WeaponManager.WeaponType.Gun:
+                    weaponMul = gunSpeedMul;
+                    break;
+                case WeaponManager.WeaponType.Crowbar:
+                    weaponMul = crowbarSpeedMul;
+                    break;
+                case WeaponManager.WeaponType.Bat:
+                    weaponMul = batSpeedMul;
+                    break;
+                case WeaponManager.WeaponType.None:
+                default:
+                    weaponMul = handSpeedMul;
+                    break;
+            }
+        }
+        moveSpeed *= weaponMul;
         currentMoveSpeed = moveSpeed;
 
         // 소리 범위 알림
@@ -1090,7 +1146,7 @@ public class PlayerMov : MonoBehaviour
 
                 SoundManager.i.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
                 int stateHash = GetEquipStateHash(cur);
-                animator.speed = 1f; // ✅ 정방향
+                animator.speed = 1f;
                 animator.CrossFade(stateHash, 0.05f, takeWeaponLayer, 0f);
                 return;
             }
@@ -1253,6 +1309,22 @@ public class PlayerMov : MonoBehaviour
         if (_lieMoveOn) { SoundManager.i.StopSFX(PlayerSfx.LieMoving); _lieMoveOn = false; }
 
         SetCrawlCamByState(false);
+    }
+
+    // 무기가 손에 있을 때 벽타기 금지
+    bool IsClimbBlockedByWeapon()
+    {
+        if (!IsWeaponShown() || WeaponManager.i == null)
+            return false;
+
+        switch (WeaponManager.i.SelectedWeapon)
+        {
+            case WeaponManager.WeaponType.Crowbar:
+            case WeaponManager.WeaponType.Bat:
+                return true;
+            default:
+                return false;
+        }
     }
 
     // 엎드리기
@@ -2173,56 +2245,66 @@ public class PlayerMov : MonoBehaviour
         if (other.CompareTag("BedRoomMinDoor")) BindDoor(other, -1, true);
 
         if (other.CompareTag("WeaponBox")) 
-        { 
+        {
+            nearNPC.gameObject.SetActive(true);
             choiceWeapon = true;
             boxObject = other.gameObject;
         }
 
         if (other.CompareTag("laundryRange"))
         {
+            nearNPC.gameObject.SetActive(true);
             hasLaundryMission = true;
             inLaundryRange = true;
         }
 
         if (other.CompareTag("foyerRange"))
         {
+            nearNPC.gameObject.SetActive(true);
             hasFoyerMission = true;
             inFoyerRange = true;
         }
 
         if (other.CompareTag("StudyRange"))
         {
+            nearNPC.gameObject.SetActive(true);
             hasStudyMission = true;
             inStudyRange = true;
         }
 
         if (other.CompareTag("StudyResultRange"))
         {
+            nearNPC.gameObject.SetActive(true);
             hasStudyResult = true;
             inStudyResult = true;
         }
 
         if (other.CompareTag("DressRange"))
         {
+            nearNPC.gameObject.SetActive(true);
             inJewelryRange = true;
         }
 
         if (other.CompareTag("GuestRoomRange"))
         {
+            nearNPC.gameObject.SetActive(true);
             hasGuestMission = true;
             inGuestRange = true;
         }
 
         if (other.CompareTag("GuestBox1"))
         {
+            nearNPC.gameObject.SetActive(true);
             inGuestBox1 = true;
         }
         if (other.CompareTag("GuestBox2"))
         {
+            nearNPC.gameObject.SetActive(true);
             inGuestBox2 = true;
         }
         if (other.CompareTag("GuestBox3"))
         {
+            nearNPC.gameObject.SetActive(true);
             inGuestBox3 = true;
         }
 
@@ -2244,6 +2326,8 @@ public class PlayerMov : MonoBehaviour
             inSecretRange = true;
             animator?.SetBool("InSecret", true);
         }
+
+        if (other.CompareTag("Manhole")) nearNPC.gameObject.SetActive(true);
     }
 
     private void OnTriggerExit(Collider other)
@@ -2272,54 +2356,63 @@ public class PlayerMov : MonoBehaviour
             if (leaf) nearDoorLeaves.Remove(leaf);
         }
 
-        if (other.CompareTag("WeaponBox")) choiceWeapon = false;
+        if (other.CompareTag("WeaponBox")) { choiceWeapon = false; nearNPC.gameObject.SetActive(false); }
 
         if (other.CompareTag("laundryRange"))
         {
             hasLaundryMission = false;
             inLaundryRange = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("foyerRange"))
         {
             hasFoyerMission = false;
             inFoyerRange = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("StudyRange"))
         {
             hasStudyMission = false;
             inStudyRange = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("StudyResultRange"))
         {
             hasStudyResult = false;
             inStudyResult = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("DressRange"))
         {
             inJewelryRange = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("GuestRoomRange"))
         {
             hasGuestMission = false;
             inGuestRange = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("GuestBox1"))
         {
             inGuestBox1 = false;
+            nearNPC.gameObject.SetActive(false);
         }
         if (other.CompareTag("GuestBox2"))
         {
             inGuestBox2 = false;
+            nearNPC.gameObject.SetActive(false);
         }
         if (other.CompareTag("GuestBox3"))
         {
             inGuestBox3 = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         if (other.CompareTag("StairRange"))
@@ -2332,6 +2425,8 @@ public class PlayerMov : MonoBehaviour
             inSecretRange = false;
             animator?.SetBool("InSecret", false);
         }
+
+        if(other.CompareTag("Manhole")) nearNPC.gameObject.SetActive(false);
     }
 
     // 문열기
@@ -2899,6 +2994,21 @@ public class PlayerMov : MonoBehaviour
     {
         rightArmMaxWeight = 0.01f;
         FadeRightArmLayer(0f, 0.08f);
+
+        animator.speed = GetAttackAnimSpeed();
+    }
+
+    float GetAttackAnimSpeed()
+    {
+        if (WeaponManager.i == null) return 1f;
+
+        switch (WeaponManager.i.SelectedWeapon)
+        {
+            case WeaponManager.WeaponType.Bat: return 0.7f;
+            case WeaponManager.WeaponType.Crowbar: return 0.85f;
+            case WeaponManager.WeaponType.Gun: return 1.0f;
+            default: return 1.0f;
+        }
     }
 
     // 공격 끝 시 (클립 마지막 프레임 근처)
@@ -2906,13 +3016,15 @@ public class PlayerMov : MonoBehaviour
     {
         rightArmMaxWeight = rightArmDefaultWeight;
         FadeRightArmLayer(rightArmDefaultWeight, 0.08f);
+
+        animator.speed = 1.0f;
     }
 
     void RefreshInteractionHint()
     {
         if (!nearNPC) return;
         var keyName = KeyBindings.ToDisplay(KeyBindings.Get(GameAction.Interaction));
-        nearNPC.text = $"'{keyName}' 를 눌러 대화하세요.";
+        nearNPC.text = $"'{keyName}' 를 눌러 상호작용.";
     }
 
     void FadeRightArmLayer(float targetWeight, float duration = 0.08f)
