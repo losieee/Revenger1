@@ -629,11 +629,13 @@ public class PlayerMov : MonoBehaviour
             animator.SetFloat("MoveY", 0f);
             animator.SetFloat("Speed", 0f);
             blockInput = true;
+            nearNPC.gameObject.SetActive(false);
 
             // E 또는 ESC로 빠져나오기
             if (EPressed() || Input.GetKeyDown(KeyCode.Escape))
             {
                 ExitLaundryView();
+                nearNPC.gameObject.SetActive(true);
             }
 
             // 전용 뷰 동안은 아래 일반 Update 로직 막음
@@ -1427,6 +1429,7 @@ public class PlayerMov : MonoBehaviour
         animator.SetFloat("MoveY", 0f);
         animator.SetFloat("Speed", 0f);
         rb.velocity = Vector3.zero;
+        nearNPC.gameObject.SetActive(false);
 
         // 현재 메인 카메라 포즈 저장
         var cam = Camera.main;
@@ -1477,6 +1480,7 @@ public class PlayerMov : MonoBehaviour
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
+        nearNPC.gameObject.SetActive(true);
 
         if (CameraMov.i)
         {
@@ -3228,6 +3232,8 @@ public class PlayerMov : MonoBehaviour
 
     void EnableGhostMode()
     {
+        ClearAllTriggerStates();
+
         ghostColliderStates = new List<GhostColliderState>();
         foreach (var c in GetComponentsInChildren<Collider>(true))
         {
@@ -3309,5 +3315,50 @@ public class PlayerMov : MonoBehaviour
             animator.SetBool("IsCrawling", false);
             animator.SetBool("IsFalling", false);
         }
+    }
+
+    void ClearAllTriggerStates()
+    {
+        // 세탁실
+        hasLaundryMission = false;
+        inLaundryRange = false;
+
+        // 휴게실
+        hasFoyerMission = false;
+        inFoyerRange = false;
+
+        // 서재
+        hasStudyMission = false;
+        inStudyRange = false;
+        hasStudyResult = false;
+        inStudyResult = false;
+
+        // 드레스룸
+        inJewelryRange = false;
+
+        // 게스트룸
+        hasGuestMission = false;
+        inGuestRange = false;
+        inGuestBox1 = false;
+        inGuestBox2 = false;
+        inGuestBox3 = false;
+
+        // NPC/미션 상호작용
+        canTakeMission = false;
+        choiceWeapon = false;
+
+        // 암살 관련
+        canKill = false;
+        killTarget = null;
+
+        // 문 상호작용
+        nearDoorLeaves.Clear();
+
+        // 시크릿 구역
+        inSecretRange = false;
+        animator?.SetBool("InSecret", false);
+
+        // UI 힌트
+        if (nearNPC) nearNPC.gameObject.SetActive(false);
     }
 }
