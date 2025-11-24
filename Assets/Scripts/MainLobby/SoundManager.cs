@@ -13,7 +13,7 @@ public enum PlayerSfx
     LeftWalkIndoor, RightWalkIndoor, LeftRunIndoor, RightRunIndoor,
     LeftWalkOutdoor, RightWalkOutdoor, LeftRunOutdoor, RightRunOutdoor,
     ChestOpen, ChestClose, WeaponDraw, AttackCrowbar, AttackGun, AttackBat,
-    LieDown, LieMoving, GetKey, SerwerLeft, SerwerRight
+    LieDown, LieMoving, GetKey, SewerWalkLeft, SewerWalkRight, SewerRunLeft, SewerRunRight
 }
 
 public class SoundManager : MonoBehaviour

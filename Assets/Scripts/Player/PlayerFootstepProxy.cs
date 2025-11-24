@@ -51,7 +51,7 @@ public class PlayerFootstepProxy : MonoBehaviour
             TryPlay(gait == Gait.Run ? PlayerSfx.LeftRunOutdoor : PlayerSfx.LeftWalkOutdoor,
                     gait == Gait.Run ? minGapRun : minGapWalk);
         else if (_env == FootEnv.InSerwer)
-            TryPlay(gait == Gait.Run ? PlayerSfx.SerwerLeft : PlayerSfx.SerwerLeft,
+            TryPlay(gait == Gait.Run ? PlayerSfx.SewerRunLeft : PlayerSfx.SewerWalkLeft,
                     gait == Gait.Run ? minGapRun : minGapWalk);
     }
 
@@ -66,7 +66,7 @@ public class PlayerFootstepProxy : MonoBehaviour
             TryPlay(gait == Gait.Run ? PlayerSfx.RightRunOutdoor : PlayerSfx.RightWalkOutdoor,
                     gait == Gait.Run ? minGapRun : minGapWalk);
         else if (_env == FootEnv.InSerwer)
-            TryPlay(gait == Gait.Run ? PlayerSfx.SerwerRight : PlayerSfx.SerwerRight,
+            TryPlay(gait == Gait.Run ? PlayerSfx.SewerRunRight : PlayerSfx.SewerWalkRight,
                     gait == Gait.Run ? minGapRun : minGapWalk);
     }
 }

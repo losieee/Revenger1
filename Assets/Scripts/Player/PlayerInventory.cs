@@ -40,7 +40,7 @@ public class PlayerInventory : MonoBehaviour
         if (!info) return false;
         if (PickupsLocked) return false;
 
-        if (info.type == ItemInfo.ItemType.Generic && CountOf(ItemInfo.ItemType.Generic) >= 5)
+        if (info.type == ItemInfo.ItemType.Generic && CountOf(ItemInfo.ItemType.Generic) >= 4)
             return false;
 
         // 책 4개 제한

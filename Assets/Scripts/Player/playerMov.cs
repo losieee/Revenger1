@@ -7,6 +7,7 @@ using TMPro;
 using System.Collections.Generic;
 using UnityEngine.Audio;
 using UnityEditor;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody))]
 [DefaultExecutionOrder(-100)]
@@ -27,6 +28,8 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimapOut;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;
+    [SerializeField] Image poseImgPat;
+    [SerializeField] Sprite[] poseImg;
     [SerializeField] private AudioMixerGroup sfxGroup;
 
     [Header("Move and Rotate")]
@@ -920,6 +923,7 @@ public class PlayerMov : MonoBehaviour
 
             isCrouching = wantCrouch;
             animator.SetBool("IsCrouching", isCrouching);
+            poseImgPat.sprite = isCrouching ? poseImg[1] : poseImg[0];
             crouchCooldownTimer = crouchCooldown;
 
             SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
@@ -1290,6 +1294,7 @@ public class PlayerMov : MonoBehaviour
         // 1) 상태 플래그
         isCrawling = false;                 // 크롤 종료
         isCrouching = true;                 // 앉기 시작
+        poseImgPat.sprite = poseImg[1];
 
         // 2) 애니메이터 파라미터
         animator.ResetTrigger("CrawlDown");
@@ -1342,6 +1347,7 @@ public class PlayerMov : MonoBehaviour
             isCrawling = true;
             isCrouching = false;                       // crouch와 동시 해제
             animator.SetBool("IsCrouching", false);
+            poseImgPat.sprite = poseImg[2];
 
             animator.ResetTrigger("CrawlUp");
             animator.SetTrigger("CrawlDown");
@@ -1367,6 +1373,7 @@ public class PlayerMov : MonoBehaviour
             animator.ResetTrigger("CrawlDown");
             animator.SetTrigger("CrawlUp");
             animator.SetBool("IsCrawling", false);
+            poseImgPat.sprite = poseImg[0];
 
             // 콜라이더 되돌리기 (Up 애니 시작과 동시에)
             ApplyColliderPose(boxSizeStand, boxCenterStand, 0.10f);
