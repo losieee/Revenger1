@@ -11,4 +11,10 @@ public class BoxOpen : MonoBehaviour
         anim.ResetTrigger("BoxOpen");
         anim.SetTrigger("BoxOpen");
     }
+
+    public void CloseBox()
+    {
+        anim.ResetTrigger("BoxClose");
+        anim.SetTrigger("BoxClose");
+    }
 }

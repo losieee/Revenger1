@@ -1095,7 +1095,7 @@ public class PlayerMov : MonoBehaviour
 
             if (weaponChangePanel && weaponChangePanel.activeSelf)
             {
-                HidePausePanel(weaponChangePanel);
+                ShowOverlayPanel_NoPause(weaponChangePanel);
                 _weaponPickFlowActive = false;
                 if (_openWeaponPanelCo != null) { StopCoroutine(_openWeaponPanelCo); _openWeaponPanelCo = null; }
                 return;
@@ -1123,7 +1123,7 @@ public class PlayerMov : MonoBehaviour
         if (WeaponManager.i && WeaponManager.i.canCrowbarSwitch && !canWeaponSwitch)
         {
             canWeaponSwitch = true;
-            if (weaponChangePanel && weaponChangePanel.activeSelf) HidePausePanel(weaponChangePanel);
+            if (weaponChangePanel && weaponChangePanel.activeSelf) ShowOverlayPanel_NoPause(weaponChangePanel);
             SoundManager.i.PlaySFX(PlayerSfx.ChestClose, SfxBus.Effect, 1f);
         }
 
@@ -1683,7 +1683,7 @@ public class PlayerMov : MonoBehaviour
         // 타임스케일 0 영향을 받지 않도록 Realtime로 대기
         yield return new WaitForSecondsRealtime(delay);
 
-        ShowPausePanel(weaponChangePanel);
+        ShowOverlayPanel_NoPause(weaponChangePanel);
 
         _openWeaponPanelCo = null;
     }
@@ -2890,6 +2890,16 @@ public class PlayerMov : MonoBehaviour
     public void HidePausePanel(GameObject panel)
     {
         if (!panel) return;
+
+        if (panel == weaponChangePanel && boxObject != null)
+        {
+            var boxOpen = boxObject.GetComponentInChildren<BoxOpen>();
+            if (boxOpen != null)
+            {
+                boxOpen.CloseBox();
+                SoundManager.i?.PlaySFX(PlayerSfx.ChestClose, SfxBus.Effect, 1f);
+            }
+        }
 
         var cg = panel.GetComponent<CanvasGroup>();
         if (cg)
