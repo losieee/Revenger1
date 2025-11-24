@@ -139,6 +139,12 @@ public class ButtonControl : MonoBehaviour
 
     public void StartGame()
     {
+        var player = FindObjectOfType<PlayerMov>();
+        if (player != null)
+        {
+            player.SetPlayerColliderEnabled(true);
+        }
+
         // 전역 상태 복구
         AudioListener.pause = false;
         Time.timeScale = 1f;

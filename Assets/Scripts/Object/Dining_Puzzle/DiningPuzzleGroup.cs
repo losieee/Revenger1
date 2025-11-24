@@ -31,7 +31,7 @@ public class DiningPuzzleGroup : MonoBehaviour
             {
                 solved = true;
                 PlayerInventory.PickupsLocked = true;
-                SoundManager.i?.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
+                SoundManager.i?.PlaySFX(PlayerSfx.GetKey, SfxBus.Effect, 1f);
                 key.SetActive(true);
 
                 // 모두 잠금
@@ -42,7 +42,7 @@ public class DiningPuzzleGroup : MonoBehaviour
             }
             else
             {
-                SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
+                SoundManager.i?.PlaySFX(PlayerSfx.FailDiningPuzzle, SfxBus.Effect, 1f);
             }
         }
     }

@@ -54,6 +54,7 @@ public class WarpTrigger : MonoBehaviour
     private void DoWarp()
     {
         onWarp?.Invoke();
+        SoundManager.i?.PlaySFX(PlayerSfx.Ladder, SfxBus.Effect, 1f);
         ScreenFader.i.FadeOutAndLoad(() =>
         {
             SceneTransit.Go(sceneName, spawnPointName);

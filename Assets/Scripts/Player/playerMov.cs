@@ -1221,6 +1221,7 @@ public class PlayerMov : MonoBehaviour
 
             hasLaundryMission = false;
             inLaundryRange = false;
+            nearNPC.gameObject.SetActive(false);
         }
 
         // 휴게실 미션
@@ -2242,7 +2243,7 @@ public class PlayerMov : MonoBehaviour
             canTakeMission = true;
         }
 
-        if (other.CompareTag("Discorver")) ShowPausePanel(gameOverUI);
+        if (other.CompareTag("Discorver")) ShowOverlayPanel_NoPause(gameOverUI);
 
         if (other.CompareTag("Attack"))
         {
@@ -2856,6 +2857,9 @@ public class PlayerMov : MonoBehaviour
 
         AudioListener.pause = true;
         Time.timeScale = 0f;
+
+        if (panel == gameOverUI)
+            SetPlayerColliderEnabled(false);
     }
 
     void ShowOverlayPanel_NoPause(GameObject panel)
@@ -2876,6 +2880,9 @@ public class PlayerMov : MonoBehaviour
         // EventSystem이 없으면 생성
         if (!EventSystem.current)
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+
+        if (panel == gameOverUI)
+            SetPlayerColliderEnabled(false);
     }
 
     bool AnyPauseOpen()
@@ -2916,6 +2923,25 @@ public class PlayerMov : MonoBehaviour
             Time.timeScale = 1f;
             PlayerMov.UnlockControls(hideCursor: true);
             _weaponPickFlowActive = false;
+        }
+    }
+
+    // 게임 오버용 콜라이더 비활성화
+    public void SetPlayerColliderEnabled(bool enabled)
+    {
+        if (!box)
+            box = GetComponent<BoxCollider>();
+
+        if (!box) return;
+
+        if (enabled)
+        {
+            _colDisableDepth = 0;
+            box.enabled = true;
+        }
+        else
+        {
+            box.enabled = false;
         }
     }
 

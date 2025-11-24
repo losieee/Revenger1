@@ -30,6 +30,7 @@ public class WeaponManager : MonoBehaviour
     {
         canCrowbarSwitch = true;
         SelectedWeapon = WeaponType.Crowbar;
+        SoundManager.i?.PlaySFX(PlayerSfx.PickCrowbar, SfxBus.Effect, 1f);
         OnWeaponChosen?.Invoke(SelectedWeapon);
         
     }
@@ -38,6 +39,7 @@ public class WeaponManager : MonoBehaviour
     {
         canGunSwitch = true;
         SelectedWeapon = WeaponType.Gun;
+        SoundManager.i?.PlaySFX(PlayerSfx.PickGun, SfxBus.Effect, 1f);
         OnWeaponChosen?.Invoke(SelectedWeapon);
     }
 
@@ -45,6 +47,7 @@ public class WeaponManager : MonoBehaviour
     {
         canBatSwitch = true;
         SelectedWeapon = WeaponType.Bat;
+        SoundManager.i?.PlaySFX(PlayerSfx.PickBat, SfxBus.Effect, 1f);
         OnWeaponChosen?.Invoke(SelectedWeapon);
     }
     public void MoveToPosition()
