@@ -415,6 +415,27 @@ public class EnemyMov : MonoBehaviour
         UpdateMark();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("WeaponGun"))
+        {
+            SoundManager.i?.PlaySFX(PlayerSfx.AttackGun, SfxBus.Effect, 1f);
+            Kill();
+        }
+
+        if (other.CompareTag("WeaponCrowbar"))
+        {
+            SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
+            Kill();
+        }
+
+        if (other.CompareTag("WeaponBat"))
+        {
+            SoundManager.i?.PlaySFX(PlayerSfx.AttackBat, SfxBus.Effect, 1f);
+            Kill();
+        }
+    }
+
     // Watching 진입
     void BeginWatching(Vector3? triggerPos = null)
     {
@@ -532,6 +553,28 @@ public class EnemyMov : MonoBehaviour
             if (AgentReady())
                 agent.SetDestination(player.position);
             destinationUpdateTimer = 0f;
+        }
+
+        float dist = Vector3.Distance(transform.position, player.position);
+
+        if (dist <= minDistanceToPunch)
+        {
+            Vector3 toPlayer = player.position - transform.position;
+            toPlayer.y = 0f;
+
+            if (toPlayer.sqrMagnitude > 0.001f)
+            {
+                float angle = Vector3.Angle(transform.forward, toPlayer.normalized);
+
+                if (angle < 60f)
+                {
+                    TryPlayPunch(player);
+                }
+            }
+            else
+            {
+                TryPlayPunch(player);
+            }
         }
 
         catchBox.enabled = true;        // 플레이어를 쫒아갈때 잡는 범위 활성화
@@ -1007,7 +1050,6 @@ public class EnemyMov : MonoBehaviour
     void SetAttackActive(bool on)
     {
         // 공격 중에 이동 로직에서 콜라이더/상태를 건드리지 않도록 보호가 필요하면 여기서 처리.
-        // 현재 구조에선 플래그만 유지하면 충분하니 no-op로 둬도 됩니다.
     }
 
     void PlayPunchOnAttackLayer()
@@ -1023,53 +1065,44 @@ public class EnemyMov : MonoBehaviour
         // 즉시 재생 (해당 레이어의 NPC_Punch 상태로)
         animator.Play(_hashFull_NPC_Punch, _attackLayer, 0f);
 
-        SetAttackActive(true); // 히트박스/가드 등 이동 로직 보호
+        SetAttackActive(true);
 
-        // 이전 루틴 돌고 있으면 정리
         if (_attackLayerRoutine != null) StopCoroutine(_attackLayerRoutine);
         _attackLayerRoutine = StartCoroutine(Co_LowerAttackLayerWhenDone());
     }
 
     IEnumerator Co_LowerAttackLayerWhenDone()
     {
-        // 레이어에 Play가 적용되도록 한 프레임 대기
         yield return null;
 
-        // 1) Punch 상태에 '진입할 때'까지 잠깐 기다림 (전이 고려)
         int safety = 0;
-        while (safety++ < 60) // 최대 60프레임(1초) 안전장치
+        while (safety++ < 60)
         {
             var info = animator.GetCurrentAnimatorStateInfo(_attackLayer);
             if (info.fullPathHash == _hashFull_NPC_Punch) break;
-            // 전이 중이면 다음 프레임
+
             if (animator.IsInTransition(_attackLayer)) { yield return null; continue; }
             yield return null;
         }
 
-        // 2) Punch 상태가 끝날 때까지 대기 (전이도 고려)
         while (true)
         {
             var info = animator.GetCurrentAnimatorStateInfo(_attackLayer);
 
-            // 여전히 우리가 원하는 상태라면, 끝날 때까지 기다림
             if (info.fullPathHash == _hashFull_NPC_Punch && info.normalizedTime < 1f)
             {
                 yield return null;
                 continue;
             }
 
-            // 전이 중이면 다음 프레임까지 대기 (끝날 때까지)
             if (animator.IsInTransition(_attackLayer))
             {
                 yield return null;
                 continue;
             }
-
-            // 여기 오면 더 이상 Punch가 아니거나(전이 완료), 끝난 것
             break;
         }
 
-        // 3) 원복
         animator.SetLayerWeight(_attackLayer, 0f);
         SetAttackActive(false);
         _isAttacking = false;

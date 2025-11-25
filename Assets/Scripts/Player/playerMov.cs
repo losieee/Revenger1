@@ -45,6 +45,7 @@ public class PlayerMov : MonoBehaviour
     private EnemyMov pendingAssassination = null;
     [SerializeField] private float assassinateApproachDuration = 0.20f;  // 적 뒤로 붙는 시간
     [SerializeField] private float assassinateRotLerp = 20f;             // 회전 보간속도
+    private bool _attackLocked = false;
 
     [Header("E Cooldown")]
     [SerializeField] private float eCooldownDuration = 0.6f;
@@ -119,7 +120,7 @@ public class PlayerMov : MonoBehaviour
     bool inSecretRange = false;
     bool _boxJumpWantsCrawl = false;
     bool _boxJumpSfxPlayed = false;
-    [SerializeField] private Collider extraCollidersToToggle;
+    //[SerializeField] private Collider extraCollidersToToggle;
     int _colDisableDepth = 0;
 
     [Header("Sound Range")]
@@ -911,7 +912,6 @@ public class PlayerMov : MonoBehaviour
                 // 엎드림 → 즉시 앉기 전환
                 SwitchCrawlToCrouch();
                 crouchCooldownTimer = crouchCooldown;
-                SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
                 return;
             }
 
@@ -934,7 +934,6 @@ public class PlayerMov : MonoBehaviour
         if (KeyBindings.GetKeyDown(GameAction.Crawl) && crouchCooldownTimer <= 0f)
         {
             ToggleCrawl();
-            SoundManager.i?.PlaySFX(PlayerSfx.LieDown, SfxBus.Effect, 1f, 1.2f);
             // 크로스 토글 간 충돌 방지 쿨다운 (원하는 값으로)
             crouchCooldownTimer = 0.25f;
         }
@@ -978,12 +977,6 @@ public class PlayerMov : MonoBehaviour
         // 소리 범위 알림
         CheckNearbyEnemies();
 
-        // 클리어
-        if (canAttack && _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && CanAttackWithWeapon())
-        {
-            _gameClearArmed = true;
-            TriggerAttackByCurrentWeapon();
-        }
         //ShowPausePanel(gameClearUI);
 
         // 미니맵
@@ -1035,13 +1028,18 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 암살
-        if (_sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && canKill && !isCrawling && CanAttackWithWeapon())
+        bool attackPressed = _sceneInputGraceTimer <= 0f && !IsPointerOverUI() && KeyBindings.GetKeyDown(GameAction.Attack) && !isCrawling && CanAttackWithWeapon();
+
+        if (attackPressed)
         {
+            if (canAttack)
+                _gameClearArmed = true;
+
             if (canKill && killTarget != null)
             {
                 StartAttack(killTarget);
             }
-            else if (!AnyPauseOpen()) // 클리어/옵션 UI 떠 있으면 무시
+            else if (!AnyPauseOpen())
             {
                 PlayAttackByWeapon();
             }
@@ -1297,6 +1295,8 @@ public class PlayerMov : MonoBehaviour
         isCrouching = true;                 // 앉기 시작
         poseImgPat.sprite = poseImg[1];
 
+        SoundManager.i?.PlaySFX(PlayerSfx.CrouchToggle, SfxBus.Effect, 1f);
+
         // 2) 애니메이터 파라미터
         animator.ResetTrigger("CrawlDown");
         animator.ResetTrigger("CrawlUp");
@@ -1350,6 +1350,8 @@ public class PlayerMov : MonoBehaviour
             animator.SetBool("IsCrouching", false);
             poseImgPat.sprite = poseImg[2];
 
+            SoundManager.i?.PlaySFX(PlayerSfx.LieDown, SfxBus.Effect, 1f, 1.2f);
+
             animator.ResetTrigger("CrawlUp");
             animator.SetTrigger("CrawlDown");
             animator.SetBool("IsCrawling", true);
@@ -1370,6 +1372,8 @@ public class PlayerMov : MonoBehaviour
 
             isCrawlAnimating = false;
             isCrawling = false;
+
+            SoundManager.i?.PlaySFX(PlayerSfx.LieDown, SfxBus.Effect, 1f, 1.2f);
 
             animator.ResetTrigger("CrawlDown");
             animator.SetTrigger("CrawlUp");
@@ -1879,7 +1883,26 @@ public class PlayerMov : MonoBehaviour
         rb.isKinematic = false;
         rb.useGravity = true;
 
-        EnterCrawlSilently();
+        isCrawling = false;
+
+        if (_wasCrouchingBeforeClimb)
+        {
+            isCrouching = true;
+            animator.SetBool("IsCrouching", true);
+            animator.SetBool("IsCrawling", false);
+
+            ApplyCrouchCollider(true);
+            SetCrawlCamByState(false);
+        }
+        else
+        {
+            isCrouching = false;
+            animator.SetBool("IsCrouching", false);
+            animator.SetBool("IsCrawling", false);
+
+            ApplyCrouchCollider(false);
+            SetCrawlCamByState(false);
+        }
 
         blockInput = false;
         isCancellingHold = false;
@@ -2103,8 +2126,8 @@ public class PlayerMov : MonoBehaviour
     void StartHolding(RaycastHit hit)
     {
         ClearLandTriggers();
-        isCrouching = false;
         _wasCrouchingBeforeClimb = isCrouching;
+        isCrouching = false;
         animator.SetBool("IsCrouching", false);
 
         float wallTop = hit.collider.bounds.max.y;
@@ -2243,13 +2266,16 @@ public class PlayerMov : MonoBehaviour
             canTakeMission = true;
         }
 
-        if (other.CompareTag("Discorver")) ShowOverlayPanel_NoPause(gameOverUI);
+        if (other.CompareTag("Discorver")) 
+        {
+            StartCoroutine(GameOverSequence());
+        }
 
-        if (other.CompareTag("Attack"))
+        /*if (other.CompareTag("Attack"))
         {
             var enemy = other.GetComponentInParent<EnemyMov>() ?? other.GetComponent<EnemyMov>();
             if (enemy != null) { killTarget = enemy; canKill = true; }
-        }
+        }*/
 
         if (other.CompareTag("Door")) BindDoor(other, +1);
         if (other.CompareTag("MinDoor")) BindDoor(other, -1);
@@ -2355,11 +2381,11 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("NPC")) { nearNPC.gameObject.SetActive(false); canTakeMission = false; }
 
-        if (other.CompareTag("Attack"))
+        /*if (other.CompareTag("Attack"))
         {
             var enemy = other.GetComponentInParent<EnemyMov>() ?? other.GetComponent<EnemyMov>();
             if (enemy == killTarget) { killTarget = null; canKill = false; }
-        }
+        }*/
 
         if (other.CompareTag("Door") || other.CompareTag("MinDoor") ||
         other.CompareTag("BedRoomDoor") || other.CompareTag("BedRoomMinDoor"))
@@ -2439,6 +2465,16 @@ public class PlayerMov : MonoBehaviour
         }
 
         if(other.CompareTag("Manhole")) nearNPC.gameObject.SetActive(false);
+    }
+
+    private IEnumerator GameOverSequence()
+    {
+        SoundManager.i?.PlaySFX(PlayerSfx.BodyguardAttack, SfxBus.Effect, 1f);
+        ShowOverlayPanel_NoPause(gameOverUI);
+
+        yield return new WaitForSecondsRealtime(0.5f);
+
+        AudioListener.pause = true;
     }
 
     // 문열기
@@ -2938,16 +2974,20 @@ public class PlayerMov : MonoBehaviour
         {
             _colDisableDepth = 0;
             box.enabled = true;
+            rb.isKinematic = false;
         }
         else
         {
             box.enabled = false;
+            rb.isKinematic = true;
         }
     }
 
     // 무기별 공격 모션
     void PlayAttackByWeapon()
     {
+        if (_attackLocked) return;
+
         // 진행 중엔 무시
         if (blockInput || isAssassinating || isHolding || isClimbing) return;
         if (!CanAttackWithWeapon()) return;
@@ -2971,12 +3011,13 @@ public class PlayerMov : MonoBehaviour
         animator.ResetTrigger("AttackCrowbar");
         animator.ResetTrigger("AttackBat");
 
-        // AE_AttackStart/End가 팔 레이어 블렌드는 이미 처리함
         animator.SetTrigger(trig);
     }
 
     void TriggerAttackByCurrentWeapon()
     {
+        if (_attackLocked) return;
+
         var wm = WeaponManager.i;
         var type = wm ? wm.SelectedWeapon : WeaponManager.WeaponType.Crowbar;
 
@@ -3011,7 +3052,7 @@ public class PlayerMov : MonoBehaviour
     }
 
     // 암살 애니 이벤트
-    public void OnAssassinationHit()
+    /*public void OnAssassinationHit()
     {
         if (!isAssassinating || pendingAssassination == null) return;
         var toKill = pendingAssassination;
@@ -3019,7 +3060,7 @@ public class PlayerMov : MonoBehaviour
         rightArmMaxWeight = 0.01f;
         FadeRightArmLayer(0f, 0.08f);
         toKill.Kill();
-    }
+    }*/
     public void OnAssassinationEnd()
     {
         rb.isKinematic = false;
@@ -3030,15 +3071,32 @@ public class PlayerMov : MonoBehaviour
 
         pendingAssassination = null;
         isAssassinating = false;
+        _attackLocked = false;
         blockInput = false;
 
         FadeRightArmLayer(0.61f, 0.08f);
         animator.ResetTrigger("AttackCrowbar");
     }
 
-    // 공격 시작 시 (클립 첫 프레임 근처)
+    // 공격 시작 시
     public void AE_AttackStart()
     {
+        _attackLocked = true;
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+
+        if (rb)
+        {
+            rb.velocity = Vector3.zero;
+        }
+
+        if (animator)
+        {
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveY", 0f);
+            animator.SetFloat("Speed", 0f);
+        }
+
         rightArmMaxWeight = 0.01f;
         FadeRightArmLayer(0f, 0.08f);
 
@@ -3058,9 +3116,15 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    // 공격 끝 시 (클립 마지막 프레임 근처)
+    // 공격 끝 시
     public void AE_AttackEnd()
     {
+        if (!isAssassinating)
+        {
+            _attackLocked = false;
+            blockInput = false;
+        }
+
         rightArmMaxWeight = rightArmDefaultWeight;
         FadeRightArmLayer(rightArmDefaultWeight, 0.08f);
 
