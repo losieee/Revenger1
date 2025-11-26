@@ -3,8 +3,6 @@ using UnityEngine.EventSystems;
 
 public class ButtonActivate : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    [SerializeField] AudioClip hoverClip;
-
     Transform child0;
 
     void Awake()
@@ -19,10 +17,6 @@ public class ButtonActivate : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     public void OnPointerEnter(PointerEventData e)
     {
         if (child0) child0.gameObject.SetActive(true);
-
-        // 효과음 재생
-        if (SoundManager.i != null)
-            SoundManager.i.PlaySFX(hoverClip);
     }
 
     public void OnPointerExit(PointerEventData e)

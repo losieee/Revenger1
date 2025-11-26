@@ -16,10 +16,6 @@ public class ButtonControl : MonoBehaviour
     public Slider musicSlider;
     public Slider effectSlider;
 
-    [Header("Sounds")]
-    public AudioClip activateSound;
-    public AudioClip deactivateSound;
-
     [Header("Scene Jump")]
     [SerializeField] string spawnId = "Default";
 
@@ -61,13 +57,7 @@ public class ButtonControl : MonoBehaviour
 
     private void Update()
     {
-        if (onOption && Input.GetKeyDown(KeyCode.Escape))
-        {
-            optionPop.SetActive(false);
-
-            if (SoundManager.i != null)
-                SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
-        }
+        
     }
 
     // ¾À ·Îµå
@@ -100,11 +90,6 @@ public class ButtonControl : MonoBehaviour
     public void LoadSceneSimple(string sceneName)
     {
         if (string.IsNullOrEmpty(sceneName)) return;
-        else if (transform.GetComponentInParent<PlayerMov>().canWeaponSwitch == false)
-        {
-            transform.GetChild(1).gameObject.SetActive(true);
-            return;
-        }
 
         AudioListener.pause = false;
         Time.timeScale = 1f;
@@ -213,7 +198,7 @@ public class ButtonControl : MonoBehaviour
         optionPop.SetActive(true);
         onOption = true;
         if (SoundManager.i != null)
-            SoundManager.i.PlaySFX(activateSound, SfxBus.ButtonClick);
+            SoundManager.i?.PlaySFX(PlayerSfx.ButtonClick, SfxBus.Effect, 1f);
     }
 
     public void OffOption()
@@ -221,21 +206,21 @@ public class ButtonControl : MonoBehaviour
         optionPop.SetActive(false);
         onOption = false;
         if (SoundManager.i != null)
-            SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
+            SoundManager.i?.PlaySFX(PlayerSfx.ButtonClick, SfxBus.Effect, 1f);
     }
 
     public void ExitGame()
     {
         exitPop.SetActive(true);
         if (SoundManager.i != null)
-            SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
+            SoundManager.i?.PlaySFX(PlayerSfx.ButtonClick, SfxBus.Effect, 1f);
     }
 
     public void OffExit()
     {
         exitPop.SetActive(false);
         if (SoundManager.i != null)
-            SoundManager.i.PlaySFX(deactivateSound, SfxBus.ButtonClick);
+            SoundManager.i?.PlaySFX(PlayerSfx.ButtonClick, SfxBus.Effect, 1f);
     }
 
     public void RealExitGame()

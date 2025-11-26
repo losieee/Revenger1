@@ -93,6 +93,7 @@ public class EnemyMov : MonoBehaviour
 
     // 볼륨, 사운드
     public float footstepVolume = 0.7f;
+    public float QuestionVolume = 0.7f;
     public float chaseVolume = 0.7f;
     private int currentSoundIndex = 0;
 
@@ -273,7 +274,7 @@ public class EnemyMov : MonoBehaviour
                         TriggerGlobalAggro(player ? player.position : transform.position);
 
                     BeginWatching(playerInSight && player ? player.position : (Vector3?)null);
-                    SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
+                    audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
                     break;
                 }
                 break;
@@ -469,7 +470,7 @@ public class EnemyMov : MonoBehaviour
         miniQuestionMark?.SetActive(true);
         miniAnswerMark?.SetActive(false);
 
-        SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
+        audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
     }
 
     // 추적 종료
@@ -712,7 +713,7 @@ public class EnemyMov : MonoBehaviour
             sawCorpse = true;                 // Watching에서 1.5초 후 Chasing을 트리거하게 하는 플래그
 
             // 플레이어를 처음 본 것과 동일한 반응
-            SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
+            audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
             BeginWatching(corpse.position);
 
             miniQuestionMark?.SetActive(true);
@@ -770,7 +771,7 @@ public class EnemyMov : MonoBehaviour
             isSoundTriggered = true;
 
             BeginWatching(playerPos);
-            SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
+            audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
         }
     }
 
@@ -902,7 +903,7 @@ public class EnemyMov : MonoBehaviour
         miniQuestionMark?.SetActive(false);
         miniAnswerMark?.SetActive(true);
 
-        if (!wasChasing) SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
+        audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
     }
 
     // 사망

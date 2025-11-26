@@ -17,15 +17,16 @@ public class PlayerMov : MonoBehaviour
     public Rigidbody rb;
     public GameObject gameClearUI;
     public GameObject gameOverUI;
-    public GameObject missionUI;
     public GameObject optionUI;
     public TMP_Text nearNPC;
+    public TMP_Text cannnotWarp;
     private Animator animator;
     public GameObject weapon;
     public GameObject weaponChangePanel;
     public BoxCollider weaponAttackBox;
     public GameObject minimap1fPicture;
     public GameObject minimapInside;
+    public GameObject minimapHome;
     public GameObject minimapOut;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;    
@@ -421,7 +422,7 @@ public class PlayerMov : MonoBehaviour
         if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
     }
 
-    GameObject[] Panels() => new[] { missionUI, gameClearUI, gameOverUI, optionUI, weaponChangePanel };
+    GameObject[] Panels() => new[] { gameClearUI, gameOverUI, optionUI, weaponChangePanel };
 
     void CloseAllPlayerUI()
     {
@@ -495,7 +496,6 @@ public class PlayerMov : MonoBehaviour
     void RebindSceneUI()
     {
         var canvas = GetComponentInChildren<Canvas>(true);
-        missionUI = missionUI && missionUI.scene.IsValid() ? missionUI : canvas?.transform.Find("MissionImg")?.gameObject ?? GameObject.FindWithTag("MissionUI");
         optionUI = optionUI && optionUI.scene.IsValid() ? optionUI : canvas?.transform.Find("OptionPop")?.gameObject ?? GameObject.Find("OptionPop");
         gameOverUI = gameOverUI && gameOverUI.scene.IsValid() ? gameOverUI : canvas?.transform.Find("GameOver")?.gameObject ?? GameObject.Find("GameOver");
         weaponChangePanel = weaponChangePanel && weaponChangePanel.scene.IsValid() ? weaponChangePanel : canvas?.transform.Find("Weapon_Choice_Panel")?.gameObject ?? GameObject.Find("Weapon_Choice_Panel");
@@ -599,6 +599,32 @@ public class PlayerMov : MonoBehaviour
     void Update()
     {
         if (_sceneInputGraceTimer > 0f) _sceneInputGraceTimer -= Time.deltaTime;
+
+        if (SceneManager.GetActiveScene().name == "Helper Talking" || SceneManager.GetActiveScene().name == "Loading")
+        {
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+
+            blockInput = true;
+
+            currentMoveInput = Vector3.zero;
+
+            if (rb)
+            {
+                rb.velocity = Vector3.zero;
+            }
+
+            if (animator)
+            {
+                animator.SetFloat("MoveX", 0f);
+                animator.SetFloat("MoveY", 0f);
+                animator.SetFloat("Speed", 0f);
+                animator.SetBool("IsCrouching", false);
+                animator.SetBool("IsCrawling", false);
+                animator.SetBool("IsFalling", false);
+            }
+            return;
+        }
 
         // 유령화
         if (Input.GetKeyDown(KeyCode.F1))
@@ -988,26 +1014,36 @@ public class PlayerMov : MonoBehaviour
         // 소리 범위 알림
         CheckNearbyEnemies();
 
-        //ShowPausePanel(gameClearUI);
-
         // 미니맵
         if (KeyBindings.GetKeyDown(GameAction.MiniMap))
         {
-            minimapPanel?.SetActive(true);
-
-            string currentScene = SceneManager.GetActiveScene().name;
-
-            if (minimapInside != null) minimapInside.SetActive(false);
-            if (minimapOut != null) minimapOut.SetActive(false);
-
-            // 현재 씬 이름에 따라 해당 미니맵만 켜기
-            if (currentScene == "1_stage_inside" && minimapInside != null)
+            if (AnyPauseOpen())
             {
-                minimapInside.SetActive(true);
+                minimapPanel?.SetActive(false);
             }
-            else if (currentScene == "1_stage_out" && minimapOut != null)
+            else
             {
-                minimapOut.SetActive(true);
+                minimapPanel?.SetActive(true);
+
+                string currentScene = SceneManager.GetActiveScene().name;
+
+                if (minimapInside != null) minimapInside.SetActive(false);
+                if (minimapOut != null) minimapOut.SetActive(false);
+                if (minimapHome != null) minimapHome.SetActive(false);
+
+                // 현재 씬 이름에 따라 해당 미니맵만 켜기
+                if (currentScene == "1_stage_inside" && minimapInside != null)
+                {
+                    minimapInside.SetActive(true);
+                }
+                else if (currentScene == "1_stage_out" && minimapOut != null)
+                {
+                    minimapOut.SetActive(true);
+                }
+                else if (currentScene == "Home" && minimapHome != null)
+                {
+                    minimapHome.SetActive(true);
+                }
             }
         }
         if (KeyBindings.GetKeyUp(GameAction.MiniMap))
@@ -1016,7 +1052,10 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 미션 받기
-        if (canTakeMission && EPressed() && !isCrawling) ShowPausePanel(missionUI);
+        if (canTakeMission && EPressed() && !isCrawling)
+        {
+            GetComponentInChildren<ButtonControl>().LoadScene("Helper Talking");
+        }
 
         // ESC 옵션 토글
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -1911,6 +1950,8 @@ public class PlayerMov : MonoBehaviour
             ApplyCrouchCollider(false);
             SetCrawlCamByState(false);
         }
+
+        (cmov ?? CameraMov.i)?.SetCrawl(false);
 
         blockInput = false;
         isCancellingHold = false;
@@ -2970,8 +3011,7 @@ public class PlayerMov : MonoBehaviour
 
     bool AnyPauseOpen()
     {
-        return (missionUI && missionUI.activeSelf)
-            || (gameClearUI && gameClearUI.activeSelf)
+        return (gameClearUI && gameClearUI.activeSelf)
             || (gameOverUI && gameOverUI.activeSelf)
             || (optionUI && optionUI.activeSelf)
             || (weaponChangePanel && weaponChangePanel.activeSelf);

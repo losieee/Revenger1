@@ -15,7 +15,7 @@ public enum PlayerSfx
     ChestOpen, ChestClose, WeaponDraw, AttackCrowbar, AttackGun, AttackBat,
     LieDown, LieMoving, GetKey, SewerWalkLeft, SewerWalkRight, SewerRunLeft, SewerRunRight,
     PickGun, PickCrowbar, PickBat, FailDiningPuzzle, FailGuestPuzzle, DropGuestPuzzle,
-    Ladder, BodyguardAttack, BodyguardQuestionSound
+    Ladder, BodyguardAttack, BodyguardQuestionSound, ButtonClick
 }
 
 public class SoundManager : MonoBehaviour
