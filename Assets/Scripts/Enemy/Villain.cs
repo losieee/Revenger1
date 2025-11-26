@@ -4,7 +4,7 @@ public class Villain : MonoBehaviour
 {
     public static Villain i;
 
-    public enum VillainState { Idle, Watching, Chasing }
+    public enum VillainState { Idle, Watching, Chasing, Dead }
     public VillainState state = VillainState.Idle;
 
     [Header("사운드 인지(선택)")]
@@ -61,10 +61,14 @@ public class Villain : MonoBehaviour
 
     float _rebindTick = 0f;
 
+    Animator anim;
+
     void Awake() => i = this;
 
     void Start()
     {
+        anim = GetComponent<Animator>();
+
         _baseViewAngle = idleViewAngle;
         viewAngle = _baseViewAngle;
         TryBindPlayer(true);
@@ -122,8 +126,53 @@ public class Villain : MonoBehaviour
         UpdateMark();
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Weapon"))
+        {
+            var playerMov = other.GetComponentInParent<PlayerMov>();
+            PlayHitSfxByCurrentWeapon();
+            Kill();
+        }
+    }
 
-    // === 외부에서 수동 호출해도 OK ===
+    void Kill()
+    {
+        state = VillainState.Dead;
+        anim.SetTrigger("isDead");
+    }
+
+    public void OnDieAnimationEnd()
+    {
+        var player = FindObjectOfType<PlayerMov>();
+        if (player != null && player.gameClearUI != null)
+            player.gameClearUI.SetActive(true);
+    }
+
+    void PlayHitSfxByCurrentWeapon()
+    {
+        if (SoundManager.i == null) return;
+
+        var wm = WeaponManager.i;
+        if (wm == null) return;
+
+        switch (wm.SelectedWeapon)
+        {
+            case WeaponManager.WeaponType.Gun:
+                SoundManager.i.PlaySFX(PlayerSfx.AttackGun, SfxBus.Effect, 1f);
+                break;
+
+            case WeaponManager.WeaponType.Crowbar:
+                SoundManager.i.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
+                break;
+
+            case WeaponManager.WeaponType.Bat:
+                SoundManager.i.PlaySFX(PlayerSfx.AttackBat, SfxBus.Effect, 1f);
+                break;
+        }
+    }
+
+
     public void EnterChasing()
     {
         state = VillainState.Chasing;
@@ -146,6 +195,7 @@ public class Villain : MonoBehaviour
         viewAngle = Mathf.Max(idleViewAngle, watchingViewAngle);
         ResetTimers();
         UpdateMark();
+        SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
     }
 
     public void EnterIdle()

@@ -25,7 +25,6 @@ public class PlayerFootstepProxy : MonoBehaviour
 
     public void SetEnvironment(FootEnv env)
     {
-        Debug.Log("환경 변경: " + env);
         _env = env;
     }
 

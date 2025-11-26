@@ -22366,8 +22366,8 @@ GameObject:
   - component: {fileID: 867655016}
   - component: {fileID: 867655017}
   m_Layer: 12
-  m_Name: GunAttackRange
-  m_TagString: WeaponGun
+  m_Name: WeaponAttackRange
+  m_TagString: Weapon
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -22531,6 +22531,9 @@ MonoBehaviour:
   - id: 33
     clip: {fileID: 8300000, guid: 127f6ab52b1b70041b0c6a6c3aa0f752, type: 3}
     baseVolume: 0.6
+  - id: 34
+    clip: {fileID: 8300000, guid: c0b0bc5da8f0a014a9516a32286753c1, type: 3}
+    baseVolume: 1
   audioMixer: {fileID: 24100000, guid: f0155aa4658d2d948bcbcb257b516e30, type: 2}
   bgmSource: {fileID: 1783789306}
   sfxEffectSource: {fileID: 171254482}
@@ -27251,7 +27254,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1077123823
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -29312,59 +29315,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1234792695}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1160045353
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1160045354}
-  - component: {fileID: 1160045355}
-  m_Layer: 12
-  m_Name: CrowbarAttackRange
-  m_TagString: WeaponCrowbar
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1160045354
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160045353}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.000000013969839, y: 0, z: 0.107}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2133221292}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1160045355
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1160045353}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Size: {x: 0.46516284, y: 0.26250726, z: 1}
-  m_Center: {x: -0.005411044, y: 0.11081636, z: 0.41108492}
 --- !u!1 &1160597671
 GameObject:
   m_ObjectHideFlags: 0
@@ -44759,6 +44709,7 @@ MonoBehaviour:
   nearNPC: {fileID: 527391331}
   weapon: {fileID: 1949844003}
   weaponChangePanel: {fileID: 1609121625}
+  weaponAttackBox: {fileID: 867655017}
   minimap1fPicture: {fileID: 0}
   minimapInside: {fileID: 1793047615}
   minimapOut: {fileID: 713062065}
@@ -47962,59 +47913,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!1 &1963976320
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1963976321}
-  - component: {fileID: 1963976322}
-  m_Layer: 12
-  m_Name: BatAttackRange
-  m_TagString: WeaponBat
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1963976321
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1963976320}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.000000013969839, y: 0, z: 0.107}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2133221292}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1963976322
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1963976320}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Size: {x: 0.46516284, y: 0.26341403, z: 1.5}
-  m_Center: {x: -0.00541419, y: 0.11126978, z: 0.7544361}
 --- !u!1 &1965089862
 GameObject:
   m_ObjectHideFlags: 0
@@ -51219,8 +51117,6 @@ Transform:
   - {fileID: 816653389}
   - {fileID: 1960036111}
   - {fileID: 867655016}
-  - {fileID: 1160045354}
-  - {fileID: 1963976321}
   m_Father: {fileID: 1817103121}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2144404401

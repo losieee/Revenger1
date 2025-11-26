@@ -23,11 +23,12 @@ public class PlayerMov : MonoBehaviour
     private Animator animator;
     public GameObject weapon;
     public GameObject weaponChangePanel;
+    public BoxCollider weaponAttackBox;
     public GameObject minimap1fPicture;
     public GameObject minimapInside;
     public GameObject minimapOut;
     public GameObject[] enemies1f;
-    public GameObject laundryPuzzle;
+    public GameObject laundryPuzzle;    
     [SerializeField] Image poseImgPat;
     [SerializeField] Sprite[] poseImg;
     [SerializeField] private AudioMixerGroup sfxGroup;
@@ -245,6 +246,9 @@ public class PlayerMov : MonoBehaviour
     Coroutine _openWeaponPanelCo;
     bool _weaponPickFlowActive = false;             // 중복 입력 방지
     private int _selectedWeaponChildIndex = -1;     // 0=Gun, 1=Crowbar
+    private Vector3 _attackBoxBaseSize;
+    private Vector3 _attackBoxBaseCenter;
+    private bool _hasAttackBoxBaseSize = false;
 
     // 애니/장착 제어
     private int takeWeaponLayer;
@@ -574,6 +578,13 @@ public class PlayerMov : MonoBehaviour
         {
             camT = cameraPivot;
             camLocalStart = camT.localPosition;
+        }
+
+        if (weaponAttackBox)
+        {
+            _attackBoxBaseSize = weaponAttackBox.size;
+            _attackBoxBaseCenter = weaponAttackBox.center;
+            _hasAttackBoxBaseSize = true;
         }
 
         if (takeWeaponLayer >= 0) animator.SetLayerWeight(takeWeaponLayer, 0f);
@@ -1530,14 +1541,14 @@ public class PlayerMov : MonoBehaviour
         // 퍼즐뷰 플래그/입력 잠금 해제
         FinishExitLaundryView();
 
-        // 바로 카메라 조작 가능하게: 켜고 활성화 블렌드만
+        // 바로 카메라 조작 가능하게
         if (CameraMov.i)
         {
             CameraMov.i.transform.SetPositionAndRotation(tr.position, tr.rotation);
             CameraMov.i.enabled = true;
             CameraMov.i.BeginBlendIn(restoreCamBlend);
 
-            // 입력이 잠깐(예: 0.35초) 없으면 그때만 부드럽게 리센터
+            // 입력이 잠깐 없으면 그때만 부드럽게
             CameraMov.i.RecenterIfNoMouseFor(0.35f, restoreCamBlend);
         }
     }
@@ -1579,11 +1590,10 @@ public class PlayerMov : MonoBehaviour
         float t = 0f;
         duration = Mathf.Max(0.01f, duration);
 
-        // 타임스케일 영향을 안 받게 Unscaled로 진행 (UI가 잠깐 열려도 부드럽게)
         while (t < 1f)
         {
             t += Time.unscaledDeltaTime / duration;
-            float k = Mathf.SmoothStep(0f, 1f, t); // 더 부드러운 가속/감속 곡선
+            float k = Mathf.SmoothStep(0f, 1f, t);
 
             camTr.position = Vector3.Lerp(startPos, endPos, k);
             camTr.rotation = Quaternion.Slerp(startRot, endRot, k);
@@ -1599,7 +1609,6 @@ public class PlayerMov : MonoBehaviour
 
         isCamBlending = false;
 
-        // 필요하면 다시 카메라 추적 켜기 (여기서는 계속 그 자리에 머무르게 그대로 둠)
         // if (cmov) cmov.enabled = true;
     }
 
@@ -1608,7 +1617,7 @@ public class PlayerMov : MonoBehaviour
     {
         var query = QueryTriggerInteraction.Collide;
 
-        // 1) 정면 레이
+        // 정면 레이
         Ray ray = new Ray(transform.position + Vector3.up * 0.5f, transform.forward);
         if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactMask, query))
         {
@@ -1625,7 +1634,7 @@ public class PlayerMov : MonoBehaviour
             if (candle != null && candle.TryInteract(this)) return true;
         }
 
-        // 2) 주변 보정(반경)
+        // 주변 보정(반경)
         Collider[] cols = Physics.OverlapSphere(transform.position, 1f, interactMask, query);
         foreach (var col in cols)
         {
@@ -1658,7 +1667,7 @@ public class PlayerMov : MonoBehaviour
 
     private void ForceUnequipWeapon()
     {
-        // 애니: 맨손 포즈
+        // 맨손 포즈
         if (gripLayer >= 0) animator.CrossFade(gripIdleHash, 0.1f, gripLayer, 0f);
         if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
 
@@ -1668,7 +1677,6 @@ public class PlayerMov : MonoBehaviour
             for (int i = 0; i < weapon.transform.childCount; i++)
                 weapon.transform.GetChild(i).gameObject.SetActive(false);
 
-            // 완전 숨기고 싶으면 false, 루트는 켜두고 싶으면 true 유지
             weapon.SetActive(false);
         }
     }
@@ -2078,6 +2086,45 @@ public class PlayerMov : MonoBehaviour
         if (rightArmLayer >= 0) animator.SetLayerWeight(rightArmLayer, 0f);
     }
 
+    void ApplyAttackBoxByWeapon()
+    {
+        if (!weaponAttackBox || !_hasAttackBoxBaseSize) return;
+
+        var wm = WeaponManager.i;
+        var type = wm ? wm.SelectedWeapon : WeaponManager.WeaponType.None;
+
+        Vector3 size = _attackBoxBaseSize;
+        Vector3 center = _attackBoxBaseCenter;
+
+        float z = size.z;
+
+        switch (type)
+        {
+            case WeaponManager.WeaponType.Gun:
+                z = 0.5f;
+                break;
+            case WeaponManager.WeaponType.Crowbar:
+                z = 1.0f;
+                break;
+            case WeaponManager.WeaponType.Bat:
+                z = 1.5f;
+                break;
+            default:
+                z = _attackBoxBaseSize.z;
+                break;
+        }
+
+        size.z = z;
+
+        center.z = z * 0.5f;
+
+        center.x = _attackBoxBaseCenter.x;
+        center.y = _attackBoxBaseCenter.y;
+
+        weaponAttackBox.size = size;
+        weaponAttackBox.center = center;
+    }
+
     private bool BoxGroundProbeMulti()
     {
         if (!box) return false;
@@ -2253,12 +2300,12 @@ public class PlayerMov : MonoBehaviour
     {
         if (other.CompareTag("DonRun")) { donRunZoneCount++; UpdateRunLock(); }
         if (other.CompareTag("ClimbZone")) canClimbZone = true;
-        if (other.CompareTag("Boss"))
+        /*if (other.CompareTag("Boss"))
         {
             canAttack = true;
             _gameClearArmed = false;
             _gameClearShown = false;
-        }
+        }*/
 
         if (other.CompareTag("NPC"))
         {
@@ -2372,12 +2419,12 @@ public class PlayerMov : MonoBehaviour
     {
         if (other.CompareTag("DonRun")) { donRunZoneCount = Mathf.Max(0, donRunZoneCount - 1); UpdateRunLock(); }
         if (other.CompareTag("ClimbZone")) canClimbZone = false;
-        if (other.CompareTag("Boss"))
+        /*if (other.CompareTag("Boss"))
         {
             canAttack = false;
             _gameClearArmed = false;
             _gameClearShown = false;
-        }
+        }*/
 
         if (other.CompareTag("NPC")) { nearNPC.gameObject.SetActive(false); canTakeMission = false; }
 
@@ -3012,6 +3059,8 @@ public class PlayerMov : MonoBehaviour
         animator.ResetTrigger("AttackBat");
 
         animator.SetTrigger(trig);
+
+        ApplyAttackBoxByWeapon();
     }
 
     void TriggerAttackByCurrentWeapon()

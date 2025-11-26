@@ -93,7 +93,6 @@ public class EnemyMov : MonoBehaviour
 
     // 볼륨, 사운드
     public float footstepVolume = 0.7f;
-    public float QuestionVolume = 0.7f;
     public float chaseVolume = 0.7f;
     private int currentSoundIndex = 0;
 
@@ -274,7 +273,7 @@ public class EnemyMov : MonoBehaviour
                         TriggerGlobalAggro(player ? player.position : transform.position);
 
                     BeginWatching(playerInSight && player ? player.position : (Vector3?)null);
-                    audioSource.PlayOneShot(enemySounds[2], QuestionVolume);
+                    SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
                     break;
                 }
                 break;
@@ -417,22 +416,32 @@ public class EnemyMov : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("WeaponGun"))
-        {
-            SoundManager.i?.PlaySFX(PlayerSfx.AttackGun, SfxBus.Effect, 1f);
-            Kill();
-        }
+        if (!other.CompareTag("Weapon"))    return;
 
-        if (other.CompareTag("WeaponCrowbar"))
-        {
-            SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
-            Kill();
-        }
+        PlayHitSfxByCurrentWeapon();
+        Kill();
+    }
 
-        if (other.CompareTag("WeaponBat"))
+    void PlayHitSfxByCurrentWeapon()
+    {
+        if (SoundManager.i == null) return;
+
+        var wm = WeaponManager.i;
+        if (wm == null) return;
+
+        switch (wm.SelectedWeapon)
         {
-            SoundManager.i?.PlaySFX(PlayerSfx.AttackBat, SfxBus.Effect, 1f);
-            Kill();
+            case WeaponManager.WeaponType.Gun:
+                SoundManager.i.PlaySFX(PlayerSfx.AttackGun, SfxBus.Effect, 1f);
+                break;
+
+            case WeaponManager.WeaponType.Crowbar:
+                SoundManager.i.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
+                break;
+
+            case WeaponManager.WeaponType.Bat:
+                SoundManager.i.PlaySFX(PlayerSfx.AttackBat, SfxBus.Effect, 1f);
+                break;
         }
     }
 
@@ -460,7 +469,7 @@ public class EnemyMov : MonoBehaviour
         miniQuestionMark?.SetActive(true);
         miniAnswerMark?.SetActive(false);
 
-        PlayOneShotSafe(enemySounds, 2, QuestionVolume);
+        SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
     }
 
     // 추적 종료
@@ -703,7 +712,7 @@ public class EnemyMov : MonoBehaviour
             sawCorpse = true;                 // Watching에서 1.5초 후 Chasing을 트리거하게 하는 플래그
 
             // 플레이어를 처음 본 것과 동일한 반응
-            PlayOneShotSafe(enemySounds, 2, QuestionVolume);
+            SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
             BeginWatching(corpse.position);
 
             miniQuestionMark?.SetActive(true);
@@ -761,7 +770,7 @@ public class EnemyMov : MonoBehaviour
             isSoundTriggered = true;
 
             BeginWatching(playerPos);
-            PlayOneShotSafe(enemySounds, 2, QuestionVolume);
+            SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
         }
     }
 
@@ -893,7 +902,7 @@ public class EnemyMov : MonoBehaviour
         miniQuestionMark?.SetActive(false);
         miniAnswerMark?.SetActive(true);
 
-        if (!wasChasing) PlayOneShotSafe(enemySounds, 2, QuestionVolume);
+        if (!wasChasing) SoundManager.i?.PlaySFX(PlayerSfx.BodyguardQuestionSound, SfxBus.Effect, 1f);
     }
 
     // 사망
