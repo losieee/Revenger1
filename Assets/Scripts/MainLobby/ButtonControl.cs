@@ -235,4 +235,12 @@ public class ButtonControl : MonoBehaviour
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }
+
+    public void ReadyToStart()
+    {
+        GameObject.Find("Player").GetComponent<PlayerMov>().seeSetting = true;
+
+        if (CameraMov.i != null)
+            CameraMov.i.lockLook = false;
+    }
 }

@@ -42,6 +42,7 @@ public class CameraMov : MonoBehaviour
 
     float yaw = 0f;
     float pitch = 15f;
+    public bool lockLook;
 
     // enable 블렌드
     bool _enableBlendActive = false;
@@ -120,9 +121,14 @@ public class CameraMov : MonoBehaviour
     {
         if (Time.timeScale == 0f || !GetPivot()) return;
 
-        // 1) 입력 → 회전
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        float mouseX = 0f;
+        float mouseY = 0f;
+
+        if (!lockLook)
+        {
+            mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+            mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        }
 
         yaw += mouseX;
         pitch -= mouseY;

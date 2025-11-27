@@ -41,6 +41,7 @@ public class PlayerMov : MonoBehaviour
     public float runSpeed = 3f;
     public Transform cameraPivot;
     int donRunZoneCount = 0;
+    [HideInInspector] public bool seeSetting = false;
 
     [Header("Attack")]
     private bool isAssassinating = false;
@@ -600,10 +601,13 @@ public class PlayerMov : MonoBehaviour
     {
         if (_sceneInputGraceTimer > 0f) _sceneInputGraceTimer -= Time.deltaTime;
 
-        if (SceneManager.GetActiveScene().name == "Helper Talking" || SceneManager.GetActiveScene().name == "Loading")
+        if (SceneManager.GetActiveScene().name == "Helper Talking" || SceneManager.GetActiveScene().name == "Loading" || (SceneManager.GetActiveScene().name == "Home") && !seeSetting)
         {
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
+
+            if (CameraMov.i != null)
+                CameraMov.i.lockLook = true;
 
             blockInput = true;
 
@@ -624,6 +628,20 @@ public class PlayerMov : MonoBehaviour
                 animator.SetBool("IsFalling", false);
             }
             return;
+        }
+
+        if (seeSetting && !AnyPauseOpen() && !isLaundryView && !isFoyerView)
+        {
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
+
+            if (!_attackLocked && !isAssassinating && !isHolding && !isClimbing && _animLockDepth == 0)
+            {
+                blockInput = false;
+            }
+
+            if (CameraMov.i != null)
+                CameraMov.i.lockLook = false;
         }
 
         // 유령화
