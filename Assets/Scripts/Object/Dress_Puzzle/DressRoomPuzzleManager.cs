@@ -8,9 +8,11 @@ public class DressRoomPuzzleManager : MonoBehaviour
     private AudioSource audioSource;
     public AudioClip[] clips;
 
+    [SerializeField] private float enemyWaitSeconds = 3f;
+
     [Header("Dress")]
     private int[] dressNums = new int[3];
-    private readonly int[] dressCorrect = { 5, 2, 9 };
+    private readonly int[] dressCorrect = { 5, 2, 3 };
 
     [Header("Guest")]
     private int[] guestNums = new int[3];
@@ -71,6 +73,7 @@ public class DressRoomPuzzleManager : MonoBehaviour
             if (failCount == 2)
             {
                 audioSource.PlayOneShot(clips[2]);
+                EnemyMov.AlertDressGuardToOwnPoint(enemyWaitSeconds);
                 failCount = 0;
             }
 

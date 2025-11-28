@@ -10,6 +10,7 @@ public class GuestRoomPuzzleSetManager : MonoBehaviour
 
     public AudioSource audioSource;
     public AudioClip doubleFailClip;
+    [SerializeField] private float enemyWaitSeconds = 3f;
 
     void Awake()
     {
@@ -43,6 +44,7 @@ public class GuestRoomPuzzleSetManager : MonoBehaviour
         if (totalFailCount == 2 && audioSource && doubleFailClip)
         {
             audioSource.PlayOneShot(doubleFailClip);
+            EnemyMov.AlertGuestGuardToOwnPoint(enemyWaitSeconds);
             totalFailCount = 0;
         }
     }

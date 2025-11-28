@@ -17,6 +17,7 @@ public class BookshelfPuzzle : MonoBehaviour
     public Vector3 secretRotateAxis = Vector3.up;
     public float secretRotateAngle = -102f;
     public float secretRotateDuration = 0.4f;
+    private int failAttempts = 0;
 
     [Header("SFX")]
     public AudioClip normalSuccessClip;
@@ -26,6 +27,9 @@ public class BookshelfPuzzle : MonoBehaviour
 
     // 슬롯 잠금
     public bool lockOnSuccess = true;
+
+    [Header("퍼즐 실패 시 적 호출")]
+    [SerializeField] private float enemyWaitSeconds = 3f;
 
     // 최종 클리어 여부
     private bool solved;
@@ -211,7 +215,14 @@ public class BookshelfPuzzle : MonoBehaviour
     void FailAndReturnAll()
     {
         if (solved) return;
-        PlaySfx(failClip);
+
+        failAttempts++;
+
+        if (failAttempts % 2 == 0)
+        {
+            PlaySfx(failClip);
+            EnemyMov.AlertStudyGuardToOwnPoint(enemyWaitSeconds);
+        }
 
         for (int i = 0; i < 4; i++)
         {

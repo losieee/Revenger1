@@ -9,6 +9,9 @@ public class DiningPuzzleGroup : MonoBehaviour
     private bool solved = false;
 
     [SerializeField] GameObject key;
+    [SerializeField] private float enemyWaitSeconds = 3f;
+
+    int failCount = 0;
 
     void Awake()
     {
@@ -30,6 +33,7 @@ public class DiningPuzzleGroup : MonoBehaviour
             if (correct == total)
             {
                 solved = true;
+                failCount = 0;
                 PlayerInventory.PickupsLocked = true;
                 SoundManager.i?.PlaySFX(PlayerSfx.GetKey, SfxBus.Effect, 1f);
                 key.SetActive(true);
@@ -42,6 +46,12 @@ public class DiningPuzzleGroup : MonoBehaviour
             }
             else
             {
+                if (failCount % 2 == 0)
+                {
+                    EnemyMov.AlertDiningGuardToOwnPoint(enemyWaitSeconds);
+                    failCount = 0;
+                }
+                failCount++;
                 SoundManager.i?.PlaySFX(PlayerSfx.FailDiningPuzzle, SfxBus.Effect, 1f);
             }
         }

@@ -8,6 +8,9 @@ public class DrawingPuzzleManager : MonoBehaviour
     [Header("정답 Candle 순서 (왼쪽부터 차례로)")]
     public List<CandleSpot> correctOrder = new List<CandleSpot>();
 
+    [Header("퍼즐 실패 시 적 호출")]
+    [SerializeField] private float enemyWaitSeconds = 3f;
+
     public AudioSource audioSource;
     public AudioClip[] clips;           // 0 성공     1 실패        2 2회 실패
 
@@ -90,6 +93,7 @@ public class DrawingPuzzleManager : MonoBehaviour
             {
                 if (clips != null && clips.Length > 2 && clips[2] != null)
                     audioSource.PlayOneShot(clips[2]);
+                EnemyMov.AlertDrawingGuardToOwnPoint(enemyWaitSeconds);
             }
             else
             {

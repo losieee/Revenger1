@@ -9,12 +9,17 @@ public class PuzzleManager : MonoBehaviour
     [Header("참조")]
     public PuzzleGroup group;
 
+    [Header("퍼즐 실패 시 적 호출")]
+    [SerializeField] private float enemyWaitSeconds = 3f;
+
     private bool _solved;        // 한 번만 발동
     private bool _firing;        // 재진입 방지
 
     public AudioSource audioSource;
     public AudioClip fail;
     public AudioClip success;
+
+    private int failCount = 0;
 
     private void Start()
     {
@@ -39,6 +44,7 @@ public class PuzzleManager : MonoBehaviour
             {
                 // 모든 퍼즐이 맞았을 때
                 _solved = true;
+                failCount = 0;
                 audioSource.PlayOneShot(success, 0.5f);
                 KeyManager.i.AddKey(1);
                 try { onSolved?.Invoke(); }
@@ -47,8 +53,14 @@ public class PuzzleManager : MonoBehaviour
             }
             else if (filled == total && correct != total)
             {
-                // 모든 칸이 채워졌는데 정답이 아닐 때
-                audioSource.PlayOneShot(fail,0.5f);
+                failCount++;
+
+                if (failCount % 2 == 0)
+                {
+                    // 모든 칸이 채워졌는데 정답이 아닐 때
+                    audioSource.PlayOneShot(fail, 0.5f);
+                    EnemyMov.AlertFoyerGuardToOwnPoint(enemyWaitSeconds);
+                }
             }
         }
 

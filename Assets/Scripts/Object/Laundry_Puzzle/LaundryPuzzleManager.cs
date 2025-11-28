@@ -29,6 +29,10 @@ public class LaundryPuzzleManager : MonoBehaviour
     [SerializeField] float resultRotateDuration = 0.18f;
     [SerializeField] float resultStayTime = 0.25f; // 90도에서 멈춰있는 시간
 
+    [Header("퍼즐 실패 시 적 호출")]
+    [SerializeField] private EnemyMov[] alertEnemies;
+    [SerializeField] private float enemyWaitSeconds = 3f;
+
     [Header("SFX")]
     [SerializeField] AudioSource sfx;
     [SerializeField] AudioClip rotateOnClip;
@@ -284,6 +288,7 @@ public class LaundryPuzzleManager : MonoBehaviour
         else
         {
             failAttempts++;
+
             if (failAttempts % 2 == 0)
                 PlayFailedSfx();
         }
@@ -386,7 +391,11 @@ public class LaundryPuzzleManager : MonoBehaviour
         if (!failedClip || !sfx) return;
         sfx.pitch = 1f;
         sfx.PlayOneShot(failedClip, sfxVolume);
+        AlertEnemiesOnFail();
     }
 
-
+    private void AlertEnemiesOnFail()
+    {
+        EnemyMov.AlertLaundryGuardToOwnPoint(enemyWaitSeconds);
+    }
 }

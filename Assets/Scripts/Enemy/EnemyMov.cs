@@ -71,6 +71,36 @@ public class EnemyMov : MonoBehaviour
     [SerializeField] float arriveSlack = 0.15f;         // 남은 거리 여유치
     [SerializeField] float waypointStopDist = 0.1f;     // 에이전트 자체 정지 거리
 
+    [Header("외부 호출 퍼즐 / 이벤트용")]
+    public float externalInvestigateArrivalRadius = 0.4f;
+    private bool externalInvestigate = false;
+    private float externalInvestigateWait = 0f;
+    private float externalStayTimer = 0f;
+    // 무슨 퍼즐 전용인지
+    [SerializeField] bool isLaundryGuard = false;
+    [SerializeField] bool isStudyGuard = false;
+    [SerializeField] bool isDrawingGuard = false;
+    [SerializeField] bool isFoyerGuard = false;
+    [SerializeField] bool isDressGuard = false;
+    [SerializeField] bool isGuestGuard = false;
+    [SerializeField] bool isDiningGuard = false;
+    // 어디로 갈건지
+    [SerializeField] Transform laundryInvestigatePoint;
+    [SerializeField] Transform studyInvestigatePoint;
+    [SerializeField] Transform drawingInvestigatePoint;
+    [SerializeField] Transform foyerInvestigatePoint;
+    [SerializeField] Transform dressInvestigatePoint;
+    [SerializeField] Transform guestInvestigatePoint;
+    [SerializeField] Transform diningInvestigatePoint;
+
+    public static EnemyMov LaundryGuard;
+    public static EnemyMov StudyGuard;
+    public static EnemyMov DrawingGuard;
+    public static EnemyMov FoyerGuard;
+    public static EnemyMov DressGuard;
+    public static EnemyMov GuestGuard;
+    public static EnemyMov DiningGuard;
+
     // 내부 상태
     private int currentIndex = 0;               // 현재 이동 중인 waypoint 인덱스
     private int direction = 1;                  // 방향: 1 = 순방향, -1 = 역방향
@@ -91,7 +121,7 @@ public class EnemyMov : MonoBehaviour
     private Vector3 firstHeardPosition;         // 처음 들린 소리의 위치
     private bool hasHeardPlayer = false;        // 소리 감지로 플레이어 최초 위치 기록 여부
 
-    // 볼륨, 사운드
+    [Header("사운드")]
     public float footstepVolume = 0.7f;
     public float QuestionVolume = 0.7f;
     public float chaseVolume = 0.7f;
@@ -136,6 +166,14 @@ public class EnemyMov : MonoBehaviour
     {
         OnAnyEnemyKilled += HandleCorpseCreated; // 시체 알림 구독
         if (!Instances.Contains(this)) Instances.Add(this);
+
+        if (isLaundryGuard) LaundryGuard = this;
+        if (isStudyGuard) StudyGuard = this;
+        if (isDrawingGuard) DrawingGuard = this;
+        if (isFoyerGuard) FoyerGuard = this;
+        if (isDressGuard) DressGuard = this;
+        if (isGuestGuard) GuestGuard = this;
+        if (isDiningGuard) DiningGuard = this;
     }
 
     // 에러 가드
@@ -339,6 +377,7 @@ public class EnemyMov : MonoBehaviour
                 {
                     chasingFromCorpse = sawCorpse;
                     sawCorpse = false;
+                    externalInvestigate = false;
                     state = EnemyState.Chasing;
                     StartChaseLoopCapped();
                     break;
@@ -348,29 +387,34 @@ public class EnemyMov : MonoBehaviour
                 {
                     animator.SetFloat("Speed", agent.velocity.magnitude);
 
-                    bool arrived = !agent.pathPending && agent.remainingDistance <= 0.3f;
-                    investigateTimer += Time.deltaTime;
-                    bool timeUp = (investigateTimer >= investigateDuration);
+                    bool arrived = !agent.pathPending && agent.remainingDistance <= externalInvestigateArrivalRadius;
 
-                    if (timeUp || arrived)
+                    if (externalInvestigate)
                     {
-                        // Patrol 복귀
-                        state = EnemyState.Patrol;
-
-                        ResetSoundDetection();
-                        lostPlayerTimer = 0f;
-                        sawCorpse = false;
-                        chasingFromCorpse = false;
-                        escalateSightTimer = 0f;
-
-                        if (waypoints != null && waypoints.Length > 0)
+                        if (arrived)
                         {
-                            agent.isStopped = false;
-                            agent.speed = walkSpeed;
-                            agent.SetDestination(waypoints[currentIndex].position);
+                            agent.isStopped = true;
+                            agent.velocity = Vector3.zero;
+
+                            externalStayTimer += Time.deltaTime;
+                            if (externalStayTimer >= externalInvestigateWait)
+                            {
+                                externalInvestigate = false;
+                                externalStayTimer = 0f;
+                                ReturnToPatrolFromInvestigate();
+                            }
                         }
-                        miniQuestionMark?.SetActive(false);
-                        miniAnswerMark?.SetActive(false);
+                    }
+                    else
+                    {
+                        // 시간 / 도착 둘 중 하나로 Patrol 복귀
+                        investigateTimer += Time.deltaTime;
+                        bool timeUp = (investigateTimer >= investigateDuration);
+
+                        if (timeUp || arrived)
+                        {
+                            ReturnToPatrolFromInvestigate();
+                        }
                     }
                 }
                 break;
@@ -499,12 +543,12 @@ public class EnemyMov : MonoBehaviour
         // 항상 월드 Z+ 방향을 향하도록 미니맵 마크 회전 고정
         if (miniQuestionMark != null)
         {
-            miniQuestionMark.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            miniQuestionMark.transform.rotation = Quaternion.Euler(90f, -90f, 0f);
         }
 
         if (miniAnswerMark != null)
         {
-            miniAnswerMark.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            miniAnswerMark.transform.rotation = Quaternion.Euler(90f, -90f, 0f);
         }
     }
 
@@ -858,6 +902,14 @@ public class EnemyMov : MonoBehaviour
         OnAnyEnemyKilled -= HandleCorpseCreated; // 해제
         Instances.Remove(this);
 
+        if (LaundryGuard == this)   LaundryGuard = null;
+        if (StudyGuard == this) StudyGuard = null;
+        if (DrawingGuard == this) DrawingGuard = null;
+        if (FoyerGuard == this) FoyerGuard = null;
+        if (DressGuard == this) DressGuard = null;
+        if (GuestGuard == this) GuestGuard = null;
+        if (DiningGuard == this) DiningGuard = null;
+
         StopAllCoroutines();
         chasingFromCorpse = false;
         StopChaseLoopCapped();
@@ -869,6 +921,13 @@ public class EnemyMov : MonoBehaviour
         chasingFromCorpse = false;
         StopChaseLoopCapped();
         audioSource?.Stop();
+
+        if (LaundryGuard == this)   LaundryGuard = null;
+        if (StudyGuard == this) StudyGuard = null;
+        if (DrawingGuard == this) DrawingGuard = null;
+        if (FoyerGuard == this) FoyerGuard = null;
+        if (DressGuard == this) DressGuard = null;
+        if (DiningGuard == this) DiningGuard = null;
     }
 
     // 모든 적에게 '시체로 유발된 추격'
@@ -1039,6 +1098,106 @@ public class EnemyMov : MonoBehaviour
         }
     }
 
+
+    // 빨래 퍼즐 실패 시 조사하러 갈 위치
+    Vector3 GetLaundryInvestigatePosition()
+    {
+        if (laundryInvestigatePoint != null)
+            return laundryInvestigatePoint.position;
+
+        return transform.position;
+    }
+    // 서재 퍼즐 실패 시 위치
+    Vector3 GetStudyInvestigatePosition()
+    {
+        if (studyInvestigatePoint != null)
+            return studyInvestigatePoint.position;
+
+        return transform.position;
+    }
+    // 응접실 위치
+    Vector3 GetDrawingInvestigatePosition()
+    {
+        if (drawingInvestigatePoint != null)
+            return drawingInvestigatePoint.position;
+
+        return transform.position;
+    }
+    Vector3 GetFoyerInvestigatePosition()
+    {
+        if (foyerInvestigatePoint != null)
+            return foyerInvestigatePoint.position;
+
+        return transform.position;
+    }
+    Vector3 GetDressInvestigatePosition()
+    {
+        if (dressInvestigatePoint != null)
+            return dressInvestigatePoint.position;
+
+        return transform.position;
+    }
+    Vector3 GetGuestInvestigatePosition()
+    {
+        if (guestInvestigatePoint != null)
+            return guestInvestigatePoint.position;
+
+        return transform.position;
+    }
+
+
+    // 퍼즐에서 간단히 부를 수 있는 static 함수
+    public static void AlertLaundryGuardToOwnPoint(float waitSeconds)
+    {
+        if (LaundryGuard == null) return;
+
+        var pos = LaundryGuard.GetLaundryInvestigatePosition();
+        LaundryGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+    public static void AlertStudyGuardToOwnPoint(float waitSeconds)
+    {
+        if (StudyGuard == null) return;
+
+        var pos = StudyGuard.GetStudyInvestigatePosition();
+        StudyGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+    public static void AlertDrawingGuardToOwnPoint(float waitSeconds)
+    {
+        if (DrawingGuard == null) return;
+
+        var pos = DrawingGuard.GetDrawingInvestigatePosition();
+        DrawingGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+    public static void AlertFoyerGuardToOwnPoint(float waitSeconds)
+    {
+        if (FoyerGuard == null) return;
+
+        var pos = FoyerGuard.GetFoyerInvestigatePosition();
+        FoyerGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+    public static void AlertDressGuardToOwnPoint(float waitSeconds)
+    {
+        if (DressGuard == null) return;
+
+        var pos = DressGuard.GetDressInvestigatePosition();
+        DressGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+    public static void AlertGuestGuardToOwnPoint(float waitSeconds)
+    {
+        if (GuestGuard == null) return;
+
+        var pos = GuestGuard.GetDressInvestigatePosition();
+        GuestGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+    public static void AlertDiningGuardToOwnPoint(float waitSeconds)
+    {
+        if (DiningGuard == null) return;
+
+        var pos = DiningGuard.GetDressInvestigatePosition();
+        DiningGuard.InvestigateExternalPoint(pos, waitSeconds);
+    }
+
+
     public void OnPlayerEnteredCatchBox(Transform playerTr)
     {
         TryPlayPunch(playerTr);
@@ -1128,6 +1287,39 @@ public class EnemyMov : MonoBehaviour
     { 
         if (discover) discover.enabled = false; 
         if (discoverClose) discoverClose.enabled = false; 
+    }
+
+    public void InvestigateExternalPoint(Vector3 position, float waitSeconds)
+    {
+        if (isDead || state == EnemyState.Dead) return;
+
+        externalInvestigate = true;
+        externalInvestigateWait = Mathf.Max(0f, waitSeconds);
+        externalStayTimer = 0f;
+
+        BeginWatching(position);
+    }
+
+    void ReturnToPatrolFromInvestigate()
+    {
+        state = EnemyState.Patrol;
+
+        ResetSoundDetection();
+        lostPlayerTimer = 0f;
+        sawCorpse = false;
+        chasingFromCorpse = false;
+        escalateSightTimer = 0f;
+        investigateTimer = 0f;
+
+        if (AgentReady() && waypoints != null && waypoints.Length > 0)
+        {
+            agent.isStopped = false;
+            agent.speed = walkSpeed;
+            agent.SetDestination(waypoints[currentIndex].position);
+        }
+
+        miniQuestionMark?.SetActive(false);
+        miniAnswerMark?.SetActive(false);
     }
 
     // 시야 관련 기즈모
