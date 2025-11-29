@@ -197,7 +197,7 @@ public class EnemyMov : MonoBehaviour
         chaseAudio.dopplerLevel = 0f;                 // 도플러 왜곡 방지
         chaseAudio.rolloffMode = AudioRolloffMode.Logarithmic;
         chaseAudio.minDistance = 2f;
-        chaseAudio.maxDistance = 20f;
+        chaseAudio.maxDistance = 5f;
         chaseAudio.priority = 180;                    // 필요시 조정
 
         // 발소리 전용
@@ -207,8 +207,8 @@ public class EnemyMov : MonoBehaviour
         footstepAudio.spatialBlend = 1f;                        // 3D 공간감
         footstepAudio.dopplerLevel = 0f;                        // 왜곡 방지
         footstepAudio.rolloffMode = AudioRolloffMode.Logarithmic; 
-        footstepAudio.minDistance = 2f;                         // 들리는 최소 거리
-        footstepAudio.maxDistance = 15f;                        // 발소리 가청 거리
+        footstepAudio.minDistance = 0.5f;                         // 들리는 최소 거리
+        footstepAudio.maxDistance = 1f;                        // 발소리 가청 거리
         footstepAudio.priority = 200;                           // 우선순위 (낮을수록 높음)
 
 

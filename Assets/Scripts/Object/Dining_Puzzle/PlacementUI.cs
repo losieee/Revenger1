@@ -147,7 +147,7 @@ public class PlacementUI : MonoBehaviour
         if (removeButton) removeButton.interactable = currentSlot.HasPlaced;
     }
 
-    void Close()
+    public void Close()
     {
         // UI ´Ý±â
         HideOverlay_NoPause();

@@ -1084,7 +1084,13 @@ public class PlayerMov : MonoBehaviour
                 return;
             }
 
-            
+            if (PlacementUI.i != null && PlacementUI.i.panelRoot != null && PlacementUI.i.panelRoot.activeSelf)
+            {
+                PlacementUI.i.Close();
+                return;
+            }
+
+
             if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
