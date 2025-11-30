@@ -2365,12 +2365,6 @@ public class PlayerMov : MonoBehaviour
     {
         if (other.CompareTag("DonRun")) { donRunZoneCount++; UpdateRunLock(); }
         if (other.CompareTag("ClimbZone")) canClimbZone = true;
-        /*if (other.CompareTag("Boss"))
-        {
-            canAttack = true;
-            _gameClearArmed = false;
-            _gameClearShown = false;
-        }*/
 
         if (other.CompareTag("NPC"))
         {
@@ -2382,12 +2376,6 @@ public class PlayerMov : MonoBehaviour
         {
             StartCoroutine(GameOverSequence());
         }
-
-        /*if (other.CompareTag("Attack"))
-        {
-            var enemy = other.GetComponentInParent<EnemyMov>() ?? other.GetComponent<EnemyMov>();
-            if (enemy != null) { killTarget = enemy; canKill = true; }
-        }*/
 
         if (other.CompareTag("Door")) BindDoor(other, +1);
         if (other.CompareTag("MinDoor")) BindDoor(other, -1);
@@ -2478,6 +2466,8 @@ public class PlayerMov : MonoBehaviour
         }
 
         if (other.CompareTag("Manhole")) nearNPC.gameObject.SetActive(true);
+
+        if(other.CompareTag("Bullet")) StartCoroutine(GameOverSequence());
     }
 
     private void OnTriggerExit(Collider other)
