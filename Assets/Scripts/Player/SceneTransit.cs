@@ -5,8 +5,9 @@ using UnityEngine.SceneManagement;
 public static class SceneTransit
 {
     public static string nextSpawnId;   // PlayerSpawner가 참조할 다음 스폰 ID
+    static bool _showCursorOnLoad = false;
 
-    public static void Go(string sceneName, string spawnId)
+    public static void Go(string sceneName, string spawnId, bool showCursorOnLoad = false)
     {
         // 여기서 세팅 (씬 로드 전에)
         nextSpawnId = spawnId;
@@ -14,6 +15,7 @@ public static class SceneTransit
         // 상태 복구(혹시 호출자가 안했어도 안전망)
         AudioListener.pause = false;
         Time.timeScale = 1f;
+        _showCursorOnLoad = showCursorOnLoad;
 
         SceneManager.sceneLoaded += OnLoaded;
         SceneManager.LoadScene(sceneName);
@@ -37,7 +39,6 @@ public static class SceneTransit
             if (player && sp)
                 player.transform.SetPositionAndRotation(sp.transform.position, sp.transform.rotation);
 
-            // (선택) PlayerSpawner를 함께 쓴다면 한 번 쓴 후 비워두기
             nextSpawnId = null;
 
             // 3) 잔존 UI 제거
@@ -45,11 +46,20 @@ public static class SceneTransit
             if (gameOver) Object.Destroy(gameOver);
 
             // 4) 공통 상태 초기화
-            Cursor.visible = false;
-            Cursor.lockState = CursorLockMode.Locked;
+            if (_showCursorOnLoad)
+            {
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+            }
+            else
+            {
+                Cursor.visible = false;
+                Cursor.lockState = CursorLockMode.Locked;
+            }
+
             AudioListener.pause = false;
 
-            // 5) (선택) EventSystem 선택 초기화
+            // 5) EventSystem 선택 초기화
             var es = GameObject.FindObjectOfType<UnityEngine.EventSystems.EventSystem>();
             if (es) es.SetSelectedGameObject(null);
         }

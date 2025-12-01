@@ -15,7 +15,8 @@ public class PlayerMov : MonoBehaviour
 {
     [Header("Component")]
     public Rigidbody rb;
-    public GameObject gameClearUI;
+    public GameObject stage1GameClearUI;
+    public GameObject stage2GameClearUI;
     public GameObject gameOverUI;
     public GameObject optionUI;
     public TMP_Text nearNPC;
@@ -28,6 +29,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimapInside;
     public GameObject minimapHome;
     public GameObject minimapOut;
+    public GameObject minimapStage1Clear;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;    
     [SerializeField] Image poseImgPat;
@@ -423,7 +425,7 @@ public class PlayerMov : MonoBehaviour
         if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
     }
 
-    GameObject[] Panels() => new[] { gameClearUI, gameOverUI, optionUI, weaponChangePanel };
+    GameObject[] Panels() => new[] { stage1GameClearUI, stage2GameClearUI, gameOverUI, optionUI, weaponChangePanel };
 
     void CloseAllPlayerUI()
     {
@@ -453,7 +455,7 @@ public class PlayerMov : MonoBehaviour
 
         _sceneInputGraceTimer = 0.2f;
 
-        bool isMenu = scene.name == "MainLobby";
+        bool isMenu = scene.name == "MainLobby" || scene.name == "Home";
         Cursor.visible = isMenu;
         Cursor.lockState = isMenu ? CursorLockMode.None : CursorLockMode.Locked;
         if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
@@ -515,8 +517,8 @@ public class PlayerMov : MonoBehaviour
         if (follow) BindCameraPivot(follow.transform);
         else if (Camera.main) BindCameraPivot(Camera.main.transform);
 
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        //Cursor.visible = false;
+        //Cursor.lockState = CursorLockMode.Locked;
 
         Time.timeScale = 1f;
 
@@ -1048,6 +1050,7 @@ public class PlayerMov : MonoBehaviour
                 if (minimapInside != null) minimapInside.SetActive(false);
                 if (minimapOut != null) minimapOut.SetActive(false);
                 if (minimapHome != null) minimapHome.SetActive(false);
+                if (minimapStage1Clear != null) minimapStage1Clear.SetActive(false);
 
                 // 현재 씬 이름에 따라 해당 미니맵만 켜기
                 if (currentScene == "1_stage_inside" && minimapInside != null)
@@ -1061,6 +1064,10 @@ public class PlayerMov : MonoBehaviour
                 else if (currentScene == "Home" && minimapHome != null)
                 {
                     minimapHome.SetActive(true);
+                }
+                else if (currentScene == "Clear_1_stage_inside" && minimapStage1Clear != null)
+                {
+                    minimapStage1Clear.SetActive(true);
                 }
             }
         }
@@ -1091,7 +1098,8 @@ public class PlayerMov : MonoBehaviour
             }
 
 
-            if (gameClearUI && gameClearUI.activeSelf) { HidePausePanel(gameClearUI); return; }
+            if (stage1GameClearUI && stage1GameClearUI.activeSelf) { HidePausePanel(stage1GameClearUI); return; }
+            if (stage2GameClearUI && stage2GameClearUI.activeSelf) { HidePausePanel(stage2GameClearUI); return; }
             if (gameOverUI && gameOverUI.activeSelf) { HidePausePanel(gameOverUI); return; }
             if (weaponChangePanel && weaponChangePanel.activeSelf) { HidePausePanel(weaponChangePanel); return; }
             if (jewelryUI && jewelryUI.activeSelf) { HidePausePanel(jewelryUI); return; }
@@ -1106,8 +1114,8 @@ public class PlayerMov : MonoBehaviour
 
         if (attackPressed)
         {
-            if (canAttack)
-                _gameClearArmed = true;
+            //if (canAttack)
+                //_gameClearArmed = true;
 
             if (canKill && killTarget != null)
             {
@@ -1688,7 +1696,11 @@ public class PlayerMov : MonoBehaviour
             if (rspot != null && rspot.TryInteract()) return true;
 
             var slot = hit.collider.GetComponent<SlotPlate>();
-            if (slot != null && slot.TryOpenUI()) return true;
+            if (slot != null && slot.TryOpenUI())
+            {
+                LockControls(showCursor: true);
+                return true;
+            }
 
             var pickup = hit.collider.GetComponent<PickupItem>();
             if (pickup != null && pickup.TryPickupOrReturn(this)) return true;
@@ -1705,7 +1717,11 @@ public class PlayerMov : MonoBehaviour
             if (rspot != null && rspot.TryInteract()) return true;
 
             var slot = col.GetComponent<SlotPlate>();
-            if (slot != null && slot.TryOpenUI()) return true;
+            if (slot != null && slot.TryOpenUI())
+            {
+                LockControls(showCursor: true);
+                return true;
+            }
 
             var pickup = col.GetComponent<PickupItem>();
             if (pickup != null && pickup.TryPickupOrReturn(this)) return true;
@@ -3013,7 +3029,7 @@ public class PlayerMov : MonoBehaviour
         cg.blocksRaycasts = true;
 
         // 퍼즐 조작을 위해 커서 노출 + 잠금 해제
-        PlayerMov.LockControls(showCursor: true);
+        LockControls(showCursor: true);
 
         // EventSystem이 없으면 생성
         if (!EventSystem.current)
@@ -3025,10 +3041,20 @@ public class PlayerMov : MonoBehaviour
 
     bool AnyPauseOpen()
     {
-        return (gameClearUI && gameClearUI.activeSelf)
+        bool placementOpen = PlacementUI.i != null
+                         && PlacementUI.i.panelRoot != null
+                         && PlacementUI.i.panelRoot.activeSelf;
+
+        return placementOpen
+            || (stage1GameClearUI && stage1GameClearUI.activeSelf)
+            || (stage2GameClearUI && stage2GameClearUI.activeSelf)
             || (gameOverUI && gameOverUI.activeSelf)
             || (optionUI && optionUI.activeSelf)
-            || (weaponChangePanel && weaponChangePanel.activeSelf);
+            || (weaponChangePanel && weaponChangePanel.activeSelf)
+            || (jewelryUI && jewelryUI.activeSelf)
+            || (guestBoxUI1 && guestBoxUI1.activeSelf)
+            || (guestBoxUI2 && guestBoxUI2.activeSelf)
+            || (guestBoxUI3 && guestBoxUI3.activeSelf);
     }
 
     public void HidePausePanel(GameObject panel)
@@ -3058,7 +3084,7 @@ public class PlayerMov : MonoBehaviour
         {
             AudioListener.pause = false;
             Time.timeScale = 1f;
-            PlayerMov.UnlockControls(hideCursor: true);
+            UnlockControls(hideCursor: true);
             _weaponPickFlowActive = false;
         }
     }
@@ -3068,19 +3094,34 @@ public class PlayerMov : MonoBehaviour
     {
         if (!box)
             box = GetComponent<BoxCollider>();
+        if (!rb)
+            rb = GetComponent<Rigidbody>();
 
-        if (!box) return;
+        if (!box || !rb) return;
 
         if (enabled)
         {
             _colDisableDepth = 0;
             box.enabled = true;
             rb.isKinematic = false;
+            rb.useGravity = true;
+            rb.velocity = Vector3.zero;
         }
         else
         {
             box.enabled = false;
             rb.isKinematic = true;
+            rb.useGravity = false;
+            rb.velocity = Vector3.zero;
+            GetComponent<KeyManager>().keyCount = 0;
+
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+
+            ghostMode = false;
+            isClimbing = false;
+            isHolding = false;
+            blockInput = true;
         }
     }
 
@@ -3391,12 +3432,12 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
-    public void AE_GameClearMoment()
+    public void AE_Stage1GameClearMoment()
     {
-        if (!_gameClearArmed || _gameClearShown) return;
+        if (_gameClearShown) return;
 
         _gameClearShown = true;   // 중복 방지
-        ShowPausePanel(gameClearUI);  // 여기서 Time.timeScale=0, 일시정지 + 커서 표시
+        ShowPausePanel(stage1GameClearUI);  // 여기서 Time.timeScale=0, 일시정지 + 커서 표시
     }
 
     public void AE_PlayAttackSfx()

@@ -21,17 +21,24 @@ public class WarpTrigger : MonoBehaviour
     private bool canWarp = false;
     private Collider playerInRange;
 
+    bool isHole;
+    bool isWindow;
+
     void Update()
     {
-        if (canWarp && KeyBindings.GetKeyDown(GameAction.Interaction))
-        {
+        if (canWarp && KeyBindings.GetKeyDown(GameAction.Interaction) && isHole)
             DoWarp();
-        }
+
+        if (canWarp && KeyBindings.GetKeyDown(GameAction.Interaction) && isWindow)
+            WindowWarp();
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
+
+        if (gameObject.CompareTag("Manhole")) isHole = true;
+        if (gameObject.CompareTag("Window")) isWindow = true;
 
         canWarp = true;
         playerInRange = other;
@@ -43,6 +50,9 @@ public class WarpTrigger : MonoBehaviour
     {
         if (!other.CompareTag(playerTag)) return;
 
+        if (gameObject.CompareTag("Manhole")) isHole = false;
+        if (gameObject.CompareTag("Window")) isWindow = false;
+
         if (other == playerInRange)
         {
             canWarp = false;
@@ -52,6 +62,16 @@ public class WarpTrigger : MonoBehaviour
     }
 
     private void DoWarp()
+    {
+        onWarp?.Invoke();
+        SoundManager.i?.PlaySFX(PlayerSfx.Ladder, SfxBus.Effect, 1f);
+        ScreenFader.i.FadeOutAndLoad(() =>
+        {
+            SceneTransit.Go(sceneName, spawnPointName);
+        });
+    }
+
+    private void WindowWarp()
     {
         onWarp?.Invoke();
         SoundManager.i?.PlaySFX(PlayerSfx.Ladder, SfxBus.Effect, 1f);

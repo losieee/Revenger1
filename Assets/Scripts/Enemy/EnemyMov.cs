@@ -1144,6 +1144,13 @@ public class EnemyMov : MonoBehaviour
 
         return transform.position;
     }
+    Vector3 GetDiningInvestigatePosition()
+    {
+        if (diningInvestigatePoint != null)
+            return diningInvestigatePoint.position;
+
+        return transform.position;
+    }
 
 
     // 퍼즐에서 간단히 부를 수 있는 static 함수
@@ -1186,14 +1193,14 @@ public class EnemyMov : MonoBehaviour
     {
         if (GuestGuard == null) return;
 
-        var pos = GuestGuard.GetDressInvestigatePosition();
+        var pos = GuestGuard.GetGuestInvestigatePosition();
         GuestGuard.InvestigateExternalPoint(pos, waitSeconds);
     }
     public static void AlertDiningGuardToOwnPoint(float waitSeconds)
     {
         if (DiningGuard == null) return;
 
-        var pos = DiningGuard.GetDressInvestigatePosition();
+        var pos = DiningGuard.GetDiningInvestigatePosition();
         DiningGuard.InvestigateExternalPoint(pos, waitSeconds);
     }
 

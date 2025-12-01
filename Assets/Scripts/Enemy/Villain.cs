@@ -79,7 +79,7 @@ public class Villain : MonoBehaviour
     public void PlayerDetectedBySound(Vector3 playerPos)
     {
         if (!reactToSound) return;
-        if (state == VillainState.Chasing) return; // 이미 추격 중이면 무시
+        if (state == VillainState.Chasing || state == VillainState.Dead) return;
 
         EnterWatching();               // ? / 미니맵 ? 켜기
         _soundTimer = soundWatchDuration;
@@ -87,6 +87,9 @@ public class Villain : MonoBehaviour
 
     void Update()
     {
+        if (state == VillainState.Dead)
+            return;
+
         if (autoDetectPlayer && !player) TryBindPlayer();
 
         bool inSight = false;
@@ -128,6 +131,8 @@ public class Villain : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (state == VillainState.Dead) return;
+
         if (other.CompareTag("Weapon"))
         {
             var playerMov = other.GetComponentInParent<PlayerMov>();
@@ -138,15 +143,39 @@ public class Villain : MonoBehaviour
 
     void Kill()
     {
+        if (state == VillainState.Dead)
+            return;
         state = VillainState.Dead;
+
+        ResetTimers();
+
+        _soundTimer = 0f;
+        reactToSound = false;
+        autoDetectPlayer = false;
+
+        UpdateMark();
         anim.SetTrigger("isDead");
+        
     }
 
     public void OnDieAnimationEnd()
     {
+        Debug.Log("<color=lime>OnDieAnimationEnd CALLED</color>");
+
         var player = FindObjectOfType<PlayerMov>();
-        if (player != null && player.gameClearUI != null)
-            player.gameClearUI.SetActive(true);
+        if (player == null)
+        {
+            Debug.LogWarning("PlayerMov 못 찾음");
+            return;
+        }
+
+        Debug.Log("찾은 PlayerMov = " + player.name);
+        Debug.Log("stage1GameClearUI = " + player.stage1GameClearUI);
+
+        if (player != null && player.stage1GameClearUI != null)
+            player.AE_Stage1GameClearMoment();
+        else
+            Debug.LogWarning("stage1GameClearUI 가 null 이라서 AE_Stage1GameClearMoment 호출 안함");
     }
 
     void PlayHitSfxByCurrentWeapon()
@@ -280,6 +309,9 @@ public class Villain : MonoBehaviour
 
     void LateUpdate()
     {
+        if (state == VillainState.Dead)
+            return;
+
         if (miniQuestionMark) miniQuestionMark.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
         if (miniAnswerMark) miniAnswerMark.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
