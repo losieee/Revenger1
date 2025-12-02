@@ -27,8 +27,10 @@ public class PlayerMov : MonoBehaviour
     public BoxCollider weaponAttackBox;
     public GameObject minimap1fPicture;
     public GameObject minimapInside;
+    public GameObject stage2MinimapInside;
     public GameObject minimapHome;
     public GameObject minimapOut;
+    public GameObject minimap_2_Out;
     public GameObject minimapStage1Clear;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;    
@@ -94,6 +96,7 @@ public class PlayerMov : MonoBehaviour
     private bool canTakeMission;
     private bool canRun = true;
     private bool canKill = false;
+    private bool _isGameOver = false;
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
@@ -1048,7 +1051,9 @@ public class PlayerMov : MonoBehaviour
                 string currentScene = SceneManager.GetActiveScene().name;
 
                 if (minimapInside != null) minimapInside.SetActive(false);
+                if (stage2MinimapInside != null) stage2MinimapInside.SetActive(false);
                 if (minimapOut != null) minimapOut.SetActive(false);
+                if (minimap_2_Out != null) minimap_2_Out.SetActive(false);
                 if (minimapHome != null) minimapHome.SetActive(false);
                 if (minimapStage1Clear != null) minimapStage1Clear.SetActive(false);
 
@@ -1061,6 +1066,10 @@ public class PlayerMov : MonoBehaviour
                 {
                     minimapOut.SetActive(true);
                 }
+                else if (currentScene == "2_stage_out" && minimap_2_Out != null)
+                {
+                    minimap_2_Out.SetActive(true);
+                }
                 else if (currentScene == "Home" && minimapHome != null)
                 {
                     minimapHome.SetActive(true);
@@ -1068,6 +1077,10 @@ public class PlayerMov : MonoBehaviour
                 else if (currentScene == "Clear_1_stage_inside" && minimapStage1Clear != null)
                 {
                     minimapStage1Clear.SetActive(true);
+                }
+                else if (currentScene == "2_Stage_Inside" && stage2MinimapInside != null)
+                {
+                    stage2MinimapInside.SetActive(true);
                 }
             }
         }
@@ -1365,6 +1378,14 @@ public class PlayerMov : MonoBehaviour
             transform.position = new Vector3(-0.956f, 5.022f, 19.404f);
             KeyManager.i.canInBedroom = true;
         }
+    }
+
+    // 총맞았을 때
+    public void DieByBullet()
+    {
+        if (_isGameOver) return;          // 중복 실행 방지
+        _isGameOver = true;
+        StartCoroutine(GameOverSequence());
     }
 
     // 엎드려있는 상태에서 앉기

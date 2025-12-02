@@ -15,7 +15,7 @@ public class GunEnemyMov : MonoBehaviour
     public float rotationSpeed = 5f;                // 필요 시 수동 회전 속도
 
     [Header("시야 관련")]
-    public float viewDistance = 10f;                // 감지 가능한 최대 거리
+    public float viewDistance = 20f;                // 감지 가능한 최대 거리
     public float viewAngle = 60f;                   // 기본 시야각 (수평 방향)
     public Transform player;                        // 추적 대상 (플레이어)
     public GameObject questionMark;                 // 물음표 (AI가 플레이어를 인식했을 때)
@@ -52,6 +52,7 @@ public class GunEnemyMov : MonoBehaviour
 
     [Header("추격 시 가시 거리 보정")]
     public float chaseViewDistance = 50f;           // Chasing에서만 적용할 넓은 시야거리
+    public float watchingViewDistance = 25f;
 
     [Header("시체 상태")]
     private bool isFrozen = false;
@@ -59,7 +60,7 @@ public class GunEnemyMov : MonoBehaviour
     public static readonly int Hash_DieTrigger = Animator.StringToHash("DieTrigger");
     static readonly int Hash_ShootTrigger = Animator.StringToHash("Shoot");
     static readonly int Hash_Speed = Animator.StringToHash("Speed");
-    static readonly int Hash_IsShooting = Animator.StringToHash("IsShooting");   // ← 추가
+    static readonly int Hash_IsShooting = Animator.StringToHash("IsShooting");
 
     [Header("시체 인지 설정")]
     public bool corpseRequiresLineOfSight = true;   // 시체도 가림막 체크할지
@@ -119,19 +120,19 @@ public class GunEnemyMov : MonoBehaviour
     private static readonly List<GunEnemyMov> Instances = new List<GunEnemyMov>();
 
     [Header("원거리 공격 설정")]
-    public GameObject projectilePrefab;      // 총알/화살 프리팹
     public Transform firePoint;              // 총알 발사 위치
     public float fireCooldown = 1.0f;        // 발사 쿨타임
     public float fireRange = 15f;            // 사거리
     public float keepDistance = 10f;         // 유지하고 싶은 거리
-    public float projectileSpeed = 15f;      // 총알 속도
     float _lastFireTimeRanged = -999f;
+    public int rayDamage = 10;          // 인스펙터에서 조절할 데미지
+    public LayerMask hitMask = ~0;      // 맞출 레이어(기본은 전체) - 헤더에 추가해도 좋음
 
     public bool IsChasingPublic => state == EnemyState.Chasing;
 
     void OnEnable()
     {
-        OnAnyEnemyKilled += HandleCorpseCreated; // 시체 알림 구독
+        OnAnyEnemyKilled += HandleCorpseCreated;
         if (!Instances.Contains(this)) Instances.Add(this);
     }
 
@@ -275,46 +276,41 @@ public class GunEnemyMov : MonoBehaviour
 
                 viewAngle = 360f;
 
-                // 보이면 마지막 좌표 갱신
-                if (playerInSight && player)
+                if (playerInSight)
                 {
-                    lastKnownPosition = player.position;
-                    hasLastKnownPosition = true;
-                }
-                if (corpseInSightNow) sawCorpse = true;
+                    // 플레이어를 일정 시간 동안 계속 보고 있을 때만 Chasing으로
+                    escalateSightTimer += Time.deltaTime;
 
-                // 보이는 시간 누적 / 리셋
-                if (playerInSight) escalateSightTimer += Time.deltaTime;
-                else escalateSightTimer = 0f;
+                    // 보는 동안 플레이어 방향으로만 살짝 회전
+                    Vector3 dir = player.position - transform.position;
+                    dir.y = 0f;
+                    if (dir.sqrMagnitude > 0.001f)
+                    {
+                        Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+                        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
+                    }
 
-                // 2초동안 보였으면 바로 Chasing
-                if (escalateSightTimer >= escalateToChaseDuration)
-                {
-                    chasingFromCorpse = sawCorpse;
-                    sawCorpse = false;
-                    state = EnemyState.Chasing;
-                    StartChaseLoopCapped();
-                    break;
-                }
+                    if (escalateSightTimer >= escalateToChaseDuration)
+                    {
+                        // 시체 때문에 본 거였다면 플래그 유지
+                        chasingFromCorpse = sawCorpse;
+                        sawCorpse = false;
 
-                // 0.5초 멈칫
-                watchPauseTimer -= Time.deltaTime;
-                if (watchPauseTimer > 0f)
-                {
-                    if (AgentReady()) { agent.isStopped = true; animator.SetFloat("Speed", 0f); }
+                        state = EnemyState.Chasing;
+                        StartChaseLoopCapped();
+                    }
                 }
                 else
                 {
-                    // Investigating으로 전환
-                    state = EnemyState.Investigating;
-                    if (AgentReady())
-                    {
-                        agent.isStopped = false;
-                        agent.speed = walkSpeed;
-                        agent.acceleration = 20f;
-                        if (hasLastKnownPosition) agent.SetDestination(lastKnownPosition);
-                    }
+                    // 시야에서 놓치면 누적 시간 리셋
+                    escalateSightTimer = 0f;
+
+                    watchPauseTimer -= Time.deltaTime;
+                    if (watchPauseTimer <= 0f)
+                        state = EnemyState.Investigating;
                 }
+
+                animator.SetFloat(Hash_Speed, 0f);
                 break;
 
             case EnemyState.Investigating:
@@ -332,21 +328,14 @@ public class GunEnemyMov : MonoBehaviour
                     break;
                 }
 
-                if (AgentReady())
+                investigateTimer += Time.deltaTime;
+                if (investigateTimer >= investigateDuration)
                 {
-                    animator.SetFloat("Speed", agent.velocity.magnitude);
-
-                    bool arrived = !agent.pathPending && agent.remainingDistance <= arriveSlack;
-
-                    // 시간 / 도착 둘 중 하나로 Patrol 복귀
-                    investigateTimer += Time.deltaTime;
-                    bool timeUp = (investigateTimer >= investigateDuration);
-
-                    if (timeUp || arrived)
-                    {
-                        ReturnToPatrolFromInvestigate();
-                    }
+                    ReturnToPatrolFromInvestigate();
+                    break;
                 }
+
+                animator.SetFloat(Hash_Speed, 0f);
                 break;
 
             case EnemyState.Chasing:
@@ -380,11 +369,11 @@ public class GunEnemyMov : MonoBehaviour
         }
 
         // 현재 이동 중일 때만 회전
-        if (agent && agent.velocity.sqrMagnitude > 0.1f)
+        /*if (agent && agent.velocity.sqrMagnitude > 0.1f)
         {
             Quaternion targetRot = Quaternion.LookRotation(agent.velocity.normalized);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
-        }
+        }*/
 
         UpdateMark();
     }
@@ -432,6 +421,7 @@ public class GunEnemyMov : MonoBehaviour
 
         watchPauseTimer = watchPauseDuration;
         investigateTimer = 0f;
+        escalateSightTimer = 0f;
 
         if (AgentReady())
         {
@@ -461,10 +451,13 @@ public class GunEnemyMov : MonoBehaviour
 
         state = EnemyState.Patrol;
 
-        if (AgentReady() && waypoints != null && waypoints.Length > 0)
-            agent.SetDestination(waypoints[currentIndex].position);
         if (AgentReady())
-            agent.isStopped = false;
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();
+            agent.speed = 0f;
+        }
     }
 
     void LateUpdate()
@@ -485,68 +478,24 @@ public class GunEnemyMov : MonoBehaviour
 
     void Patrol()
     {
-        if (_lockMoveForAction)
+        animator.SetFloat(Hash_Speed, 0f);
+
+        if (AgentReady())
         {
-            if (AgentReady())
-            {
-                agent.isStopped = true;
-                agent.velocity = Vector3.zero;
-            }
-            animator.SetFloat(Hash_Speed, 0f);
-            return;
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();
         }
-
-        if (waypoints == null || waypoints.Length < 2 || isWaiting) return;
-        if (!AgentReady()) return;
-
-        agent.speed = walkSpeed;
-
-        bool arrived = !agent.pathPending && agent.remainingDistance <= (agent.stoppingDistance + arriveSlack);
-
-        if (arrived)
-        {
-            // 끝/시작 지점에 도달했다면 방향 전환 전 '완전 정지'
-            if ((currentIndex == 0 && direction == -1) || (currentIndex == waypoints.Length - 1 && direction == 1))
-            {
-                direction *= -1;
-
-                // 확실히 멈추기
-                if (AgentReady())
-                {
-                    agent.isStopped = true;
-                    agent.velocity = Vector3.zero;
-                    agent.ResetPath();
-                }
-
-                StartCoroutine(WaitBeforeMoving());
-                return;
-            }
-
-            // 일반 중간 지점 도착 -> 다음 인덱스로 진행
-            currentIndex += direction;
-
-            if (AgentReady())
-            {
-                agent.isStopped = false;
-                agent.SetDestination(waypoints[currentIndex].position);
-            }
-        }
-
-        // 속도 보간을 통해 애니메이션 부드럽게 처리
-        float smoothSpeed = Mathf.Lerp(animator.GetFloat("Speed"), agent.velocity.magnitude, Time.deltaTime * 10f);
-        animator.SetFloat("Speed", smoothSpeed);
     }
 
     // 추격 행동
     void ChasePlayer()
     {
-        if (!AgentReady() || !player) return;
-
-        agent.speed = runSpeed;
+        if (!player) return;
 
         float dist = Vector3.Distance(transform.position, player.position);
 
-        // 사격 범위 안 인지
+        // 사격 범위 안인지
         bool inShootRange = dist <= fireRange;
 
         if (_isInShootRange != inShootRange)
@@ -556,49 +505,33 @@ public class GunEnemyMov : MonoBehaviour
 
             if (!_isInShootRange)
             {
+                // 사거리 밖으로 나가면 다시 이동 잠금 해제 & 트리거 리셋
                 SetMoveLocked(false);
                 animator.ResetTrigger(Hash_ShootTrigger);
             }
         }
 
+        // 사격 모션 중일 땐 제자리 유지
         if (_lockMoveForAction)
         {
-            // 공격 모션 중일 땐 제자리
-            agent.isStopped = true;
-            agent.velocity = Vector3.zero;
             animator.SetFloat(Hash_Speed, 0f);
             return;
         }
 
-        if (dist > keepDistance)
+        // 플레이어 쪽으로만 회전
+        Vector3 dir = player.position - transform.position;
+        dir.y = 0f;
+        if (dir.sqrMagnitude > 0.001f)
         {
-            // 플레이어 쪽으로 이동
-            agent.isStopped = false;
-            destinationUpdateTimer += Time.deltaTime;
-            if (destinationUpdateTimer >= destinationUpdateRate)
-            {
-                agent.SetDestination(player.position);
-                destinationUpdateTimer = 0f;
-            }
-        }
-        else
-        {
-            // 일정 거리 안에 들어오면 멈추고, 플레이어 바라보고, 사격 시도
-            agent.isStopped = true;
-            agent.velocity = Vector3.zero;
-
-            Vector3 dir = player.position - transform.position;
-            dir.y = 0f;
-            if (dir.sqrMagnitude > 0.001f)
-            {
-                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
-            }
-
-            TryShootAtPlayer(dist);
+            Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
         }
 
-        animator.SetFloat(Hash_Speed, agent.velocity.magnitude);
+        // 사거리 안이면 총 발사 시도
+        TryShootAtPlayer(dist);
+
+        // 이동 애니메이션은 항상 0 (제자리)
+        animator.SetFloat(Hash_Speed, 0f);
     }
 
     // 잠시 정지
@@ -636,7 +569,23 @@ public class GunEnemyMov : MonoBehaviour
         Vector3 to = targetPos - eyePos;
         float dist = to.magnitude;
 
-        float maxDist = (state == EnemyState.Chasing) ? chaseViewDistance : viewDistance;
+        float maxDist;
+        switch (state)
+        {
+            case EnemyState.Chasing:
+                maxDist = chaseViewDistance;
+                break;
+
+            case EnemyState.Watching:
+            case EnemyState.Investigating:
+                maxDist = watchingViewDistance;
+                break;
+
+            default:
+                maxDist = viewDistance;
+                break;
+        }
+
         if (dist > maxDist) return false;
 
         // 너무 가까우면 시야각 상관없이 본 걸로 처리
@@ -897,9 +846,9 @@ public class GunEnemyMov : MonoBehaviour
 
         if (AgentReady())
         {
-            agent.isStopped = false;
-            agent.speed = runSpeed;
-            agent.SetDestination(targetPos);
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();
         }
 
         miniQuestionMark?.SetActive(false);
@@ -1031,8 +980,10 @@ public class GunEnemyMov : MonoBehaviour
     {
         if (dist > fireRange) return;
 
+        audioSource.PlayOneShot(enemySounds[4], 1f);
+
         if (Time.time - _lastFireTimeRanged < fireCooldown) return;
-        if (!projectilePrefab || !firePoint || !player) return;
+        if (!firePoint || !player) return;
 
         _lastFireTimeRanged = Time.time;
 
@@ -1044,16 +995,30 @@ public class GunEnemyMov : MonoBehaviour
     // 총알 발사
     public void ShootProjectile()
     {
-        if (!projectilePrefab || !firePoint || !player) return;
+        if (!firePoint || !player) return;
 
-        GameObject proj = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
-
+        Vector3 origin = firePoint.position;
         Vector3 targetPos = player.position + Vector3.up * targetHeight;
-        Vector3 dir = (targetPos - firePoint.position).normalized;
-        proj.transform.rotation = Quaternion.LookRotation(dir);
+        Vector3 dir = (targetPos - origin).normalized;
 
-        if (proj.TryGetComponent<Rigidbody>(out var rb))
-            rb.velocity = dir * projectileSpeed;
+        if (Physics.Raycast(origin, dir, out RaycastHit hit, fireRange, hitMask, QueryTriggerInteraction.Ignore))
+        {
+            Debug.DrawLine(origin, hit.point, Color.red, 0.3f);
+
+            if (hit.collider.CompareTag("Player"))
+            {
+                var player = hit.collider.GetComponentInParent<PlayerMov>();
+                if (player != null)
+                {
+                    player.DieByBullet();
+                }
+            }
+
+        }
+        else
+        {
+            Debug.DrawRay(origin, dir * fireRange, Color.yellow, 0.3f);
+        }
     }
 
     void ReturnToPatrolFromInvestigate()
@@ -1067,11 +1032,12 @@ public class GunEnemyMov : MonoBehaviour
         escalateSightTimer = 0f;
         investigateTimer = 0f;
 
-        if (AgentReady() && waypoints != null && waypoints.Length > 0)
+        if (AgentReady())
         {
-            agent.isStopped = false;
-            agent.speed = walkSpeed;
-            agent.SetDestination(waypoints[currentIndex].position);
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+            agent.ResetPath();
+            agent.speed = 0f;
         }
 
         miniQuestionMark?.SetActive(false);

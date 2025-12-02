@@ -3408,7 +3408,6 @@ GameObject:
   - component: {fileID: 6768508787503278435}
   - component: {fileID: 8851731858825361158}
   - component: {fileID: 980607094276064533}
-  - component: {fileID: 3009650870402587836}
   - component: {fileID: -3430891887863726406}
   - component: {fileID: 6072847499534726613}
   m_Layer: 7
@@ -3462,13 +3461,14 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 802073fb56dc0544c9aa83e1917f105d, type: 3}
   - {fileID: 8300000, guid: c0b0bc5da8f0a014a9516a32286753c1, type: 3}
   - {fileID: 8300000, guid: 4488f14b8c95c7841a6014f52502bf95, type: 3}
+  - {fileID: 8300000, guid: fb2dedb143211fc458707d94c1f07e12, type: 3}
   waypoints: []
   walkSpeed: 2
   runSpeed: 5
   waitTimeAtEnds: 1.5
   rotationSpeed: 5
-  viewDistance: 10
-  viewAngle: 60
+  viewDistance: 20
+  viewAngle: 90
   player: {fileID: 0}
   questionMark: {fileID: 1286639685044395341}
   answerMarkexclamationMark: {fileID: 3368670387931445373}
@@ -3478,10 +3478,10 @@ MonoBehaviour:
   nearDetectDistance: 0.7
   eyeHeight: 1.5
   targetHeight: 0.9
-  maxDetectUp: 1
-  maxDetectDown: 2.5
+  maxDetectUp: 2
+  maxDetectDown: 20
   verticalFovUp: 30
-  verticalFovDown: 45
+  verticalFovDown: 60
   watchPauseDuration: 0.5
   investigateDuration: 5
   escalateToChaseDuration: 2
@@ -3489,6 +3489,7 @@ MonoBehaviour:
   lostAfterCorpse: 6
   infiniteChaseAfterCorpse: 0
   chaseViewDistance: 50
+  watchingViewDistance: 25
   corpseRequiresLineOfSight: 1
   occluderMask:
     serializedVersion: 2
@@ -3498,13 +3499,14 @@ MonoBehaviour:
   footstepVolume: 0.7
   QuestionVolume: 0.7
   chaseVolume: 0.7
-  projectilePrefab: {fileID: 4167527650915504698, guid: 7d02fba7b0a9b8c4391753177f8ff132,
-    type: 3}
   firePoint: {fileID: 329084377079507979}
   fireCooldown: 1
-  fireRange: 10
-  keepDistance: 10
-  projectileSpeed: 30
+  fireRange: 30
+  keepDistance: 30
+  rayDamage: 10
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!95 &6768508787503278435
 Animator:
   serializedVersion: 5
@@ -3574,28 +3576,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.3, y: 1.5, z: 0.3}
   m_Center: {x: 0, y: 0.84, z: 0}
---- !u!195 &3009650870402587836
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8773297124730230785}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.5
-  m_Speed: 1
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 2
-  m_BaseOffset: -0.08
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
 --- !u!82 &-3430891887863726406
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3618,7 +3598,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 0
-  MaxDistance: 15
+  MaxDistance: 30
   Pan2D: 0
   rolloffMode: 1
   BypassEffects: 0
