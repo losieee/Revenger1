@@ -9,6 +9,7 @@ public class KeyManager : MonoBehaviour
 
     [SerializeField] Text keyText;
     [SerializeField] Text stage2InsideText;
+    public Text stage2OutText;
 
     public int keyCount;
     public int stage2Count;
@@ -40,12 +41,14 @@ public class KeyManager : MonoBehaviour
     public  void Add2StageKey(int amount = 1)
     {
         stage2Count += amount;
-        stage2InsideText.text = $"ㅇ 열쇠조각을 획득하여 침실 열쇠 획득 ({stage2Count.ToString()}/3)";
+        stage2InsideText.text = $"ㅇ 열쇠조각을 획득하여 사격장 열쇠 획득 ({stage2Count.ToString()}/3)";
+        stage2OutText.text = $"ㅇ 열쇠조각을 획득하여 사격장 열쇠 획득 ({stage2Count.ToString()}/3)";
 
         if (stage2Count >= 3)
         {
             canShoot = true;
             stage2InsideText.text = $"ㅇ 사격장으로 이동하여 프리드리히 호프만 제압";
+            stage2OutText.text = $"ㅇ 사격장으로 이동하여 프리드리히 호프만 제압";
         }
     }
 }

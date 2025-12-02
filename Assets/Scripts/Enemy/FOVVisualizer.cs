@@ -8,6 +8,7 @@ public class FOVVisualizer : MonoBehaviour
     [Header("대상 선택 (둘 중 하나 지정)")]
     public EnemyMov enemy;
     public Villain villain;
+    public GunEnemyMov gunEnemy;
 
     [Header("레이어(가림막) - 선택")]
     public LayerMask occluderMask = ~0; // 기본은 전 레이어 충돌
@@ -43,6 +44,13 @@ public class FOVVisualizer : MonoBehaviour
             targetTr = enemy.transform;
             angle = enemy.viewAngle;
             radius = enemyUseChaseDistance ? enemy.chaseViewDistance : enemy.viewDistance;
+            eyeH = 1.5f; // 필요하면 EnemyMov에 눈높이를 public으로 노출해서 쓰세요
+        }
+        else if (gunEnemy != null)
+        {
+            targetTr = gunEnemy.transform;
+            angle = gunEnemy.viewAngle;
+            radius = enemyUseChaseDistance ? gunEnemy.chaseViewDistance : gunEnemy.viewDistance;
             eyeH = 1.5f; // 필요하면 EnemyMov에 눈높이를 public으로 노출해서 쓰세요
         }
         else if (villain != null)

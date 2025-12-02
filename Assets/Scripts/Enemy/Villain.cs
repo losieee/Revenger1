@@ -160,22 +160,26 @@ public class Villain : MonoBehaviour
 
     public void OnDieAnimationEnd()
     {
-        Debug.Log("<color=lime>OnDieAnimationEnd CALLED</color>");
-
         var player = FindObjectOfType<PlayerMov>();
         if (player == null)
-        {
-            Debug.LogWarning("PlayerMov 못 찾음");
             return;
-        }
+        
 
-        Debug.Log("찾은 PlayerMov = " + player.name);
-        Debug.Log("stage1GameClearUI = " + player.stage1GameClearUI);
 
         if (player != null && player.stage1GameClearUI != null)
             player.AE_Stage1GameClearMoment();
-        else
-            Debug.LogWarning("stage1GameClearUI 가 null 이라서 AE_Stage1GameClearMoment 호출 안함");
+    }
+
+    public void OnStage2DieAnimationEnd()
+    {
+        var player = FindObjectOfType<PlayerMov>();
+        if (player == null)
+            return;
+
+
+
+        if (player != null && player.stage2GameClearUI != null)
+            player.AE_Stage2GameClearMoment();
     }
 
     void PlayHitSfxByCurrentWeapon()

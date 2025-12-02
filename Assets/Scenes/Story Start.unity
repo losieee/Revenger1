@@ -1072,8 +1072,6 @@ MonoBehaviour:
   exitPop: {fileID: 0}
   musicSlider: {fileID: 0}
   effectSlider: {fileID: 0}
-  activateSound: {fileID: 0}
-  deactivateSound: {fileID: 0}
   spawnId: Default
   takeWeaponText: {fileID: 0}
   canNextStage: 0
@@ -2103,14 +2101,14 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 195786454}
         m_TargetAssemblyTypeName: ButtonControl, Assembly-CSharp
-        m_MethodName: StartGame
-        m_Mode: 1
+        m_MethodName: LoadSceneSimple
+        m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: 
+          m_StringArgument: Home
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &647140383

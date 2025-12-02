@@ -26,6 +26,11 @@ public class BookPickup : MonoBehaviour
     {
         if (!Input.GetMouseButtonDown(0)) return;
 
+        if (cam == null)
+        {
+            cam = Camera.main;
+        }
+
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
         if (!Physics.Raycast(ray, out RaycastHit hit, maxDistance, pickableMask))
             return;

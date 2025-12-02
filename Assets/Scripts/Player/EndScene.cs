@@ -11,7 +11,9 @@ public class EndScene : MonoBehaviour
     void Update()
     {
         if (goEnd && KeyBindings.GetKeyDown(GameAction.Interaction))
+        {
             SceneManager.LoadScene("EndScene");
+        }
     }
 
     private void OnTriggerEnter(Collider other)

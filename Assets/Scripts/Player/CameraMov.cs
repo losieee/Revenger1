@@ -97,6 +97,16 @@ public class CameraMov : MonoBehaviour
 
     void OnSceneLoaded(Scene s, LoadSceneMode m)
     {
+        if (s.name == "MainLobby")
+        {
+            // 싱글톤 정리 + 오브젝트 삭제
+            if (i == this)
+                i = null;
+
+            Destroy(gameObject);
+            return; // 아래 코드 실행 안 되게 바로 리턴
+        }
+
         // PlayerSpawner가 BindPlayer를 호출하는 게 원칙.
         // 혹시 못 불린 케이스 대비 1회 자동 바인딩(최후 수단).
         if (!target)

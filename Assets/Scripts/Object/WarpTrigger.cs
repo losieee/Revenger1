@@ -71,7 +71,7 @@ public class WarpTrigger : MonoBehaviour
     private void DoWarp()
     {
         onWarp?.Invoke();
-        SoundManager.i?.PlaySFX(PlayerSfx.Ladder, SfxBus.Effect, 1f);
+        SoundManager.i?.PlaySFX(PlayerSfx.ChestOpen, SfxBus.Effect, 1f);
         ScreenFader.i.FadeOutAndLoad(() =>
         {
             SceneTransit.Go(sceneName, spawnPointName);
@@ -91,7 +91,7 @@ public class WarpTrigger : MonoBehaviour
     private void WindowWarp()
     {
         onWarp?.Invoke();
-        SoundManager.i?.PlaySFX(PlayerSfx.Ladder, SfxBus.Effect, 1f);
+        SoundManager.i?.PlaySFX(PlayerSfx.ClimbStart, SfxBus.Effect, 1f);
         ScreenFader.i.FadeOutAndLoad(() =>
         {
             SceneTransit.Go(sceneName, spawnPointName);

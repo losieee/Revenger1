@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using UnityEngine.Audio;
 using UnityEditor;
 using UnityEngine.UI;
+using UnityEditor.AnimatedValues;
 
 [RequireComponent(typeof(Rigidbody))]
 [DefaultExecutionOrder(-100)]
@@ -38,6 +39,10 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] Sprite[] poseImg;
     [SerializeField] private AudioMixerGroup sfxGroup;
 
+    [Header("Check Point")]
+    public bool checkPoint1 = true;
+    public bool checkPoint2 = false;
+
     [Header("Move and Rotate")]
     public float speed = 5f;
     private float currentMoveSpeed = 0f;
@@ -62,6 +67,7 @@ public class PlayerMov : MonoBehaviour
     [Header("Game Clear (attack anim timing)")]
     [SerializeField] private bool _gameClearArmed = false;
     [SerializeField] private bool _gameClearShown = false;
+    [SerializeField] private bool _game2ClearShown = false;
 
     // 외부에서 읽을 수 있도록 공개(추가)
     public bool IsELocked => eLocked;
@@ -134,6 +140,7 @@ public class PlayerMov : MonoBehaviour
     [Header("Sound Range")]
     public float walkDetectRange = 6f;
     public float runDetectRange = 12f;
+    public float attackDetectRange = 10f;
     public LayerMask aiLayerMask;
 
     [Header("Climb Holding")]
@@ -467,6 +474,17 @@ public class PlayerMov : MonoBehaviour
 
         var cam = Camera.main;
         if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
+
+        if (scene.name == "Clear_1_stage_inside")
+        {
+            checkPoint1 = false;
+            checkPoint2 = true;
+        }
+        else if (scene.name == "Home")
+        {
+            checkPoint1 = true;
+            checkPoint2 = false;
+        }
     }
 
     private void HandleEnemyKilled(Transform deadTr)
@@ -1153,7 +1171,7 @@ public class PlayerMov : MonoBehaviour
             {
                 if (KeyManager.i == null || !KeyManager.i.canInBedroom)
                 {
-                    // SoundManager.i?.PlaySFX(PlayerSfx.DoorLocked, SfxBus.Effect, 1f);
+                    SoundManager.i?.PlaySFX(PlayerSfx.DoorLock, SfxBus.Effect, 1f);
                     return;
                 }
             }
@@ -2782,6 +2800,25 @@ public class PlayerMov : MonoBehaviour
         }
     }
 
+    void AlertEnemiesByAttack()
+    {
+        float radius = attackDetectRange;
+
+        // 공격 소리 범위 안의 AI들 찾기
+        Collider[] hits = Physics.OverlapSphere(transform.position, radius, aiLayerMask);
+
+        foreach (Collider col in hits)
+        {
+            var enemy = col.GetComponentInParent<EnemyMov>() ?? col.GetComponent<EnemyMov>();
+            if (enemy != null)
+                enemy.PlayerDetected(transform.position);
+
+            var villain = col.GetComponentInParent<Villain>() ?? col.GetComponent<Villain>();
+            if (villain != null)
+                villain.PlayerDetectedBySound(transform.position);
+        }
+    }
+
     // 어디서 벽을 타냐 기준
     void ApplyPostClimbPose()
     {
@@ -2933,8 +2970,8 @@ public class PlayerMov : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, runDetectRange);
 
-        Gizmos.color = new Color(0.2f, 0.6f, 1f, 0.25f);
-        Gizmos.DrawWireSphere(transform.position, wallKeepOutRadius);
+        Gizmos.color = new Color(1f, 1f, 0f, 0.25f);
+        Gizmos.DrawWireSphere(transform.position, attackDetectRange);
     }
 
     // 월드 좌표로 변환
@@ -3082,6 +3119,8 @@ public class PlayerMov : MonoBehaviour
     {
         if (!panel) return;
 
+        bool wasGameOverPanel = (panel == gameOverUI);
+
         if (panel == weaponChangePanel && boxObject != null)
         {
             var boxOpen = boxObject.GetComponentInChildren<BoxOpen>();
@@ -3107,6 +3146,12 @@ public class PlayerMov : MonoBehaviour
             Time.timeScale = 1f;
             UnlockControls(hideCursor: true);
             _weaponPickFlowActive = false;
+
+            if (wasGameOverPanel)
+            {
+                var player = FindObjectOfType<PlayerMov>();
+                if (player) player.SetPlayerColliderEnabled(true);
+            }
         }
     }
 
@@ -3124,14 +3169,12 @@ public class PlayerMov : MonoBehaviour
         {
             _colDisableDepth = 0;
             box.enabled = true;
-            rb.isKinematic = false;
             rb.useGravity = true;
             rb.velocity = Vector3.zero;
         }
         else
         {
             box.enabled = false;
-            rb.isKinematic = true;
             rb.useGravity = false;
             rb.velocity = Vector3.zero;
             GetComponent<KeyManager>().keyCount = 0;
@@ -3458,7 +3501,16 @@ public class PlayerMov : MonoBehaviour
         if (_gameClearShown) return;
 
         _gameClearShown = true;   // 중복 방지
-        ShowPausePanel(stage1GameClearUI);  // 여기서 Time.timeScale=0, 일시정지 + 커서 표시
+        ShowPausePanel(stage1GameClearUI);
+    }
+
+    public void AE_Stage2GameClearMoment()
+    {
+        if (_game2ClearShown) return;
+
+        _game2ClearShown = true;   // 중복 방지
+        GetComponent<KeyManager>().stage2OutText.text = $"ㅇ 정문으로 탈출";
+        ShowPausePanel(stage2GameClearUI);
     }
 
     public void AE_PlayAttackSfx()
@@ -3468,22 +3520,9 @@ public class PlayerMov : MonoBehaviour
         if (Time.frameCount == _lastAttackSfxFrame) return;
         _lastAttackSfxFrame = Time.frameCount;
 
-        var wm = WeaponManager.i;
-        var type = wm ? wm.SelectedWeapon : WeaponManager.WeaponType.Crowbar;
+        SoundManager.i.PlaySFX(PlayerSfx.WeaponSwing, SfxBus.Effect, 1f);
 
-        switch (type)
-        {
-            case WeaponManager.WeaponType.Gun:
-                SoundManager.i?.PlaySFX(PlayerSfx.AttackGun, SfxBus.Effect, 1f);
-                break;
-            case WeaponManager.WeaponType.Bat:
-                SoundManager.i?.PlaySFX(PlayerSfx.AttackBat, SfxBus.Effect, 1f);
-                break;
-            case WeaponManager.WeaponType.Crowbar:
-            default:
-                SoundManager.i?.PlaySFX(PlayerSfx.AttackCrowbar, SfxBus.Effect, 1f);
-                break;
-        }
+        AlertEnemiesByAttack();
     }
 
     // 공격이 가능한 상태인가

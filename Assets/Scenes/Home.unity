@@ -2873,7 +2873,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 4540417688124394155}
+      - m_Target: {fileID: 1602773140}
         m_TargetAssemblyTypeName: ButtonControl, Assembly-CSharp
         m_MethodName: ReadyToStart
         m_Mode: 1
@@ -5297,6 +5297,7 @@ GameObject:
   - component: {fileID: 1602773137}
   - component: {fileID: 1602773139}
   - component: {fileID: 1602773138}
+  - component: {fileID: 1602773140}
   m_Layer: 5
   m_Name: guide3
   m_TagString: Untagged
@@ -5362,6 +5363,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1602773136}
   m_CullTransparentMesh: 1
+--- !u!114 &1602773140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1602773136}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e8f8e0e49ea7a341aea9aed72bc996e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  optionPop: {fileID: 0}
+  exitPop: {fileID: 0}
+  musicSlider: {fileID: 0}
+  effectSlider: {fileID: 0}
+  spawnId: Default
+  takeWeaponText: {fileID: 0}
+  canNextStage: 0
 --- !u!1 &1727713895 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 8d73d1f258d09cf4ea03a0704024d8be,
@@ -10959,16 +10979,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 744544265551362333, guid: c956b82eda4461b4380addae0e9da124,
-        type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: -1.1591797
-      objectReference: {fileID: 0}
-    - target: {fileID: 1261139840273799222, guid: c956b82eda4461b4380addae0e9da124,
-        type: 3}
-      propertyPath: m_AnchoredPosition.x
-      value: -1.1591797
-      objectReference: {fileID: 0}
     - target: {fileID: 1271308256077358203, guid: c956b82eda4461b4380addae0e9da124,
         type: 3}
       propertyPath: m_Name
@@ -11029,6 +11039,11 @@ PrefabInstance:
       propertyPath: cam
       value: 
       objectReference: {fileID: 3544620743856914473}
+    - target: {fileID: 4751941067396353408, guid: c956b82eda4461b4380addae0e9da124,
+        type: 3}
+      propertyPath: attackDetectRange
+      value: 2.5
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -11114,18 +11129,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &4540417688124394155 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 249931132612995672, guid: c956b82eda4461b4380addae0e9da124,
-    type: 3}
-  m_PrefabInstance: {fileID: 4356426554402365683}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e8f8e0e49ea7a341aea9aed72bc996e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &4549111882374348760
 GameObject:
   m_ObjectHideFlags: 0

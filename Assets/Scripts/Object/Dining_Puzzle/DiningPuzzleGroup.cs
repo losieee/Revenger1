@@ -10,6 +10,7 @@ public class DiningPuzzleGroup : MonoBehaviour
 
     [SerializeField] GameObject key;
     [SerializeField] private float enemyWaitSeconds = 3f;
+    [SerializeField] AudioClip dropKey;
 
     int failCount = 0;
 
@@ -35,7 +36,7 @@ public class DiningPuzzleGroup : MonoBehaviour
                 solved = true;
                 failCount = 0;
                 PlayerInventory.PickupsLocked = true;
-                SoundManager.i?.PlaySFX(PlayerSfx.GetKey, SfxBus.Effect, 1f);
+                PlaySfx(dropKey);
                 key.SetActive(true);
 
                 // 모두 잠금
@@ -55,5 +56,11 @@ public class DiningPuzzleGroup : MonoBehaviour
                 SoundManager.i?.PlaySFX(PlayerSfx.FailDiningPuzzle, SfxBus.Effect, 1f);
             }
         }
+    }
+
+    void PlaySfx(AudioClip clip)
+    {
+        if (!clip) return;
+        AudioSource.PlayClipAtPoint(clip, transform.position, 1f);
     }
 }
