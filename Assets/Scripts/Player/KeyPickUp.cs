@@ -5,6 +5,7 @@ using UnityEngine;
 public class KeyPickUp : MonoBehaviour
 {
     private bool canGetKey;
+    private bool closeText = false;
 
     private void Update()
     {
@@ -16,19 +17,27 @@ public class KeyPickUp : MonoBehaviour
                 SoundManager.i.PlaySFX(PlayerSfx.GetKey, SfxBus.Effect, 1f);
             }
 
-            Destroy(gameObject);
+            if(closeText) KeyManager.i.GetComponent<PlayerMov>().nearNPC.gameObject.SetActive(false);
+
+            transform.gameObject.SetActive(false);
         }
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
+        {
             canGetKey = true;
+            other.GetComponent<PlayerMov>().nearNPC.gameObject.SetActive(true);
+            closeText = true;
+        }
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
+        {
             canGetKey = false;
+        }
     }
 }

@@ -2046,6 +2046,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 208728770}
   m_CullTransparentMesh: 1
+--- !u!1 &212374611
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 212374613}
+  - component: {fileID: 212374612}
+  m_Layer: 0
+  m_Name: LobbyManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &212374612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212374611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 634faec35c902ba44974ca54f4a4cf5e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &212374613
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212374611}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -52.871716, y: 33.906986, z: -87.52318}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &216872913
 GameObject:
   m_ObjectHideFlags: 0
@@ -14429,6 +14473,8 @@ MonoBehaviour:
   effectSlider: {fileID: 174415408}
   spawnId: Default
   takeWeaponText: {fileID: 0}
+  dressRoomPuzzle: {fileID: 0}
+  guestRoomPuzzle: {fileID: 0}
   canNextStage: 0
 --- !u!4 &1941475553
 Transform:
@@ -15984,3 +16030,4 @@ SceneRoots:
   - {fileID: 1941475553}
   - {fileID: 1848485409}
   - {fileID: 500574417}
+  - {fileID: 212374613}

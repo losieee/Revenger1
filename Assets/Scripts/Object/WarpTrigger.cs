@@ -41,6 +41,7 @@ public class WarpTrigger : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
+        other.GetComponent<PlayerMov>().nearNPC.gameObject.SetActive(true);
 
         if (gameObject.CompareTag("Manhole")) isHole = true;
         if (gameObject.CompareTag("Window")) isWindow = true;
@@ -55,6 +56,7 @@ public class WarpTrigger : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag(playerTag)) return;
+        other.GetComponent<PlayerMov>().nearNPC.gameObject.SetActive(false);
 
         if (gameObject.CompareTag("Manhole")) isHole = false;
         if (gameObject.CompareTag("Window")) isWindow = false;
