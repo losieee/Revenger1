@@ -14,15 +14,24 @@ public class DressRoomPuzzleManager : MonoBehaviour
     private int[] dressNums = new int[3];
     private readonly int[] dressCorrect = { 5, 2, 3 };
 
-    [Header("Guest")]
-    private int[] guestNums = new int[3];
-    private readonly int[] guestCorrect = { 6, 5, 5 };
+    [SerializeField] private TMP_Text[] dressSlotTexts;
 
     private int failCount = 0;
 
     void Start()
     {
         audioSource = transform.root.GetComponent<AudioSource>();
+
+        if (dressSlotTexts == null || dressSlotTexts.Length == 0)
+        {
+            dressSlotTexts = new TMP_Text[3];
+            for (int i = 0; i < 3; i++)
+            {
+                var txt = transform.GetChild(i).GetComponentInChildren<TMP_Text>();
+                dressSlotTexts[i] = txt;
+            }
+        }
+        ResetDressPuzzle();
     }
 
     void Guard(ref int num)
@@ -35,17 +44,12 @@ public class DressRoomPuzzleManager : MonoBehaviour
         dressNums[index]++;
         Guard(ref dressNums[index]);
 
-        var txt = transform.GetChild(index).GetComponentInChildren<TMP_Text>();
-        txt.text = $"{dressNums[index]}";
-    }
-
-    public void OnClickGuest(int index)
-    {
-        guestNums[index]++;
-        Guard(ref guestNums[index]);
-
-        var txt = transform.GetChild(index).GetComponentInChildren<TMP_Text>();
-        txt.text = $"{guestNums[index]}";
+        if (dressSlotTexts != null &&
+            index < dressSlotTexts.Length &&
+            dressSlotTexts[index] != null)
+        {
+            dressSlotTexts[index].text = $"{dressNums[index]}";
+        }
     }
 
     public void OnClickAnswer()
@@ -54,19 +58,15 @@ public class DressRoomPuzzleManager : MonoBehaviour
                     && dressNums[1] == dressCorrect[1]
                     && dressNums[2] == dressCorrect[2];
 
-        bool guestOK = guestNums[0] == guestCorrect[0]
-                    && guestNums[1] == guestCorrect[1]
-                    && guestNums[2] == guestCorrect[2];
-
-        if (dressOK || guestOK)         // 성공
+        if (dressOK)
         {
             audioSource.volume = 0.1f;
             audioSource.PlayOneShot(clips[0]);
             SoundManager.i?.PlaySFX(PlayerSfx.WeaponDraw, SfxBus.Effect, 1f);
             KeyManager.i.AddKey(1);
-            DestroyButtons();
+            DisableButtons();
         }
-        else                            // 실패
+        else
         {
             failCount++;
 
@@ -82,11 +82,33 @@ public class DressRoomPuzzleManager : MonoBehaviour
         }
     }
 
-    void DestroyButtons()
+    void DisableButtons()
     {
         foreach (Button btn in GetComponentsInChildren<Button>())
         {
-            Destroy(btn);
+            btn.interactable = false;
+        }
+    }
+
+    public void ResetDressPuzzle()
+    {
+        Debug.Log("Reset");
+        failCount = 0;
+
+        for (int i = 0; i < dressNums.Length; i++)
+        {
+            dressNums[i] = 0;
+
+            if (dressSlotTexts != null && i < dressSlotTexts.Length && dressSlotTexts[i] != null)
+            {
+                dressSlotTexts[i].text = "0";
+            }
+        }
+
+        // 버튼 다시 활성화
+        foreach (Button btn in GetComponentsInChildren<Button>())
+        {
+            btn.interactable = true;
         }
     }
 }

@@ -26,6 +26,23 @@ public class KeyManager : MonoBehaviour
         i = this;
     }
 
+    public void ResetKeys()
+    {
+        keyCount = 0;
+        stage2Count = 0;
+        canInBedroom = false;
+        canShoot = false;
+
+        if (keyText != null)
+            keyText.text = $"§∑ ø≠ºË¡∂∞¢¿ª »πµÊ«œø© ƒßΩ« ø≠ºË »πµÊ (0/7)";
+
+        if (stage2InsideText != null)
+            stage2InsideText.text = $"§∑ ø≠ºË¡∂∞¢¿ª »πµÊ«œø© ªÁ∞›¿Â ø≠ºË »πµÊ (0/3)";
+
+        if (stage2OutText != null)
+            stage2OutText.text = $"§∑ ø≠ºË¡∂∞¢¿ª »πµÊ«œø© ªÁ∞›¿Â ø≠ºË »πµÊ (0/3)";
+    }
+
     public void AddKey(int amount = 1)
     {
         keyCount += amount;

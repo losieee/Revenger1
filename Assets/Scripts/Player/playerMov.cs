@@ -15,6 +15,8 @@ public class PlayerMov : MonoBehaviour
 {
     [Header("Component")]
     public Rigidbody rb;
+    public GameObject playerMiniIn;
+    public GameObject playerMiniOut;
     public GameObject stage1GameClearUI;
     public GameObject stage2GameClearUI;
     public GameObject gameOverUI;
@@ -184,6 +186,7 @@ public class PlayerMov : MonoBehaviour
     private float ignoreGroundedTimer = 0f;
     private float ignoreDurationAfterJump = 0.25f; // 점프 직후 잠깐 지면 판정 무시
     private float fallTimer = 0f;
+    private bool _fallAnimPlayed = false;
     [SerializeField] private float fallDebounce = 0.10f; // 100ms
 
     public LayerMask groundLayer;
@@ -956,24 +959,32 @@ public class PlayerMov : MonoBehaviour
         bool isFallingAnim = fallTimer > fallDebounce;
         animator.SetBool("IsFalling", isFallingAnim);
 
-        // 착지 트리거
-        if (!wasGroundedLastFrame && isGrounded
-            && timeSinceLeftGround >= minAirTimeForLand
-            && verticalVelocity <= landMinDownVel
-            && !ignoreGroundedCheck)
-        {
-            animator.SetTrigger("Land");
-            animator.SetBool("IsJumping", false);
-            animator.SetBool("IsFalling", false);
-            fallTimer = 0f;
-            isLanding = true;
-            landingTimer = landingDelay;
-        }
+        if (isFallingAnim)
+            _fallAnimPlayed = true;
 
-        if (isLanding)
+        // 착지 트리거
+        if (!wasGroundedLastFrame && isGrounded && !ignoreGroundedCheck)
         {
-            landingTimer -= Time.deltaTime;
-            if (landingTimer <= 0f) isLanding = false;
+            bool hardLanding =
+                timeSinceLeftGround >= minAirTimeForLand &&
+                verticalVelocity <= landMinDownVel;
+
+            if (hardLanding || _fallAnimPlayed)
+            {
+                animator.SetTrigger("Land");
+                animator.SetBool("IsJumping", false);
+                animator.SetBool("IsFalling", false);
+                fallTimer = 0f;
+                isLanding = true;
+                landingTimer = landingDelay;
+            }
+            else
+            {
+                animator.SetBool("IsJumping", false);
+                animator.SetBool("IsFalling", false);
+            }
+
+            _fallAnimPlayed = false;
         }
 
         wasGroundedLastFrame = isGrounded;
@@ -1078,26 +1089,38 @@ public class PlayerMov : MonoBehaviour
                 if (currentScene == "1_stage_inside" && minimapInside != null)
                 {
                     minimapInside.SetActive(true);
+                    playerMiniIn.SetActive(false);
+                    playerMiniOut.SetActive(true);
                 }
                 else if (currentScene == "1_stage_out" && minimapOut != null)
                 {
                     minimapOut.SetActive(true);
+                    playerMiniIn.SetActive(false);
+                    playerMiniOut.SetActive(true);
                 }
                 else if (currentScene == "2_stage_out" && minimap_2_Out != null)
                 {
                     minimap_2_Out.SetActive(true);
+                    playerMiniIn.SetActive(false);
+                    playerMiniOut.SetActive(true);
                 }
                 else if (currentScene == "Home" && minimapHome != null)
                 {
                     minimapHome.SetActive(true);
+                    playerMiniIn.SetActive(true);
+                    playerMiniOut.SetActive(false);
                 }
                 else if (currentScene == "Clear_1_stage_inside" && minimapStage1Clear != null)
                 {
                     minimapStage1Clear.SetActive(true);
+                    playerMiniIn.SetActive(true);
+                    playerMiniOut.SetActive(false);
                 }
                 else if (currentScene == "2_Stage_Inside" && stage2MinimapInside != null)
                 {
                     stage2MinimapInside.SetActive(true);
+                    playerMiniIn.SetActive(false);
+                    playerMiniOut.SetActive(true);
                 }
             }
         }
@@ -2431,10 +2454,26 @@ public class PlayerMov : MonoBehaviour
             StartCoroutine(GameOverSequence());
         }
 
-        if (other.CompareTag("Door")) BindDoor(other, +1);
-        if (other.CompareTag("MinDoor")) BindDoor(other, -1);
-        if (other.CompareTag("BedRoomDoor")) BindDoor(other, +1, true);
-        if (other.CompareTag("BedRoomMinDoor")) BindDoor(other, -1, true);
+        if (other.CompareTag("Door"))
+        {
+            nearNPC.gameObject.SetActive(true);
+            BindDoor(other, +1);
+        }
+        if (other.CompareTag("MinDoor"))
+        {
+            nearNPC.gameObject.SetActive(true);
+            BindDoor(other, -1);
+        }
+        if (other.CompareTag("BedRoomDoor"))
+        {
+            nearNPC.gameObject.SetActive(true);
+            BindDoor(other, +1, true);
+        }
+        if (other.CompareTag("BedRoomMinDoor"))
+        {
+            nearNPC.gameObject.SetActive(true);
+            BindDoor(other, -1, true);
+        }
 
         if (other.CompareTag("WeaponBox")) 
         {
@@ -2520,32 +2559,19 @@ public class PlayerMov : MonoBehaviour
         }
 
         if (other.CompareTag("Manhole")) nearNPC.gameObject.SetActive(true);
-
-        if(other.CompareTag("Bullet")) StartCoroutine(GameOverSequence());
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("DonRun")) { donRunZoneCount = Mathf.Max(0, donRunZoneCount - 1); UpdateRunLock(); }
         if (other.CompareTag("ClimbZone")) canClimbZone = false;
-        /*if (other.CompareTag("Boss"))
-        {
-            canAttack = false;
-            _gameClearArmed = false;
-            _gameClearShown = false;
-        }*/
 
         if (other.CompareTag("NPC")) { nearNPC.gameObject.SetActive(false); canTakeMission = false; }
-
-        /*if (other.CompareTag("Attack"))
-        {
-            var enemy = other.GetComponentInParent<EnemyMov>() ?? other.GetComponent<EnemyMov>();
-            if (enemy == killTarget) { killTarget = null; canKill = false; }
-        }*/
 
         if (other.CompareTag("Door") || other.CompareTag("MinDoor") ||
         other.CompareTag("BedRoomDoor") || other.CompareTag("BedRoomMinDoor"))
         {
+            nearNPC.gameObject.SetActive(false);
             var leaf = FirstLeafChild(other.transform);
             if (leaf) nearDoorLeaves.Remove(leaf);
         }

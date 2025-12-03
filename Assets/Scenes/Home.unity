@@ -5381,6 +5381,8 @@ MonoBehaviour:
   effectSlider: {fileID: 0}
   spawnId: Default
   takeWeaponText: {fileID: 0}
+  dressRoomPuzzle: {fileID: 0}
+  guestRoomPuzzle: {fileID: 0}
   canNextStage: 0
 --- !u!1 &1727713895 stripped
 GameObject:
@@ -10979,6 +10981,16 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 249931132612995672, guid: c956b82eda4461b4380addae0e9da124,
+        type: 3}
+      propertyPath: dressRoomPuzzle
+      value: 
+      objectReference: {fileID: 4356426554402365684}
+    - target: {fileID: 249931132612995672, guid: c956b82eda4461b4380addae0e9da124,
+        type: 3}
+      propertyPath: guestRoomPuzzle
+      value: 
+      objectReference: {fileID: 4356426554402365685}
     - target: {fileID: 1271308256077358203, guid: c956b82eda4461b4380addae0e9da124,
         type: 3}
       propertyPath: m_Name
@@ -11039,16 +11051,38 @@ PrefabInstance:
       propertyPath: cam
       value: 
       objectReference: {fileID: 3544620743856914473}
-    - target: {fileID: 4751941067396353408, guid: c956b82eda4461b4380addae0e9da124,
-        type: 3}
-      propertyPath: attackDetectRange
-      value: 2.5
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4732372271787547159, guid: c956b82eda4461b4380addae0e9da124, type: 3}
+    - {fileID: 1859699376318261596, guid: c956b82eda4461b4380addae0e9da124, type: 3}
+    - {fileID: 7789390856432144527, guid: c956b82eda4461b4380addae0e9da124, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c956b82eda4461b4380addae0e9da124, type: 3}
+--- !u!114 &4356426554402365684 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8791644155034489608, guid: c956b82eda4461b4380addae0e9da124,
+    type: 3}
+  m_PrefabInstance: {fileID: 4356426554402365683}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb695e0890fca6144a846aa0fcd957a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4356426554402365685 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6008244293617480911, guid: c956b82eda4461b4380addae0e9da124,
+    type: 3}
+  m_PrefabInstance: {fileID: 4356426554402365683}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1023b352b8ce363438c5ca9c84ec4a48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &4441848306054337192
 GameObject:
   m_ObjectHideFlags: 0

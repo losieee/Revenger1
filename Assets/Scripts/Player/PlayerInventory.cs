@@ -109,6 +109,7 @@ public class PlayerInventory : MonoBehaviour
     public void Clear()
     {
         items.Clear();
+        PickupsLocked = false;
         NotifyChanged();
     }
 
@@ -152,5 +153,10 @@ public class PlayerInventory : MonoBehaviour
     {
         if (!TryTakeById(id, out var taken)) return false;
         return TryDropToWorld(taken);
+    }
+
+    public void ResetInventory()
+    {
+        Clear();
     }
 }

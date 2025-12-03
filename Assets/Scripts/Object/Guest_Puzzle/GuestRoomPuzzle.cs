@@ -92,4 +92,17 @@ public class GuestRoomPuzzle : MonoBehaviour
         foreach (var btn in GetComponentsInChildren<Button>())
             btn.interactable = false;
     }
+
+    public void ResetPuzzle()
+    {
+        for (int i = 0; i < nums.Length; i++)
+        {
+            nums[i] = 0;
+            if (slotTexts != null && i < slotTexts.Length && slotTexts[i] != null)
+                slotTexts[i].text = "0";
+        }
+
+        foreach (var btn in GetComponentsInChildren<Button>())
+            btn.interactable = true;
+    }
 }

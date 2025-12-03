@@ -21,6 +21,10 @@ public class ButtonControl : MonoBehaviour
 
     [SerializeField] TMP_Text takeWeaponText;
 
+    [Header("Puzzles")]
+    [SerializeField] private DressRoomPuzzleManager dressRoomPuzzle;
+    [SerializeField] private GuestRoomPuzzleSetManager guestRoomPuzzle;
+
 
     [HideInInspector] public bool canNextStage = false;
 
@@ -126,6 +130,18 @@ public class ButtonControl : MonoBehaviour
     {
         var player = FindObjectOfType<PlayerMov>();
         if (player) player.SetPlayerColliderEnabled(true);
+
+        if (KeyManager.i != null)
+            KeyManager.i.ResetKeys();
+
+        if (PlayerInventory.Instance != null)
+            PlayerInventory.Instance.ResetInventory();
+
+        if (dressRoomPuzzle != null)
+            dressRoomPuzzle.ResetDressPuzzle();
+
+        if (guestRoomPuzzle != null)
+            guestRoomPuzzle.ResetAllPuzzles();
 
         // 전역 상태 복구
         AudioListener.pause = false;

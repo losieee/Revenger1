@@ -25,6 +25,21 @@ public class GuestRoomPuzzleSetManager : MonoBehaviour
         }
     }
 
+    public void ResetAllPuzzles()
+    {
+        puzzleSolved = false;
+        totalFailCount = 0;
+
+        solvableIndex = Random.Range(0, panels.Length);
+
+        // 각 퍼즐 리셋
+        foreach (var p in panels)
+        {
+            if (p != null)
+                p.ResetPuzzle();
+        }
+    }
+
     // 퍼즐에서 호출
     public void OnPuzzleSolved()
     {
