@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using UnityEngine.Audio;
 using UnityEditor;
 using UnityEngine.UI;
-using UnityEditor.AnimatedValues;
 
 [RequireComponent(typeof(Rigidbody))]
 [DefaultExecutionOrder(-100)]
