@@ -60,6 +60,15 @@ public class PlayerMov : MonoBehaviour
     [SerializeField] private float assassinateRotLerp = 20f;             // 회전 보간속도
     private bool _attackLocked = false;
 
+    [Header("Weapon Stats (from JSON)")]
+    public string currentWeaponName;
+    public bool canClimbWithWeapon = true;  // 이 무기를 들고 있을 때 벽타기 가능 여부
+    public float weaponAttackRange = 1.5f;
+    public float weaponAttackPower = 10f;
+    public float weaponAttackSpeed = 1.0f;
+    [SerializeField] float _currentWeaponAttackRange = 0f;
+    public float CurrentWeaponAttackRange => _currentWeaponAttackRange;
+
     [Header("E Cooldown")]
     [SerializeField] private float eCooldownDuration = 0.6f;
     private bool eLocked = false;
@@ -1468,14 +1477,16 @@ public class PlayerMov : MonoBehaviour
         if (!IsWeaponShown() || WeaponManager.i == null)
             return false;
 
-        switch (WeaponManager.i.SelectedWeapon)
+        return !canClimbWithWeapon;
+
+        /*switch (WeaponManager.i.SelectedWeapon)
         {
             case WeaponManager.WeaponType.Crowbar:
             case WeaponManager.WeaponType.Bat:
                 return true;
             default:
                 return false;
-        }
+        }*/
     }
 
     // 엎드리기
@@ -2232,32 +2243,17 @@ public class PlayerMov : MonoBehaviour
     {
         if (!weaponAttackBox || !_hasAttackBoxBaseSize) return;
 
-        var wm = WeaponManager.i;
-        var type = wm ? wm.SelectedWeapon : WeaponManager.WeaponType.None;
-
         Vector3 size = _attackBoxBaseSize;
         Vector3 center = _attackBoxBaseCenter;
 
-        float z = size.z;
+        float z = _attackBoxBaseSize.z;
 
-        switch (type)
+        if (CurrentWeaponAttackRange > 0f)
         {
-            case WeaponManager.WeaponType.Gun:
-                z = 0.5f;
-                break;
-            case WeaponManager.WeaponType.Crowbar:
-                z = 1.0f;
-                break;
-            case WeaponManager.WeaponType.Bat:
-                z = 1.5f;
-                break;
-            default:
-                z = _attackBoxBaseSize.z;
-                break;
+            z = CurrentWeaponAttackRange;
         }
 
         size.z = z;
-
         center.z = z * 0.5f;
 
         center.x = _attackBoxBaseCenter.x;
@@ -3651,6 +3647,43 @@ public class PlayerMov : MonoBehaviour
             animator.SetBool("IsCrawling", false);
             animator.SetBool("IsFalling", false);
         }
+    }
+
+    public void ApplyWeaponStats(WeaponJsonData data)
+    {
+        currentWeaponName = data.weaponName;
+        canClimbWithWeapon = data.weaponClimbWhether;
+
+        weaponAttackRange = data.weaponAttackRange;
+        weaponAttackPower = data.weaponAttack;
+        weaponAttackSpeed = data.weaponAttackSpeed;
+
+        var type = WeaponManager.i ? WeaponManager.i.SelectedWeapon : WeaponManager.WeaponType.None;
+
+        switch (type)
+        {
+            case WeaponManager.WeaponType.Gun:
+                gunSpeedMul = data.weaponWalkSpeed;
+                gunAnimMul = data.weaponAttackSpeed;
+                break;
+
+            case WeaponManager.WeaponType.Crowbar:
+                crowbarSpeedMul = data.weaponWalkSpeed;
+                crowbarAnimMul = data.weaponAttackSpeed;
+                break;
+
+            case WeaponManager.WeaponType.Bat:
+                batSpeedMul = data.weaponWalkSpeed;
+                batAnimMul = data.weaponAttackSpeed;
+                break;
+
+            case WeaponManager.WeaponType.None:
+            default:
+                handSpeedMul = data.weaponWalkSpeed;
+                handAnimMul = data.weaponAttackSpeed;
+                break;
+        }
+        _currentWeaponAttackRange = data.weaponAttackRange;
     }
 
     void ClearAllTriggerStates()

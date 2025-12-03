@@ -11051,13 +11051,27 @@ PrefabInstance:
       propertyPath: cam
       value: 
       objectReference: {fileID: 3544620743856914473}
+    - target: {fileID: 5609058449937028433, guid: c956b82eda4461b4380addae0e9da124,
+        type: 3}
+      propertyPath: config
+      value: 
+      objectReference: {fileID: 9045317020286676340}
+    - target: {fileID: 5609058449937028433, guid: c956b82eda4461b4380addae0e9da124,
+        type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 9045317020286676339}
     m_RemovedComponents:
     - {fileID: 4732372271787547159, guid: c956b82eda4461b4380addae0e9da124, type: 3}
     - {fileID: 1859699376318261596, guid: c956b82eda4461b4380addae0e9da124, type: 3}
     - {fileID: 7789390856432144527, guid: c956b82eda4461b4380addae0e9da124, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1271308256077358203, guid: c956b82eda4461b4380addae0e9da124,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9045317020286676340}
   m_SourcePrefab: {fileID: 100100000, guid: c956b82eda4461b4380addae0e9da124, type: 3}
 --- !u!114 &4356426554402365684 stripped
 MonoBehaviour:
@@ -11083,6 +11097,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1023b352b8ce363438c5ca9c84ec4a48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &4356426554402365686 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1271308256077358203, guid: c956b82eda4461b4380addae0e9da124,
+    type: 3}
+  m_PrefabInstance: {fileID: 4356426554402365683}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &4441848306054337192
 GameObject:
   m_ObjectHideFlags: 0
@@ -15472,12 +15492,56 @@ MonoBehaviour:
     type: 3}
   m_PrefabInstance: {fileID: 4356426554402365683}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 4356426554402365686}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1506ffff343925f40b9e913810d64ec9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &9045317020286676340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4356426554402365686}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1629d69df55696542a727780993831d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weaponJson: {fileID: 4900000, guid: a62e9894cdca8ce4180acffdce5e2016, type: 3}
+  weaponList:
+  - id: 1
+    weaponName: Gun
+    weaponClimbWhether: 1
+    weaponAttackRange: 0.5
+    weaponAttack: 100
+    weaponAttackSpeed: 1
+    weaponWalkSpeed: 1
+    weaponRunSpeed: 3
+    weaponSitSpeed: 0.825
+    weaponCrawlSpeed: 0.525
+  - id: 2
+    weaponName: Crowbar
+    weaponClimbWhether: 0
+    weaponAttackRange: 1
+    weaponAttack: 100
+    weaponAttackSpeed: 0.7
+    weaponWalkSpeed: 0
+    weaponRunSpeed: 2.1
+    weaponSitSpeed: 0.5775
+    weaponCrawlSpeed: 0.3675
+  - id: 3
+    weaponName: Bat
+    weaponClimbWhether: 0
+    weaponAttackRange: 1.5
+    weaponAttack: 100
+    weaponAttackSpeed: 0.7
+    weaponWalkSpeed: 0.6
+    weaponRunSpeed: 1.8
+    weaponSitSpeed: 0.495
+    weaponCrawlSpeed: 0.315
 --- !u!4 &9105779584808526177
 Transform:
   m_ObjectHideFlags: 0
