@@ -23,7 +23,7 @@ public class DiningPuzzleGroup : MonoBehaviour
 
     public void CheckSolved()
     {
-        if (solved) return; // 이미 해결됐으면 더 볼 필요 없음
+        if (solved) return;
 
         int total = slots.Length;
         int filled = slots.Count(s => s.IsFilled);

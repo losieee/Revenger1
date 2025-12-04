@@ -322,7 +322,7 @@ public class PlayerMov : MonoBehaviour
     private bool isCamBlending = false;
     private CameraMov cmov;
     private bool isLaundryView = false;         // 전용 뷰에 들어와 있는지
-    private bool _laundryRangeDisabled = false; // 성공 후 범위 비활성화
+    [HideInInspector] public bool _laundryRangeDisabled = false;    // 성공 후 범위 비활성화
     public float restoreCamBlend = 0.4f;        // 복귀시 리센터 시간
     private Vector3 _preViewCamPos;
     private Quaternion _preViewCamRot;
@@ -1376,8 +1376,7 @@ public class PlayerMov : MonoBehaviour
 
                 // BedRoomKey 활성화
                 var keyTr = laundryRoot.transform.Find("BedRoomKey1");
-                if (keyTr != null)
-                    keyTr.gameObject.SetActive(true);
+                keyTr.gameObject.SetActive(true);
             }
 
             hasLaundryMission = false;

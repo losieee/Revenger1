@@ -125,6 +125,24 @@ public class OptionsPanel : MonoBehaviour
 
     public void GameExit()
     {
+        var player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            Destroy(player.gameObject);
+        }
+
+        var bootstrap = FindObjectOfType<GameBootstrap>();
+        if (bootstrap != null)
+        {
+            Destroy(bootstrap.gameObject);
+        }
+
+        var sound = FindObjectOfType<SoundManager>();
+        if (sound != null)
+        {
+            Destroy(sound.gameObject);
+        }
+
         SceneManager.sceneLoaded += OnMainLobbyLoaded;
         SceneManager.LoadScene("MainLobby");
     }

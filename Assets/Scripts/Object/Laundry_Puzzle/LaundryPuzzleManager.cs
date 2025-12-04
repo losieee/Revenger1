@@ -358,6 +358,8 @@ public class LaundryPuzzleManager : MonoBehaviour
         activeSet.Clear();
         puzzleCleared = false;
 
+        GetComponentInParent<PlayerMov>()._laundryRangeDisabled = false;
+
         for (int i = 0; i < isOn.Length; i++)
         {
             isOn[i] = false;

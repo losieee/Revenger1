@@ -143,6 +143,9 @@ public class ButtonControl : MonoBehaviour
         if (guestRoomPuzzle != null)
             guestRoomPuzzle.ResetAllPuzzles();
 
+        if (LaundryPuzzleManager.i != null)
+            LaundryPuzzleManager.i.ResetLaundryPuzzle();
+
         // 전역 상태 복구
         AudioListener.pause = false;
         Time.timeScale = 1f;
