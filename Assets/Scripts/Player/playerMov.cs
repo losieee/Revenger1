@@ -482,6 +482,7 @@ public class PlayerMov : MonoBehaviour
         if (!isMenu) { AudioListener.pause = false; Time.timeScale = 1f; }
 
         RebindMinimapAndEnemies();
+        InitDoorsForPlayer();
 
         var cam = Camera.main;
         if (cam && _hasSavedCamMask) { cam.cullingMask = _savedCamMask; _hasSavedCamMask = false; }
@@ -495,6 +496,24 @@ public class PlayerMov : MonoBehaviour
         {
             checkPoint1 = true;
             checkPoint2 = false;
+        }
+    }
+
+    void InitDoorsForPlayer()
+    {
+        doors.Clear();
+        nearDoorLeaves.Clear();
+
+        foreach (var go in GameObject.FindGameObjectsWithTag("Door"))
+        {
+            var col = go.GetComponent<Collider>();
+            if (col) BindDoor(col, +1, forceInit: true);
+        }
+
+        foreach (var go in GameObject.FindGameObjectsWithTag("MinDoor"))
+        {
+            var col = go.GetComponent<Collider>();
+            if (col) BindDoor(col, -1, forceInit: true);
         }
     }
 
@@ -2663,21 +2682,25 @@ public class PlayerMov : MonoBehaviour
         return cur;
     }
 
-    void BindDoor(Collider other, int sign, bool requiresBedroomKey = false)
+    void BindDoor(Collider other, int sign, bool requiresBedroomKey = false, bool forceInit = false)
     {
         var leaf = FirstLeafChild(other.transform);
         if (!leaf) return;
 
         nearDoorLeaves.Add(leaf);
 
-        if (!doors.TryGetValue(leaf, out var data))
+        if (!doors.TryGetValue(leaf, out var data) || forceInit)
         {
-            var e = leaf.localEulerAngles;
+            var eClosed = leaf.localEulerAngles;
+            var closedRot = leaf.localRotation;
+            var openRot = Quaternion.Euler(eClosed.x, eClosed.y, eClosed.z + sign * doorZDelta);
+
             data = new DoorData
             {
-                closed = leaf.localRotation,
-                open = Quaternion.Euler(e.x, e.y, e.z + sign * doorZDelta),
-                isOpen = Mathf.Abs(Mathf.DeltaAngle(e.z, e.z + sign * doorZDelta)) < 5f,
+                closed = closedRot,
+                open = openRot,
+                isOpen = Quaternion.Angle(leaf.localRotation, openRot)
+                       < Quaternion.Angle(leaf.localRotation, closedRot),
                 sign = sign,
                 requiresBedroomKey = requiresBedroomKey
             };
