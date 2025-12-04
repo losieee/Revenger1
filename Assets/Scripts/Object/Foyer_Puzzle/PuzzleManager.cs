@@ -46,7 +46,12 @@ public class PuzzleManager : MonoBehaviour
                 _solved = true;
                 failCount = 0;
                 audioSource.PlayOneShot(success, 0.5f);
-                KeyManager.i.AddKey(1);
+
+                if (!string.Equals(gameObject.name, "GuestManager"))
+                {
+                    KeyManager.i.AddKey(1);
+                }
+
                 try { onSolved?.Invoke(); }
                 finally { _firing = false; }
                 return;
