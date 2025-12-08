@@ -273,6 +273,13 @@ public class EnemyMov : MonoBehaviour
             return; // player 없으면 시야/추격 로직 스킵
         }
 
+        if (PlayerMov.IsDeadGlobal)
+        {
+            if (!isFrozen)
+                FreezeForAttack(true);
+            return;
+        }
+
         if (isDead || state == EnemyState.Dead || isFrozen)
         {
             animator?.SetFloat("Speed", 0f);

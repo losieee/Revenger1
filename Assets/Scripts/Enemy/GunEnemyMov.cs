@@ -218,6 +218,40 @@ public class GunEnemyMov : MonoBehaviour
 
     void Update()
     {
+        if (PlayerMov.IsDeadGlobal)
+        {
+            // 상태/타이머 리셋
+            state = EnemyState.Patrol;
+            lostPlayerTimer = 0f;
+            chasingFromCorpse = false;
+            sawCorpse = false;
+            ResetSoundDetection();
+            _isInShootRange = false;
+            _lockMoveForAction = false;
+            if (animator)
+            {
+                animator.SetFloat(Hash_Speed, 0f);
+                animator.SetBool(Hash_IsShooting, false);
+                animator.ResetTrigger(Hash_ShootTrigger);
+            }
+
+            StopChaseLoopCapped();
+
+            if (AgentReady())
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                agent.ResetPath();
+            }
+
+            if (questionMark) questionMark.SetActive(false);
+            if (answerMarkexclamationMark) answerMarkexclamationMark.SetActive(false);
+            if (miniQuestionMark) miniQuestionMark.SetActive(false);
+            if (miniAnswerMark) miniAnswerMark.SetActive(false);
+
+            return;
+        }
+
         if (!player)
         {
             _rebindTick -= Time.deltaTime;
@@ -936,6 +970,13 @@ public class GunEnemyMov : MonoBehaviour
         }
 
         animator.SetFloat("Speed", 0f);
+
+        if (on)
+        {
+            animator.SetBool(Hash_IsShooting, false);
+            animator.ResetTrigger(Hash_ShootTrigger);
+        }
+
         StopChaseLoopCapped();
         audioSource?.Stop();
         if (miniQuestionMark) miniQuestionMark.SetActive(false);
@@ -978,9 +1019,9 @@ public class GunEnemyMov : MonoBehaviour
 
     void TryShootAtPlayer(float dist)
     {
-        if (dist > fireRange) return;
+        if (PlayerMov.IsDeadGlobal) return;
 
-        audioSource.PlayOneShot(enemySounds[4], 1f);
+        if (dist > fireRange) return;
 
         if (Time.time - _lastFireTimeRanged < fireCooldown) return;
         if (!firePoint || !player) return;
@@ -997,6 +1038,13 @@ public class GunEnemyMov : MonoBehaviour
     {
         if (!firePoint || !player) return;
 
+        if (audioSource && enemySounds != null && enemySounds.Length > 4 && enemySounds[4])
+        {
+            audioSource.PlayOneShot(enemySounds[4], 1f);
+        }
+
+        if (PlayerMov.IsDeadGlobal) return;
+
         Vector3 origin = firePoint.position;
         Vector3 targetPos = player.position + Vector3.up * targetHeight;
         Vector3 dir = (targetPos - origin).normalized;
@@ -1004,16 +1052,24 @@ public class GunEnemyMov : MonoBehaviour
         if (Physics.Raycast(origin, dir, out RaycastHit hit, fireRange, hitMask, QueryTriggerInteraction.Ignore))
         {
             Debug.DrawLine(origin, hit.point, Color.red, 0.3f);
+            Debug.Log(hit.collider);
 
-            if (hit.collider.CompareTag("Player"))
+            if (hit.collider.CompareTag("BodyFront"))
             {
                 var player = hit.collider.GetComponentInParent<PlayerMov>();
                 if (player != null)
                 {
-                    player.DieByBullet();
+                    player.DieByBulletBack();
                 }
             }
-
+            else if (hit.collider.CompareTag("BodyBack"))
+            {
+                var player = hit.collider.GetComponentInParent<PlayerMov>();
+                if (player != null)
+                {
+                    player.DieByBulletFront();
+                }
+            }
         }
         else
         {

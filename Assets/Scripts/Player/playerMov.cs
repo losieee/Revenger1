@@ -9,6 +9,13 @@ using UnityEngine.Audio;
 using UnityEditor;
 using UnityEngine.UI;
 
+public enum DeathAnimType
+{
+    Default,
+    Front,
+    Back
+}
+
 [RequireComponent(typeof(Rigidbody))]
 [DefaultExecutionOrder(-100)]
 public class PlayerMov : MonoBehaviour
@@ -81,6 +88,8 @@ public class PlayerMov : MonoBehaviour
 
     // 외부에서 읽을 수 있도록 공개(추가)
     public bool IsELocked => eLocked;
+    public static bool IsDeadGlobal { get; private set; }
+
 
     private IEnumerator ELock(float sec)
     {
@@ -120,6 +129,8 @@ public class PlayerMov : MonoBehaviour
 
     // 바닥 감지 (BoxCollider 기반 + 코요테 타임)
     private BoxCollider box;
+    public BoxCollider frontBox;
+    public BoxCollider backBox;
     private EnemyMov killTarget = null;        // 암살 대상
     private float boxGroundExtra = 0.1f;       // 바닥까지 여유 캐스트 거리
     private float edgeProbeOffset = 0.18f;     // 앞/뒤/좌/우 보조 프로브 오프셋
@@ -544,7 +555,8 @@ public class PlayerMov : MonoBehaviour
     void Awake() 
     {
         RebindSceneUI(); 
-        SfxPlayer.outputGroup = sfxGroup; 
+        SfxPlayer.outputGroup = sfxGroup;
+        IsDeadGlobal = false;
     }
 
     void RebindSceneUI()
@@ -1448,11 +1460,17 @@ public class PlayerMov : MonoBehaviour
     }
 
     // 총맞았을 때
-    public void DieByBullet()
+    public void DieByBulletFront()
     {
-        if (_isGameOver) return;          // 중복 실행 방지
-        _isGameOver = true;
-        StartCoroutine(GameOverSequence());
+        if (IsDeadGlobal) return;
+        IsDeadGlobal = true;
+        Die(DeathAnimType.Front);
+    }
+    public void DieByBulletBack()
+    {
+        if (IsDeadGlobal) return; 
+        IsDeadGlobal = true;
+        Die(DeathAnimType.Back);
     }
 
     // 엎드려있는 상태에서 앉기
@@ -2465,7 +2483,7 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("Discorver")) 
         {
-            StartCoroutine(GameOverSequence());
+            Die(DeathAnimType.Default);
         }
 
         if (other.CompareTag("Door"))
@@ -2663,9 +2681,32 @@ public class PlayerMov : MonoBehaviour
         if(other.CompareTag("Manhole")) nearNPC.gameObject.SetActive(false);
     }
 
-    private IEnumerator GameOverSequence()
+    public void Die(DeathAnimType type = DeathAnimType.Default)
     {
-        SoundManager.i?.PlaySFX(PlayerSfx.BodyguardAttack, SfxBus.Effect, 1f);
+        if (_isGameOver) return;
+        _isGameOver = true;
+
+        StartCoroutine(GameOverSequence(type));
+    }
+
+    private IEnumerator GameOverSequence(DeathAnimType type)
+    {
+        switch (type)
+        {
+            case DeathAnimType.Default:
+                SoundManager.i?.PlaySFX(PlayerSfx.BodyguardAttack, SfxBus.Effect, 1f);
+                animator.SetTrigger("isDead");
+                break;
+            case DeathAnimType.Front:
+                animator.SetTrigger("GunFrontDead");
+                break;
+            case DeathAnimType.Back:
+                animator.SetTrigger("GunBackDead");
+                break;
+        }
+
+        yield return new WaitForSeconds(0.5f);
+
         ShowOverlayPanel_NoPause(gameOverUI);
 
         yield return new WaitForSecondsRealtime(0.5f);
@@ -3202,7 +3243,9 @@ public class PlayerMov : MonoBehaviour
     public void SetPlayerColliderEnabled(bool enabled)
     {
         if (!box)
+        {
             box = GetComponent<BoxCollider>();
+        }
         if (!rb)
             rb = GetComponent<Rigidbody>();
 
@@ -3212,12 +3255,16 @@ public class PlayerMov : MonoBehaviour
         {
             _colDisableDepth = 0;
             box.enabled = true;
+            frontBox.enabled = true;
+            backBox.enabled = true;
             rb.useGravity = true;
             rb.velocity = Vector3.zero;
         }
         else
         {
             box.enabled = false;
+            frontBox.enabled = false;
+            backBox.enabled = false;
             rb.useGravity = false;
             rb.velocity = Vector3.zero;
             GetComponent<KeyManager>().keyCount = 0;
