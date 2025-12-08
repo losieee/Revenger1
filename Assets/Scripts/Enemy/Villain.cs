@@ -1,4 +1,6 @@
+using System.Collections; // 코루틴 사용을 위해 필요
 using UnityEngine;
+using UnityEngine.Rendering; // [추가됨] Volume 컴포넌트 제어를 위해 필수
 
 public class Villain : MonoBehaviour
 {
@@ -155,7 +157,53 @@ public class Villain : MonoBehaviour
 
         UpdateMark();
         anim.SetTrigger("isDead");
-        
+
+        // [추가됨] 사망 시 볼륨 Weight 증가 코루틴 실행
+        StartCoroutine(FadeInVolumeWeight());
+    }
+
+    // [추가됨] EventSystem 오브젝트의 Volume을 찾아 3초간 Weight를 0->1로 변경
+    IEnumerator FadeInVolumeWeight()
+    {
+        // 1. EventSystem 이름을 가진 오브젝트 찾기
+        GameObject eventSystemObj = GameObject.Find("EventSystem");
+
+        // 혹은 태그나 FindObjectOfType을 사용할 수도 있습니다.
+        // if (eventSystemObj == null) eventSystemObj = FindObjectOfType<UnityEngine.EventSystems.EventSystem>()?.gameObject;
+
+        if (eventSystemObj != null)
+        {
+            // 2. Volume 컴포넌트 가져오기
+            Volume vol = eventSystemObj.GetComponent<Volume>();
+
+            if (vol != null)
+            {
+                float duration = 3.0f; // 3초 동안
+                float currentTime = 0f;
+                float startWeight = 0f;
+                float targetWeight = 1f;
+
+                vol.weight = startWeight; // 시작 값 0으로 초기화
+
+                while (currentTime < duration)
+                {
+                    currentTime += Time.deltaTime;
+                    // Lerp를 이용해 부드럽게 증가
+                    vol.weight = Mathf.Lerp(startWeight, targetWeight, currentTime / duration);
+                    yield return null;
+                }
+
+                vol.weight = targetWeight; // 마지막에 확실하게 1로 설정
+            }
+            else
+            {
+                Debug.LogWarning("EventSystem 오브젝트에 Volume 컴포넌트가 없습니다.");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("EventSystem 이름의 오브젝트를 찾을 수 없습니다.");
+        }
     }
 
     public void OnDieAnimationEnd()
@@ -163,8 +211,6 @@ public class Villain : MonoBehaviour
         var player = FindObjectOfType<PlayerMov>();
         if (player == null)
             return;
-        
-
 
         if (player != null && player.stage1GameClearUI != null)
             player.AE_Stage1GameClearMoment();
@@ -175,8 +221,6 @@ public class Villain : MonoBehaviour
         var player = FindObjectOfType<PlayerMov>();
         if (player == null)
             return;
-
-
 
         if (player != null && player.stage2GameClearUI != null)
             player.AE_Stage2GameClearMoment();
