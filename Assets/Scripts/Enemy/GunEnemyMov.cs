@@ -127,6 +127,7 @@ public class GunEnemyMov : MonoBehaviour
     float _lastFireTimeRanged = -999f;
     public int rayDamage = 10;          // 인스펙터에서 조절할 데미지
     public LayerMask hitMask = ~0;      // 맞출 레이어(기본은 전체) - 헤더에 추가해도 좋음
+    public float shootOffset = 0.8f;
 
     public bool IsChasingPublic => state == EnemyState.Chasing;
 
@@ -1046,7 +1047,7 @@ public class GunEnemyMov : MonoBehaviour
         if (PlayerMov.IsDeadGlobal) return;
 
         Vector3 origin = firePoint.position;
-        Vector3 targetPos = player.position + Vector3.up * targetHeight;
+        Vector3 targetPos = player.position + Vector3.down * shootOffset;
         Vector3 dir = (targetPos - origin).normalized;
 
         if (Physics.Raycast(origin, dir, out RaycastHit hit, fireRange, hitMask, QueryTriggerInteraction.Ignore))
@@ -1062,7 +1063,7 @@ public class GunEnemyMov : MonoBehaviour
                     player.DieByBulletBack();
                 }
             }
-            else if (hit.collider.CompareTag("BodyBack"))
+            else if (hit.collider.CompareTag("BodyBack") || hit.collider.CompareTag("Player"))
             {
                 var player = hit.collider.GetComponentInParent<PlayerMov>();
                 if (player != null)

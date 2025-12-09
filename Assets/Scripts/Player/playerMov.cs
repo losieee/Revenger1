@@ -122,6 +122,7 @@ public class PlayerMov : MonoBehaviour
     private bool canRun = true;
     private bool canKill = false;
     private bool _isGameOver = false;
+    bool isDead = false;
 
     private float moveX, moveY, velX, velY;
     private float smoothTime = 0.05f;
@@ -664,6 +665,17 @@ public class PlayerMov : MonoBehaviour
 
     void Update()
     {
+        if(isCrawling || isCrouching)
+        {
+            frontBox.gameObject.SetActive(false);
+            backBox.gameObject.SetActive(false);
+        }
+        else
+        {
+            frontBox.gameObject.SetActive(true);
+            backBox.gameObject.SetActive(true);
+        }
+
         if (_sceneInputGraceTimer > 0f) _sceneInputGraceTimer -= Time.deltaTime;
 
         if (SceneManager.GetActiveScene().name == "Helper Talking" || SceneManager.GetActiveScene().name == "Loading" || (SceneManager.GetActiveScene().name == "Home") && !seeSetting)
@@ -2137,6 +2149,12 @@ public class PlayerMov : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (isDead || blockInput)
+        {
+            rb.velocity = Vector3.zero;
+            return;
+        }
+
         if (ghostMode)
         {
             rb.velocity = Vector3.zero;
@@ -2483,6 +2501,8 @@ public class PlayerMov : MonoBehaviour
 
         if (other.CompareTag("Discorver")) 
         {
+            if (IsDeadGlobal) return;
+            IsDeadGlobal = true;
             Die(DeathAnimType.Default);
         }
 
@@ -2691,6 +2711,12 @@ public class PlayerMov : MonoBehaviour
 
     private IEnumerator GameOverSequence(DeathAnimType type)
     {
+        if (isDead) yield break;
+
+        isDead = true;
+        blockInput = true;
+        rb.velocity = Vector3.zero;
+
         switch (type)
         {
             case DeathAnimType.Default:
@@ -2705,13 +2731,57 @@ public class PlayerMov : MonoBehaviour
                 break;
         }
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(2f);
 
         ShowOverlayPanel_NoPause(gameOverUI);
 
         yield return new WaitForSecondsRealtime(0.5f);
 
         AudioListener.pause = true;
+    }
+
+    public void ResetDeathState()
+    {
+        IsDeadGlobal = false;
+        _isGameOver = false;
+
+        isDead = false;
+        _attackLocked = false;
+        isAssassinating = false;
+        pendingAssassination = null;
+        isClimbing = false;
+        isHolding = false;
+
+        blockInput = false;
+        _animLockDepth = 0;
+        ghostMode = false;
+
+        SetPlayerColliderEnabled(true);
+
+        if (rb != null)
+        {
+            rb.useGravity = true;
+            rb.isKinematic = false;
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        UnlockControls(hideCursor: true);
+
+        if (animator)
+        {
+            animator.ResetTrigger("isDead");
+            animator.ResetTrigger("GunFrontDead");
+            animator.ResetTrigger("GunBackDead");
+
+            animator.SetBool("IsCrouching", false);
+            animator.SetBool("IsCrawling", false);
+            animator.SetBool("IsFalling", false);
+
+            animator.Play("Locomotion", 0, 0f);
+        }
+
+        ClearAllTriggerStates();
     }
 
     // 문열기

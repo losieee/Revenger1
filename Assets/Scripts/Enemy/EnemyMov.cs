@@ -262,21 +262,63 @@ public class EnemyMov : MonoBehaviour
 
     void Update()
     {
+        if (PlayerMov.IsDeadGlobal)
+        {
+            // 상태/타이머 리셋
+            state = EnemyState.Patrol;
+            lostPlayerTimer = 0f;
+            chasingFromCorpse = false;
+            sawCorpse = false;
+            ResetSoundDetection();
+            escalateSightTimer = 0f;
+            investigateTimer = 0f;
+            externalInvestigate = false;
+            externalStayTimer = 0f;
+
+            // 공격 상태 리셋
+            _isAttacking = false;
+            if (_attackLayerRoutine != null)
+            {
+                StopCoroutine(_attackLayerRoutine);
+                _attackLayerRoutine = null;
+            }
+            if (_attackLayer >= 0 && animator)
+                animator.SetLayerWeight(_attackLayer, 0f);
+
+            if (animator)
+            {
+                animator.SetFloat("Speed", 0f);
+            }
+
+            StopChaseLoopCapped();
+            audioSource?.Stop();
+
+            if (AgentReady())
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                agent.ResetPath();
+                agent.speed = 0f;
+            }
+
+            if (questionMark) questionMark.SetActive(false);
+            if (answerMarkexclamationMark) answerMarkexclamationMark.SetActive(false);
+            if (miniQuestionMark) miniQuestionMark.SetActive(false);
+            if (miniAnswerMark) miniAnswerMark.SetActive(false);
+            if (catchBox) catchBox.enabled = false;
+            if (attackBox) attackBox.enabled = false;
+
+            return;
+        }
+
         if (!player)
         {
             _rebindTick -= Time.deltaTime;
             if (_rebindTick <= 0f)
             {
                 player = TryFindPlayer();
-                _rebindTick = 0.5f; // 0.5초마다 재시도
+                _rebindTick = 0.5f;
             }
-            return; // player 없으면 시야/추격 로직 스킵
-        }
-
-        if (PlayerMov.IsDeadGlobal)
-        {
-            if (!isFrozen)
-                FreezeForAttack(true);
             return;
         }
 

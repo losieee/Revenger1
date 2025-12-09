@@ -92,7 +92,6 @@ public class DressRoomPuzzleManager : MonoBehaviour
 
     public void ResetDressPuzzle()
     {
-        Debug.Log("Reset");
         failCount = 0;
 
         for (int i = 0; i < dressNums.Length; i++)

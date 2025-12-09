@@ -226,6 +226,7 @@ MonoBehaviour:
   segments: 50
   enemy: {fileID: 0}
   villain: {fileID: 0}
+  gunEnemy: {fileID: 4429099503127469613}
   occluderMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -423,9 +424,9 @@ Transform:
   m_GameObject: {fileID: 629037071900078198}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 28.42, z: 0}
-  m_LocalScale: {x: 2.4832468, y: 2.4832463, z: 2.4832463}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: -30.000004, z: 0}
+  m_LocalScale: {x: 3.3300002, y: 3.3300002, z: 3.3300002}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2011114680242093824}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
@@ -3493,7 +3494,7 @@ MonoBehaviour:
   corpseRequiresLineOfSight: 1
   occluderMask:
     serializedVersion: 2
-    m_Bits: 16777281
+    m_Bits: 16777289
   arriveSlack: 0.15
   waypointStopDist: 0.1
   footstepVolume: 0.7
@@ -3507,6 +3508,7 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  shootOffset: 0
 --- !u!95 &6768508787503278435
 Animator:
   serializedVersion: 5
@@ -3721,9 +3723,9 @@ Transform:
   m_GameObject: {fileID: 9042778843922821732}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 28.42, z: 0}
-  m_LocalScale: {x: 0.50975, y: 0.50975, z: 0.50975}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: -30, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 2011114680242093824}
   m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}

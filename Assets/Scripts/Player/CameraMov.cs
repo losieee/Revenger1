@@ -8,6 +8,15 @@ public class CameraMov : MonoBehaviour
 
     [Header("Follow Target")]
     public Transform target;         // 플레이어 루트(또는 카메라 피벗)
+    public Transform dieTarget;
+    [SerializeField] string dieTargetChildName = "DieCam";
+
+    [Header("죽었을때 카메라")]
+    public float deathBlendDuration = 1.0f;
+    bool _deathBlendActive = false;
+    float _deathBlendT = 0f;
+    Vector3 _deathBlendPos0;
+    Quaternion _deathBlendRot0;
 
     [Header("카메라 옵션")]
     public float mouseSensitivity = 3f;
@@ -129,6 +138,19 @@ public class CameraMov : MonoBehaviour
 
     void LateUpdate()
     {
+        bool playerDead = PlayerMov.IsDeadGlobal;
+
+        if (playerDead && dieTarget && !_deathBlendActive)
+        {
+            BeginDeathCamera();
+        }
+
+        if (_deathBlendActive)
+        {
+            UpdateDeathCamera();
+            return;
+        }
+
         if (Time.timeScale == 0f || !GetPivot()) return;
 
         float mouseX = 0f;
@@ -146,18 +168,18 @@ public class CameraMov : MonoBehaviour
 
         Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
 
-        // 2) 타겟 기준점 (엎드리기 오프셋 포함)
+        // 타겟 기준점
         if (crawlLerp <= 0f) crawlLerp = 0.01f;
         float kCrawl = Mathf.Clamp01(Time.deltaTime / crawlLerp);
         _crawlY = Mathf.Lerp(_crawlY, _crawlYTarget, kCrawl);
 
         Transform pivot = GetPivot();
-        Vector3 basePos = pivot.position; // pivot을 기준으로 삼는다(있으면)
+        Vector3 basePos = pivot.position;
         Vector3 targetPos = basePos + Vector3.up * (heightOffset - _crawlY);
 
-        // 3) 충돌 감지 (벽에 막히면 거리 줄임)
+        // 3) 충돌 감지
         float targetDistance = distance;
-        Vector3 camDir = (rotation * Vector3.back).normalized; // 뒤(-Z)
+        Vector3 camDir = (rotation * Vector3.back).normalized;
 
         Ray ray = new Ray(targetPos, camDir);
         if (Physics.SphereCast(ray, collisionRadius, out RaycastHit hit, distance, collisionLayers, QueryTriggerInteraction.Ignore))
@@ -165,11 +187,11 @@ public class CameraMov : MonoBehaviour
             targetDistance = Mathf.Clamp(hit.distance - collisionOffset, minDistance, distance);
         }
 
-        // 4) 당길 땐 빠르게, 풀릴 땐 느리게
+        // 당길 땐 빠르게, 풀릴 땐 느리게
         float st = (targetDistance < currentDistance) ? pullInSmoothTime : relaxOutSmoothTime;
         currentDistance = Mathf.SmoothDamp(currentDistance, targetDistance, ref distanceVelocity, st);
 
-        // 5) 실제 위치/회전 적용 (+ 라인캐스트 재확인)
+        // 5) 실제 위치/회전 적용
         Vector3 desiredPos = targetPos + camDir * currentDistance;
         if (Physics.Linecast(targetPos, desiredPos, out RaycastHit hit2, collisionLayers, QueryTriggerInteraction.Ignore))
         {
@@ -205,17 +227,91 @@ public class CameraMov : MonoBehaviour
         }
     }
 
-    // 플레이어를 바인딩한다.
+    // 죽었을 때 카메라 위치
+    public void BeginDeathCamera(float overrideDuration = -1f)
+    {
+        if (!dieTarget)
+            return;
+
+        _deathBlendActive = true;
+        _deathBlendT = 0f;
+        _deathBlendPos0 = transform.position;
+        _deathBlendRot0 = transform.rotation;
+
+        lockLook = true;
+
+        if (overrideDuration > 0f)
+            deathBlendDuration = overrideDuration;
+    }
+    void UpdateDeathCamera()
+    {
+        if (!dieTarget)
+        {
+            _deathBlendActive = false;
+            return;
+        }
+
+        float dur = Mathf.Max(0.01f, deathBlendDuration);
+        _deathBlendT += Time.unscaledDeltaTime / dur;
+        float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_deathBlendT));
+
+        // 위치
+        Vector3 targetPos = dieTarget.position;
+        Vector3 pos = Vector3.Lerp(_deathBlendPos0, targetPos, k);
+
+        // 회전
+        Transform pivot = GetPivot();
+        Vector3 lookAtPos;
+
+        if (pivot)
+        {
+            lookAtPos = pivot.position + Vector3.up * heightOffset;
+        }
+        else
+        {
+            lookAtPos = targetPos + dieTarget.forward;
+        }
+
+        Vector3 dir = lookAtPos - pos;
+        if (dir.sqrMagnitude < 0.0001f)
+            dir = -dieTarget.forward;
+
+        Quaternion lookRot = Quaternion.LookRotation(dir.normalized, Vector3.forward);
+        Quaternion rot = Quaternion.Slerp(_deathBlendRot0, lookRot, k);
+
+        transform.position = pos;
+        transform.rotation = rot;
+
+        if (k >= 1f)
+        {
+            _deathBlendActive = false;
+        }
+    }
+
+    // 플레이어 바인딩
     public void BindPlayer(Transform playerRootOrPivot, Transform optionalExplicitPivot = null)
     {
         if (!playerRootOrPivot) return;
         target = playerRootOrPivot;
 
-        // 처음 물릴 때 플레이어 바라보도록 간단 리센터
-        Vector3 fwd = GetPivot().forward; fwd.y = 0f;
-        if (fwd.sqrMagnitude > 0.001f)
+        if (!dieTarget && !string.IsNullOrEmpty(dieTargetChildName))
         {
-            yaw = Quaternion.LookRotation(fwd.normalized, Vector3.up).eulerAngles.y;
+            var dt = FindChildRecursive(playerRootOrPivot, dieTargetChildName);
+            if (dt)
+            {
+                dieTarget = dt;
+            }
+        }
+
+        Transform pivot = GetPivot();
+        if (pivot)
+        {
+            Vector3 fwd = pivot.forward;
+            fwd.y = 0f;
+            if (fwd.sqrMagnitude > 0.001f)
+            {
+                yaw = Quaternion.LookRotation(fwd.normalized, Vector3.up).eulerAngles.y;
+            }
         }
     }
 
@@ -323,5 +419,21 @@ public class CameraMov : MonoBehaviour
             yield return null;
         }
         yaw = targetYaw;
+    }
+
+    Transform FindChildRecursive(Transform root, string childName)
+    {
+        if (!root) return null;
+
+        if (root.name == childName)
+            return root;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            var c = root.GetChild(i);
+            var found = FindChildRecursive(c, childName);
+            if (found) return found;
+        }
+        return null;
     }
 }

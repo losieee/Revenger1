@@ -129,7 +129,11 @@ public class ButtonControl : MonoBehaviour
     public void StartGame()
     {
         var player = FindObjectOfType<PlayerMov>();
-        if (player) player.SetPlayerColliderEnabled(true);
+        if (player)
+        {
+            player.SetPlayerColliderEnabled(true);
+            player.ResetDeathState();
+        }
 
         if (KeyManager.i != null)
             KeyManager.i.ResetKeys();
@@ -146,16 +150,13 @@ public class ButtonControl : MonoBehaviour
         if (LaundryPuzzleManager.i != null)
             LaundryPuzzleManager.i.ResetLaundryPuzzle();
 
-        // 전역 상태 복구
-        AudioListener.pause = false;
         Time.timeScale = 1f;
-        Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.None;
+        AudioListener.pause = false;
 
         GameObject.Find("Player").GetComponent<PlayerMov>().seeSetting = false;
 
         // 멈춤/클리어/오버 패널들 숨기기
-        HidePanelByName("GameOver");
+        //HidePanelByName("GameOver");
         HidePanelByName("GameClear");
         HidePanelByName("OptionPop");
         HidePanelByName("Weapon_Choice_Panel");
@@ -174,6 +175,12 @@ public class ButtonControl : MonoBehaviour
             targetScene = "Clear_1_stage_inside";
             targetSpawn = "Default";
             showCursorOnLoad = false;
+        }
+
+        if (player != null)
+        {
+            //player.HidePausePanel(player.gameOverUI);
+            player.ResetDeathState();
         }
 
         if (ScreenFader.i != null)
