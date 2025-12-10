@@ -41,6 +41,7 @@ public class PlayerMov : MonoBehaviour
     public GameObject minimapOut;
     public GameObject minimap_2_Out;
     public GameObject minimapStage1Clear;
+    public GameObject pictureUI;
     public GameObject[] enemies1f;
     public GameObject laundryPuzzle;    
     [SerializeField] Image poseImgPat;
@@ -340,6 +341,7 @@ public class PlayerMov : MonoBehaviour
     private Quaternion _preViewCamRot;
     private float _preViewCamFov;
     private Coroutine _camBlendRoutine;
+    private bool inPictureRange = false;
 
     [Header("휴게실 미션")]
     private bool hasFoyerMission = false;
@@ -589,6 +591,8 @@ public class PlayerMov : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponentInChildren<Animator>();
         cmov = cameraPivot ? cameraPivot.GetComponent<CameraMov>() : null;
+
+        nearDoorLeaves.Clear();
 
 
         gripLayer = animator.GetLayerIndex("RightHandGrip");
@@ -1408,6 +1412,19 @@ public class PlayerMov : MonoBehaviour
             nearNPC.gameObject.SetActive(false);
         }
 
+        // 서재 사진 확인 
+        if(inPictureRange && EPressed())
+        {
+            if (pictureUI.activeSelf)
+            {
+                HidePausePanel(pictureUI);
+            }
+            else
+            {
+                ShowPicture(pictureUI);
+            }
+        }
+
         // 휴게실 미션
         if (inFoyerRange && hasFoyerMission && EPressed() && !isCamBlending && foyerCamTarget)
         {
@@ -1629,6 +1646,24 @@ public class PlayerMov : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         if (!EventSystem.current)
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+    }
+
+    void EnterPictureView()
+    {
+        if (_lieMoveOn) { SoundManager.i.StopSFX(PlayerSfx.LieMoving); _lieMoveOn = false; }
+
+        // 조작 잠금
+        blockInput = true;
+        currentMoveInput = Vector3.zero;
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveY", 0f);
+        animator.SetFloat("Speed", 0f);
+        rb.velocity = Vector3.zero;
+
+        isLaundryView = true;
+        pictureUI.SetActive(true);
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     // 휴게실 시점
@@ -2541,6 +2576,12 @@ public class PlayerMov : MonoBehaviour
             inLaundryRange = true;
         }
 
+        if (other.CompareTag("Picture"))
+        {
+            nearNPC.gameObject.SetActive(true);
+            inPictureRange = true;
+        }
+
         if (other.CompareTag("foyerRange"))
         {
             nearNPC.gameObject.SetActive(true);
@@ -2635,6 +2676,12 @@ public class PlayerMov : MonoBehaviour
             hasLaundryMission = false;
             inLaundryRange = false;
             nearNPC.gameObject.SetActive(false);
+        }
+
+        if (other.CompareTag("Picture"))
+        {
+            nearNPC.gameObject.SetActive(false);
+            inPictureRange = false;
         }
 
         if (other.CompareTag("foyerRange"))
@@ -3249,6 +3296,22 @@ public class PlayerMov : MonoBehaviour
 
         if (panel == gameOverUI)
             SetPlayerColliderEnabled(false);
+    }
+
+    void ShowPicture(GameObject panel)
+    {
+        if (!panel) return;
+
+        panel.SetActive(true);
+
+        var cg = panel.GetComponent<CanvasGroup>();
+        if (!cg) cg = panel.AddComponent<CanvasGroup>();
+        cg.alpha = 1f;
+        cg.interactable = true;
+        cg.blocksRaycasts = true;
+
+        // 퍼즐 조작을 위해 커서 노출 + 잠금 해제
+        LockControls(showCursor: false);
     }
 
     bool AnyPauseOpen()
