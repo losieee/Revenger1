@@ -711,6 +711,24 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
+        if (isDead)
+        {
+            blockInput = true;
+            currentMoveInput = Vector3.zero;
+
+            if (rb)
+                rb.velocity = Vector3.zero;
+
+            if (animator)
+            {
+                animator.SetFloat("MoveX", 0f);
+                animator.SetFloat("MoveY", 0f);
+                animator.SetFloat("Speed", 0f);
+            }
+
+            return;
+        }
+
         if (seeSetting && !AnyPauseOpen() && !isLaundryView && !isFoyerView)
         {
             Cursor.visible = false;

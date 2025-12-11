@@ -7,6 +7,14 @@ using UnityEngine.Rendering;
 
 public class EnemyMov : MonoBehaviour
 {
+    [Header("Json 설정")]
+    public int enemyId = 1;
+
+    [Header("Json 스탯")]
+    public string enemyName;
+    public int enemyHealth;
+    public int enemyAttack;
+
     [Header("경로 이동 관련")]
     public AudioClip[] enemySounds;                 // 소리
     public Transform[] waypoints;                   // 순찰 할 경로
@@ -182,6 +190,21 @@ public class EnemyMov : MonoBehaviour
         return agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh;
     }
 
+    void ApplyEnemyConfigFromJson()
+    {
+        var cfg = EnemyConfigLoader.GetEnemy(enemyId);
+        if (cfg == null) return;
+        
+        walkSpeed = cfg.enemyMoveSpeed;
+        runSpeed = cfg.enemyRunSpeed;
+        viewAngle = cfg.enemyViewAngle;
+        viewDistance = cfg.enemyViewDistance;
+
+        enemyName = cfg.enemyName;
+        enemyHealth = cfg.enemyHealth;
+        enemyAttack = cfg.enemyAttack;
+    }
+
     void Start()
     {
         animator = GetComponent<Animator>();
@@ -211,6 +234,7 @@ public class EnemyMov : MonoBehaviour
         footstepAudio.maxDistance = 1f;                        // 발소리 가청 거리
         footstepAudio.priority = 200;                           // 우선순위 (낮을수록 높음)
 
+        ApplyEnemyConfigFromJson();
 
         originalViewAngle = viewAngle;
         lostPlayerTimer = 0f;
