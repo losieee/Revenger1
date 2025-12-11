@@ -10,12 +10,16 @@ public class SecretHoldSpot : MonoBehaviour
 
     bool playerIn = false;
     bool holding = false;
+    bool inSecret = false;
     Coroutine holdCo;
 
 
     void OnTriggerEnter(Collider other)
     {
         if (other.GetComponent<PlayerMov>()) playerIn = true;
+
+        if (other.CompareTag("Player"))
+            inSecret = true;
     }
     void OnTriggerExit(Collider other)
     {
@@ -24,6 +28,9 @@ public class SecretHoldSpot : MonoBehaviour
             playerIn = false;
             StopHold();
         }
+
+        if (other.CompareTag("Player"))
+            inSecret = false;
     }
 
     void Update()
@@ -32,6 +39,9 @@ public class SecretHoldSpot : MonoBehaviour
 
         bool hasLighter = PlayerInventory.Instance && PlayerInventory.Instance.ContainsId("Lighter");
         if (!hasLighter) return;
+
+
+        if (!inSecret) return;
 
         // 누르는 동안 진행
         if (KeyBindings.GetKey(GameAction.Interaction))

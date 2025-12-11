@@ -711,6 +711,32 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
+        if (pictureUI != null && pictureUI.activeSelf)
+        {
+            blockInput = true;
+            currentMoveInput = Vector3.zero;
+
+            if (rb)
+                rb.velocity = Vector3.zero;
+
+            if (animator)
+            {
+                animator.SetFloat("MoveX", 0f);
+                animator.SetFloat("MoveY", 0f);
+                animator.SetFloat("Speed", 0f);
+            }
+
+            if (CameraMov.i != null)
+                CameraMov.i.lockLook = true;
+
+            if (EPressed())
+            {
+                HidePausePanel(pictureUI);
+            }
+
+            return;
+        }
+
         if (isDead)
         {
             blockInput = true;
@@ -1233,6 +1259,7 @@ public class PlayerMov : MonoBehaviour
             if (guestBoxUI1 && guestBoxUI1.activeSelf) { HidePausePanel(guestBoxUI1); return; }
             if (guestBoxUI2 && guestBoxUI2.activeSelf) { HidePausePanel(guestBoxUI2); return; }
             if (guestBoxUI3 && guestBoxUI3.activeSelf) { HidePausePanel(guestBoxUI3); return; }
+            if (pictureUI && pictureUI.activeSelf) { HidePausePanel(pictureUI); return; }
             ShowPausePanel(optionUI);
         }
 
@@ -1431,16 +1458,9 @@ public class PlayerMov : MonoBehaviour
         }
 
         // 서재 사진 확인 
-        if(inPictureRange && EPressed())
+        if (inPictureRange && EPressed() && pictureUI != null && !pictureUI.activeSelf)
         {
-            if (pictureUI.activeSelf)
-            {
-                HidePausePanel(pictureUI);
-            }
-            else
-            {
-                ShowPicture(pictureUI);
-            }
+            ShowPicture(pictureUI);
         }
 
         // 휴게실 미션
@@ -3330,7 +3350,7 @@ public class PlayerMov : MonoBehaviour
         cg.blocksRaycasts = true;
 
         // 퍼즐 조작을 위해 커서 노출 + 잠금 해제
-        LockControls(showCursor: false);
+        LockControls(showCursor: true);
     }
 
     bool AnyPauseOpen()
@@ -3348,7 +3368,8 @@ public class PlayerMov : MonoBehaviour
             || (jewelryUI && jewelryUI.activeSelf)
             || (guestBoxUI1 && guestBoxUI1.activeSelf)
             || (guestBoxUI2 && guestBoxUI2.activeSelf)
-            || (guestBoxUI3 && guestBoxUI3.activeSelf);
+            || (guestBoxUI3 && guestBoxUI3.activeSelf)
+            || (pictureUI && pictureUI.activeSelf);
     }
 
     public void HidePausePanel(GameObject panel)
