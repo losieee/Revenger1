@@ -2844,7 +2844,8 @@ public class PlayerMov : MonoBehaviour
         var leaf = FirstLeafChild(other.transform);
         if (!leaf) return;
 
-        nearDoorLeaves.Add(leaf);
+        if (!forceInit)
+            nearDoorLeaves.Add(leaf);
 
         if (!doors.TryGetValue(leaf, out var data) || forceInit)
         {
