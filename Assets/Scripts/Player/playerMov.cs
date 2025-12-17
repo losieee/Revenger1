@@ -388,18 +388,6 @@ public class PlayerMov : MonoBehaviour
     private int _savedCamMask;
     private bool _hasSavedCamMask = false;
 
-    [Header("Ghost Mode")]
-    public bool ghostMode = false;
-    [SerializeField] private float ghostMoveSpeed = 8f;
-    [SerializeField] private float ghostVerticalSpeed = 5f;
-
-    private struct GhostColliderState
-    {
-        public Collider col;
-        public bool enabled;
-    }
-    private List<GhostColliderState> ghostColliderStates;
-
     // 무기를 들고있는가
     bool IsWeaponShown()
     {
@@ -767,17 +755,6 @@ public class PlayerMov : MonoBehaviour
 
             if (CameraMov.i != null)
                 CameraMov.i.lockLook = false;
-        }
-
-        // 유령화
-        if (Input.GetKeyDown(KeyCode.F1))
-        {
-            ToggleGhostMode();
-        }
-        if (ghostMode)
-        {
-            HandleGhostMovement();
-            return;
         }
 
         // 바닥 감지
@@ -1517,13 +1494,6 @@ public class PlayerMov : MonoBehaviour
             if (TryInteract())   // 먹기 or 슬롯 배치 성공 시
                 return;
         }
-
-        // 치트
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            transform.position = new Vector3(-0.956f, 5.022f, 19.404f);
-            KeyManager.i.canInBedroom = true;
-        }
     }
 
     // 총맞았을 때
@@ -2228,12 +2198,6 @@ public class PlayerMov : MonoBehaviour
             return;
         }
 
-        if (ghostMode)
-        {
-            rb.velocity = Vector3.zero;
-            return;
-        }
-
         if (blockInput || isClimbing || isHolding)
         {
             rb.velocity = Vector3.zero;
@@ -2839,7 +2803,6 @@ public class PlayerMov : MonoBehaviour
 
         blockInput = false;
         _animLockDepth = 0;
-        ghostMode = false;
 
         SetPlayerColliderEnabled(true);
 
@@ -3445,7 +3408,6 @@ public class PlayerMov : MonoBehaviour
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
 
-            ghostMode = false;
             isClimbing = false;
             isHolding = false;
             blockInput = true;
@@ -3795,100 +3757,6 @@ public class PlayerMov : MonoBehaviour
         if (WeaponManager.i == null) return false;
         if (WeaponManager.i.SelectedWeapon == WeaponManager.WeaponType.None) return false;
         return true;
-    }
-
-    void ToggleGhostMode()
-    {
-        ghostMode = !ghostMode;
-        if (ghostMode) EnableGhostMode();
-        else DisableGhostMode();
-    }
-
-    void EnableGhostMode()
-    {
-        ClearAllTriggerStates();
-
-        ghostColliderStates = new List<GhostColliderState>();
-        foreach (var c in GetComponentsInChildren<Collider>(true))
-        {
-            if (!c) continue;
-            ghostColliderStates.Add(new GhostColliderState { col = c, enabled = c.enabled });
-            c.enabled = false;
-        }
-
-        if (rb)
-        {
-            rb.useGravity = false;
-            rb.isKinematic = false;
-            rb.velocity = Vector3.zero;
-        }
-    }
-
-    void DisableGhostMode()
-    {
-        if (ghostColliderStates != null)
-        {
-            foreach (var st in ghostColliderStates)
-            {
-                if (st.col) st.col.enabled = st.enabled;
-            }
-            ghostColliderStates = null;
-        }
-
-        if (rb)
-        {
-            rb.useGravity = true;
-            rb.velocity = Vector3.zero;
-        }
-    }
-
-    void HandleGhostMovement()
-    {
-        if (!rb) return;
-
-        float h = KeyBindings.GetAxisHorizontal();
-        float v = KeyBindings.GetAxisVertical();
-
-        Vector3 camForward = cameraPivot ? cameraPivot.forward : transform.forward;
-        Vector3 camRight = cameraPivot ? cameraPivot.right : transform.right;
-        camForward.y = 0f; camRight.y = 0f;
-        camForward.Normalize();
-        camRight.Normalize();
-
-        Vector3 moveDir = (camForward * v + camRight * h);
-        if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
-
-        if (Input.GetKey(KeyCode.Space))
-            moveDir += Vector3.up * (ghostVerticalSpeed / Mathf.Max(ghostMoveSpeed, 0.01f));
-
-        if (Input.GetKey(KeyCode.LeftControl))
-            moveDir += Vector3.down * (ghostVerticalSpeed / Mathf.Max(ghostMoveSpeed, 0.01f));
-
-        float dt = Time.unscaledDeltaTime;
-        transform.position += moveDir * ghostMoveSpeed * dt;
-
-        rb.velocity = Vector3.zero;
-
-        Vector3 flat = new Vector3(moveDir.x, 0f, moveDir.z);
-        if (flat.sqrMagnitude > 0.001f)
-        {
-            Quaternion targetRot = Quaternion.LookRotation(flat, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRot,
-                rotSpeed * 200f * dt
-            );
-        }
-
-        if (animator)
-        {
-            animator.SetFloat("MoveX", 0f);
-            animator.SetFloat("MoveY", 0f);
-            animator.SetFloat("Speed", 0f);
-            animator.SetBool("IsCrouching", false);
-            animator.SetBool("IsCrawling", false);
-            animator.SetBool("IsFalling", false);
-        }
     }
 
     public void ApplyWeaponStats(WeaponJsonData data)
